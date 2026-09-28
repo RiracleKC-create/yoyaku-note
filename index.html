@@ -752,7 +752,7 @@ function renderMemberHint(){
   const last=st.list[0];
   $("memberHint").innerHTML=`<div class="member-hint num">
     <p><b>${st.count+1}回目</b>のご来店（うち指名 ${st.shimei}回）・累計 ${yen(st.sum)}</p>
-    <p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>
+    <p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}（${agoText(last.date,$("fDate").value||bizToday())}）　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>
     ${featHtml}
     ${last.memo?`<p>前回のメモ：${esc(last.memo)}</p>`:""}
   </div>`;
@@ -940,12 +940,17 @@ function bindRecs(root){root.querySelectorAll(".rec").forEach(b=>b.addEventListe
 // 予約の詳細を小窓で表示（編集は「編集する」から）
 let sheetId=null;
 function endTime(v){const m=vMin(v);if(!v.time||!m)return "";const [h,mi]=v.time.split(":").map(Number);const e=h*60+mi+m;return "〜"+Math.floor(e/60)+":"+pad(e%60)}
+// 前回来店（この予約より前の同じ会員番号の予約）
+function prevVisit(v){if(!v.member)return null;const k=v.date+v.time;return visits.find(x=>x.member===v.member&&x.id!==v.id&&(x.date+x.time)<k)||null}
+function daysBetween(a,b){return Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/86400000)}
+function agoText(from,to){const d=daysBetween(from,to);return d===0?"同じ日":d>0?d+"日前":(-d)+"日後"}
 function showDetail(v){
   sheetId=v.id;
   const prev=v.member?visits.filter(x=>x.member===v.member&&(x.date+x.time)<=(v.date+v.time)).length:0;
   const fee=feeOf(v);
   const rows=[
     ["会員番号",v.member?"No."+esc(v.member)+(prev?`（${prev}回目のご来店）`:""):"未入力"],
+    ...(v.member?[["前回来店",(pv=>pv?`${dayLabel(pv.date)} ${esc(timeLabel(pv.time))}<br><small style="color:var(--sub)">${agoText(pv.date,v.date)}・${esc(pv.course||"コース未入力")}・${typeLabel(pv.type)}</small>`:"初めてのご来店")(prevVisit(v))]]:[]),
     ["指名の種類",typeLabel(v.type)],
     ["性別",SEX[v.sex]||"未入力"],
     ["コース",esc(v.course||"未入力")+(vMin(v)?`（${vMin(v)}分）`:"")],
@@ -1117,6 +1122,12 @@ function renderMembers(){
     body.innerHTML=`<button class="back" id="memBack">‹ 会員一覧</button>
       <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(memberOpen)}</div>
       <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div></div>
+      ${(()=>{if(!list.length)return "";const l=list[0];const today=bizToday();
+        const gaps=[];for(let i=0;i<list.length-1;i++)gaps.push(daysBetween(list[i+1].date,list[i].date));
+        const avg=gaps.length?Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length):null;
+        return `<table class="brk" style="margin-top:10px"><tr><td>最終来店</td><td>${dayLabel(l.date)} ${esc(timeLabel(l.time))}（${agoText(l.date,today)}）</td></tr>
+          ${list[1]?`<tr><td>その前の来店</td><td>${dayLabel(list[1].date)} ${esc(timeLabel(list[1].time))}</td></tr>`:""}
+          ${avg!==null?`<tr><td>平均の来店間隔</td><td>${avg}日</td></tr>`:""}</table>`})()}
       <div id="memFeat"></div></div>
       ${list.map(v=>`<div class="day-head num" style="padding-top:4px"><span>${dayLabel(v.date)}</span></div>${recRow(v)}${v.memo?`<p class="note" style="margin:-2px 6px 10px">メモ：${esc(v.memo)}</p>`:""}`).join("")}`;
     renderFeature($("memFeat"),memberOpen);

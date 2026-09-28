@@ -193,6 +193,23 @@ h3{font-size:15px;margin:0 0 10px}
 .feat .txt{word-break:break-all}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .feat{background:#2B2417;border-color:#6B5427}
  :root:not([data-theme="light"]) .feat .txt{color:#F2E3C4} :root:not([data-theme="light"]) .feat h4,:root:not([data-theme="light"]) .feat-line{color:#E3B25C}}
+/* カメラ読み取り */
+#scanner{position:fixed;inset:0;z-index:60;background:#0B0F10;color:#E6ECEA;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#scanner[hidden]{display:none!important}
+.sc-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px}
+.sc-top button{border:0;background:#222B2D;color:#fff;width:40px;height:40px;border-radius:50%;font-size:18px}
+.sc-cam{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
+.sc-cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sc-guide{position:absolute;left:6%;right:6%;top:10%;bottom:10%;border:3px solid #E3B25C;border-radius:10px;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+.sc-guide span{position:absolute;top:-26px;left:0;right:0;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 2px #000}
+.sc-panel{padding:10px 14px 14px;max-height:55%;overflow:auto}
+.sc-status{font-size:14px;color:#98A8A2;margin-bottom:6px;min-height:20px}
+.sc-bar{height:5px;background:#2C3739;border-radius:3px;overflow:hidden;margin-bottom:10px}
+.sc-bar i{display:block;height:100%;width:0;background:#E3B25C;transition:width .2s}
+.sc-note{font-size:13px;color:#98A8A2;margin:10px 0 4px}
+#scText{width:100%;min-height:140px;background:#151C1E;color:#E6ECEA;border:1px solid #2C3739;border-radius:10px;padding:8px 10px;font:inherit;font-size:14px}
+#scanner .btn.ghost{color:#E6ECEA;border-color:#2C3739}
 /* 詳細の小窓 */
 #sheet{position:fixed;inset:0;z-index:50}
 #sheet .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
@@ -285,6 +302,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <label class="lbl" for="pasteBox">予約内容を貼り付け</label>
       <textarea class="fld" id="pasteBox" placeholder="予約通知の文章をここに貼り付けると、下の項目に自動で入力されます"></textarea>
       <div class="warn" id="pasteMsg"></div>
+      <button type="button" class="btn ghost" id="scanOpen" style="margin-top:8px">📷 カメラで読み取る（試作）</button>
     </div>
     <div class="card">
       <div class="row2">
@@ -441,6 +459,26 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <button data-tab="stats"><span class="ic">¥</span>集計</button>
   <button data-tab="members"><span class="ic">◎</span>会員</button>
 </nav>
+<div id="scanner" hidden>
+  <div class="sc-top">
+    <b>カメラで読み取る（試作）</b>
+    <button type="button" id="scanClose" aria-label="閉じる">✕</button>
+  </div>
+  <div class="sc-cam">
+    <video id="scVideo" playsinline muted autoplay></video>
+    <div class="sc-guide"><span>予約の小窓をこの枠に合わせる</span></div>
+  </div>
+  <div class="sc-panel">
+    <div class="sc-status" id="scStatus">カメラを起動しています…</div>
+    <div class="sc-bar"><i id="scBar"></i></div>
+    <button type="button" class="btn" id="scShot" disabled>読み取る</button>
+    <div id="scResult" hidden>
+      <p class="sc-note">読み取った文字（間違いはここで直せます）</p>
+      <textarea id="scText"></textarea>
+      <div class="btn-row"><button type="button" class="btn ghost" id="scRetry">もう一度</button><button type="button" class="btn" id="scUse">この内容で入力</button></div>
+    </div>
+  </div>
+</div>
 <div id="sheet" hidden>
   <div class="bg" id="sheetBg"></div>
   <div class="card2" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -861,7 +899,7 @@ $("deleteBtn").addEventListener("click",async()=>{
 const LABELS={
   "会員番号下3桁":"member","会員番号":"member","オプション名":"option","予約時間":"time",
   "選択したコース":"course","合計金額":"price","予約経路":"route","お疲れ部位":"area",
-  "指名有無":"shimei","コメント":"comment","性別":"sex"
+  "指名有無":"shimei","コメント":"comment","性別":"sex","強さ加減":"strength","予約番号":"skip","インターバル時間":"skip","インターバル":"skip"
 };
 const PART_WORDS=[["H",/ほぐし|ボディ|全身/],["A",/あたま|頭|ヘッド/],["F",/足つぼ|足ツボ|フット|足裏/],["T",/ハンド|手/]];
 function z2h(t){return t.replace(/[０-９：]/g,c=>c==="："?":":String.fromCharCode(c.charCodeAt(0)-0xFEE0))}
@@ -890,21 +928,38 @@ function parseReservation(text){
       let hit=PART_WORDS.find(([,re])=>re.test(c));
       // 首肩・背中・腰の集中コースは、ほぐし（H）の時間として扱う
       if(!hit&&found.some(k=>["kk","sn","kc"].includes(k)))hit=["H"];
-      if(hit&&min)r.parts[hit[0]]=(r.parts[hit[0]]||0)+min;else if(!found.length)r.other.push(c);
+      if(hit&&min)r.parts[hit[0]]=(r.parts[hit[0]]||0)+min;else if(!found.length&&/分/.test(c))r.other.push(c);
     });
   }
   (out.option||[]).flatMap(o=>o.split(/[、,，\/／]/)).map(o=>o.trim()).filter(Boolean).forEach(o=>{const f=findOpts(o);f.forEach(k=>{if(!r.opts.includes(k))r.opts.push(k)});if(!f.length)r.otherOpt.push(o)});
   if(out.price&&out.price[0]){const n=toInt(z2h(out.price[0]));if(n)r.price=n}
   if(out.shimei&&out.shimei[0]){const v=out.shimei[0];r.type=/男性/.test(v)?"gm":/女性/.test(v)?"gf":/なし|無|フリー/.test(v)?"free":(/指名|あり|有/.test(v)?"shimei":undefined)}
   if(out.sex&&out.sex[0])r.sex=/女/.test(out.sex[0])?"f":(/男/.test(out.sex[0])?"m":undefined);
+  // ラベルが読み取れなかったときの予備（カメラ読み取り向け）
+  const T=z2h(text);let fz=0;
+  if(!r.time){const t=T.match(/(\d{1,2})[:：](\d{2})\s*[-~〜～－ー一]\s*(\d{1,2})[:：](\d{2})/);
+    if(t){let h=+t[1];if(h<DAY_START)h+=24;r.time=pad(h)+":"+t[2];let eh=+t[3];if(eh<DAY_START)eh+=24;r.span=eh*60+ +t[4]-(h*60+ +t[2]);fz++}}
+  if(!r.price){const p=T.match(/(\d{1,2}[,.]\d{3}|\d{4,5})\s*円/);if(p){r.price=toInt(p[1]);fz++}}
+  if(!r.parts||!Object.keys(r.parts).length){
+    const ps={};
+    T.split(/\r?\n/).forEach(l=>{if(/インターバル|予約時間|予約番号/.test(l))return;const mm=l.match(/(\d{2,3})\s*分/);if(!mm)return;
+      // 読み取れないコース名は、いちばん多い「ほぐし（H）」として扱う
+      const hit=PART_WORDS.find(([,re])=>re.test(l))||["H"];
+      ps[hit[0]]=(ps[hit[0]]||0)+ +mm[1];
+      if(r.other)r.other=r.other.filter(o=>!l.includes(o.trim())&&!o.includes(mm[0]));});
+    if(Object.keys(ps).length){r.parts=ps;fz++}
+  }
+  if(!r.type){r.type=/男性指名/.test(T)?"gm":/女性指名/.test(T)?"gf":/個人指名/.test(T)?"shimei":/指名なし|指名無し|フリー/.test(T)?"free":undefined;if(r.type)fz++}
+  if(!out.option&&!r.opts.length){findOpts(T).forEach(k=>r.opts.push(k))}
   const memo=[];
   if(out.area&&out.area.length)memo.push("お疲れ部位："+out.area.join("、"));
+  if(out.strength&&out.strength.length)memo.push("強さ加減："+out.strength.join("、"));
   if(r.otherOpt.length)memo.push("オプション："+r.otherOpt.join("、"));
   if(r.other&&r.other.length)memo.push("コース："+r.other.join("、"));
   if(out.route&&out.route.length)memo.push("予約経路："+out.route.join("、"));
   if(out.comment&&out.comment.length)memo.push("コメント："+out.comment.join(" "));
   r.memo=memo.join("\n");
-  r.found=Object.keys(out).length;
+  r.found=Object.keys(out).length+fz;
   return r;
 }
 function applyReservation(){
@@ -925,6 +980,85 @@ function applyReservation(){
   $("fDate").scrollIntoView({behavior:"smooth",block:"center"});
   toast("読み取りました。日付を確認して保存してください");
 }
+/* ---------- カメラ読み取り（試作） ---------- */
+let scStream=null,scWorker=null,scBusy=false;
+const TESS_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+function scStatus(t){$("scStatus").textContent=t}
+function scProg(p){$("scBar").style.width=Math.round((p||0)*100)+"%"}
+function loadTess(){return window.Tesseract?Promise.resolve():new Promise((ok,ng)=>{const sc=document.createElement("script");sc.src=TESS_URL;sc.onload=ok;sc.onerror=()=>ng(new Error("load"));document.head.appendChild(sc)})}
+async function scPrepare(){
+  if(scWorker)return scWorker;
+  await loadTess();
+  scStatus("読み取りの準備中…（初回は日本語データを読み込むため少し時間がかかります）");
+  scWorker=await Tesseract.createWorker("jpn",1,{logger:m=>{if(m&&m.progress!=null)scProg(m.progress)}});
+  await scWorker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1"});
+  scProg(0);return scWorker;
+}
+async function scOpen(){
+  $("scanner").hidden=false;$("scResult").hidden=true;$("scShot").disabled=true;scProg(0);
+  document.body.style.overflow="hidden";
+  try{
+    scStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}},audio:false});
+    const v=$("scVideo");v.srcObject=scStream;await v.play();
+  }catch(e){scStatus("カメラを起動できませんでした。カメラの使用を許可してください");return}
+  $("scShot").disabled=false;
+  scStatus("小窓を枠に合わせてください");
+  scPrepare().then(()=>{if(!scBusy)scStatus("準備完了。小窓を枠に合わせて「読み取る」を押してください")})
+    .catch(()=>scStatus("読み取り機能を読み込めませんでした。ネットにつながっているか確認してください"));
+}
+function scCloseFn(){
+  $("scanner").hidden=true;document.body.style.overflow="";
+  if(scStream){scStream.getTracks().forEach(t=>t.stop());scStream=null}
+}
+// 枠の中を切り出して、画面の縞模様をぼかし、白黒をはっきりさせる
+function scCapture(W,blur){
+  const v=$("scVideo"),vw=v.videoWidth,vh=v.videoHeight,box=v.getBoundingClientRect();
+  const sc=Math.max(box.width/vw,box.height/vh),offX=(vw*sc-box.width)/2,offY=(vh*sc-box.height)/2;
+  const gx=box.width*0.06,gy=box.height*0.10,gw=box.width*0.88,gh=box.height*0.80;
+  const sx=(gx+offX)/sc,sy=(gy+offY)/sc,sw=gw/sc,sh=gh/sc,k=W/sw;
+  const c=document.createElement("canvas");c.width=Math.round(sw*k);c.height=Math.round(sh*k);
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.filter=`blur(${blur}px)`;ctx.drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);ctx.filter="none";
+  const img=ctx.getImageData(0,0,c.width,c.height),d=img.data,n=d.length/4,g=new Float32Array(n),hist=new Uint32Array(256);
+  for(let i=0,j=0;j<n;i+=4,j++){const x=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)|0;g[j]=x;hist[x]++}
+  let lo=0,hi=255,a=0;for(let x=0;x<256;x++){a+=hist[x];if(a>n*0.02){lo=x;break}}a=0;for(let x=255;x>=0;x--){a+=hist[x];if(a>n*0.02){hi=x;break}}
+  const span=Math.max(1,hi-lo);
+  for(let i=0,j=0;j<n;i+=4,j++){let x=(g[j]-lo)*255/span;x=x<0?0:x>255?255:x;x=x<140?x*0.6:255;d[i]=d[i+1]=d[i+2]=x;d[i+3]=255}
+  ctx.putImageData(img,0,0);return c;
+}
+function scClean(t){
+  return String(t||"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/([^\x00-\x7F])[ \t]+(?=[^\x00-\x7F])/g,"$1")
+    .replace(/(\d)\s*[:：]\s*(\d{2})/g,"$1:$2")
+    .replace(/(\d)\s*[,.]\s*(\d{3})/g,"$1,$2")
+    .replace(/[ \t]*[:：][ \t]*/g,m=>"：").replace(/(\d)：(\d{2})/g,"$1:$2")
+    .replace(/[ \t]+\n/g,"\n").replace(/\n{2,}/g,"\n").trim();
+}
+async function scShot(){
+  if(scBusy)return;const v=$("scVideo");if(!v.videoWidth)return;
+  scBusy=true;$("scShot").disabled=true;scProg(0);
+  try{
+    const w=await scPrepare();scStatus("読み取り中…（数秒かかります）");
+    let best=null;
+    for(const [W,b] of [[1400,1.6],[1800,2.2]]){   // 2通りの処理で試し、良いほうを使う
+      const {data}=await w.recognize(scCapture(W,b));
+      if(!best||data.confidence>best.confidence)best=data;
+      if(best.confidence>=70)break;
+    }
+    const text=scClean(best.text);
+    $("scText").value=text;$("scResult").hidden=false;
+    const r=parseReservation(text);
+    const got=[r.time&&"時間",r.price&&"金額",r.parts&&Object.keys(r.parts).length&&"コース",r.type&&"指名"].filter(Boolean);
+    scStatus(text?`読み取りました（読めた項目：${got.join("・")||"なし"}／信頼度 ${Math.round(best.confidence)}%）`:"文字が見つかりませんでした。もう少し近づけてください");
+    setTimeout(()=>$("scResult").scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+  }catch(e){scStatus("読み取りに失敗しました。ネット接続を確認してもう一度お試しください")}
+  finally{scBusy=false;$("scShot").disabled=false;scProg(0)}
+}
+$("scanOpen").addEventListener("click",scOpen);
+$("scanClose").addEventListener("click",scCloseFn);
+$("scShot").addEventListener("click",scShot);
+$("scRetry").addEventListener("click",()=>{$("scResult").hidden=true;scStatus("小窓を枠に合わせて「読み取る」を押してください")});
+$("scUse").addEventListener("click",()=>{const t=$("scText").value;scCloseFn();$("pasteBox").value=t;applyReservation()});
 let pasteTimer=null;
 $("pasteBox").addEventListener("input",()=>{clearTimeout(pasteTimer);pasteTimer=setTimeout(applyReservation,400)});
 

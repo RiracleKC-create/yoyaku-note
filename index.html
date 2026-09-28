@@ -179,6 +179,18 @@ h3{font-size:15px;margin:0 0 10px}
 .warn{font-size:13px;color:var(--danger);margin-top:4px}
 
 .opt-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin:0 4px 2px 0;background:#F3E6CF;color:#8A5A12}
+/* お客様の特徴 */
+.feat{margin-top:12px;border:1.5px solid #E7C98F;background:#FFF8EA;border-radius:12px;padding:10px 12px}
+.feat h4{margin:0 0 4px;font-size:13px;color:#8A5A12}
+.feat .txt{white-space:pre-wrap;font-size:15px;color:#3A2A10}
+.feat .empty2{font-size:14px;color:var(--sub)}
+.feat .row{display:flex;gap:8px;margin-top:8px}
+.feat .row button{flex:1;border:0;border-radius:10px;padding:10px;font-weight:700;background:#8A5A12;color:#fff}
+.feat .row button.ghost{background:transparent;border:1.5px solid #D9B77A;color:#8A5A12}
+.feat textarea{width:100%;min-height:80px;border:1px solid #E7C98F;border-radius:10px;padding:8px 10px;font:inherit;font-size:16px;background:#fff;color:#3A2A10}
+.feat-line{display:block;font-size:12px;color:#8A5A12;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .feat{background:#2B2417;border-color:#6B5427}
+ :root:not([data-theme="light"]) .feat .txt{color:#F2E3C4} :root:not([data-theme="light"]) .feat h4,:root:not([data-theme="light"]) .feat-line{color:#E3B25C}}
 /* 詳細の小窓 */
 #sheet{position:fixed;inset:0;z-index:50}
 #sheet .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
@@ -453,6 +465,7 @@ const DEFAULT_SETTINGS = {
 };
 
 let visits = [];
+let members = {}; // 会員番号 → {note:お客様の特徴}
 let days = {}; // 営業日 → {open:金額, close:金額}（行った業務だけキーを持つ）
 let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let col = null;           // db collection when available
@@ -498,9 +511,9 @@ function newId(){return "v_"+Date.now().toString(36)+Math.random().toString(36).
 /* ---------- storage ---------- */
 function readCache(){
   try{const raw=localStorage.getItem(CACHE_KEY);if(!raw)return;const o=JSON.parse(raw);
-    if(Array.isArray(o.visits)){visits=o.visits;visits.forEach(normalize)}if(o.settings)settings=mergeSettings(o.settings);if(o.days)days=o.days;liftSide();}catch(e){}
+    if(Array.isArray(o.visits)){visits=o.visits;visits.forEach(normalize)}if(o.settings)settings=mergeSettings(o.settings);if(o.days)days=o.days;if(o.members)members=o.members;liftSide();}catch(e){}
 }
-function writeCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({visits,settings,days}))}catch(e){}}
+function writeCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({visits,settings,days,members}))}catch(e){}}
 
 async function connect(){
   if(!window.claude||typeof window.claude.use!=="function"){updateStoreNote();return}
@@ -512,10 +525,10 @@ async function connect(){
       col=db.collection("data/users/"+uid);
       let first=true;
       col.onSnapshot(snap=>{
-        const vs=[];let st=null;const ds={};
-        snap.docs.forEach(d=>{if(d.id==="settings")st=d.data();else if(d.id.startsWith("v_"))vs.push(Object.assign({id:d.id},d.data()));else if(d.id.startsWith("d_"))ds[d.id.slice(2)]=d.data()});
+        const vs=[];let st=null;const ds={};const ms={};
+        snap.docs.forEach(d=>{if(d.id==="settings")st=d.data();else if(d.id.startsWith("v_"))vs.push(Object.assign({id:d.id},d.data()));else if(d.id.startsWith("d_"))ds[d.id.slice(2)]=d.data();else if(d.id.startsWith("m_"))ms[d.id.slice(2)]=d.data()});
         if(first){first=false;migrateLocal(vs,st,ds)}
-        days=ds;
+        days=ds;members=ms;
         const fixed=vs.filter(normalize);
         visits=sortVisits(vs);
         fixed.forEach(v=>{const {id,...body}=v;col.doc(id).set(body).catch(()=>{})});
@@ -549,6 +562,30 @@ function liftSide(remote){
       if(remote&&col)col.doc("d_"+v.date).set(d).catch(()=>{})}
     delete v.side;delete v.sideAmt;
     if(remote&&col){const {id,...body}=v;col.doc(id).set(body).catch(()=>{})}
+  });
+}
+// お客様の特徴（会員番号ごと）
+function memberNote(no){return no&&members[no]?members[no].note||"":""}
+async function saveMemberNote(no,note){
+  note=note.trim();
+  if(note)members[no]={note,updatedAt:Date.now()};else delete members[no];
+  writeCache();renderAll();
+  if(col){try{note?await col.doc("m_"+no).set(members[no]):await col.doc("m_"+no).delete()}catch(e){toast("クラウド保存に失敗。この端末には残っています")}}
+}
+// 表示＋編集の枠（小窓・会員タブで共通）
+function renderFeature(el,no){
+  if(!no){el.innerHTML=`<div class="feat"><h4>お客様の特徴</h4><div class="empty2">会員番号がないため登録できません</div></div>`;return}
+  const note=memberNote(no);
+  el.innerHTML=`<div class="feat"><h4>お客様の特徴（No.${esc(no)}）</h4>
+    ${note?`<div class="txt">${esc(note)}</div>`:`<div class="empty2">まだ登録されていません</div>`}
+    <div class="row"><button type="button" data-act="edit">${note?"特徴を編集":"特徴を登録"}</button></div></div>`;
+  el.querySelector('[data-act="edit"]').addEventListener("click",()=>{
+    el.innerHTML=`<div class="feat"><h4>お客様の特徴（No.${esc(no)}）</h4>
+      <textarea placeholder="例：強めの圧が好み／会話少なめ希望／右肩に古傷">${esc(note)}</textarea>
+      <div class="row"><button type="button" class="ghost" data-act="cancel">やめる</button><button type="button" data-act="save">保存する</button></div></div>`;
+    const ta=el.querySelector("textarea");ta.focus();
+    el.querySelector('[data-act="cancel"]').addEventListener("click",()=>renderFeature(el,no));
+    el.querySelector('[data-act="save"]').addEventListener("click",async()=>{await saveMemberNote(no,ta.value);toast("お客様の特徴を保存しました");renderFeature(el,no)});
   });
 }
 async function saveDay(dk,o){
@@ -708,12 +745,14 @@ function renderMemberHint(){
   const no=$("fMember").value.trim();
   if(!no){$("memberHint").innerHTML="";return}
   const st=memberStats(no);
-  if(!st.count){$("memberHint").innerHTML=`<div class="member-hint"><p class="first">はじめての会員番号です</p></div>`;return}
+  const fn=memberNote(no);const featHtml=fn?`<p style="color:#8A5A12"><b>特徴：</b>${esc(fn)}</p>`:"";
+  if(!st.count){$("memberHint").innerHTML=`<div class="member-hint"><p class="first">はじめての会員番号です</p>${featHtml}</div>`;return}
   const last=st.list[0];
   $("memberHint").innerHTML=`<div class="member-hint num">
     <p><b>${st.count+1}回目</b>のご来店（うち指名 ${st.shimei}回）・累計 ${yen(st.sum)}</p>
     <p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>
-    ${last.memo?`<p>メモ：${esc(last.memo)}</p>`:""}
+    ${featHtml}
+    ${last.memo?`<p>前回のメモ：${esc(last.memo)}</p>`:""}
   </div>`;
 }
 $("fMember").addEventListener("input",()=>{
@@ -892,7 +931,7 @@ function recRow(v){
   return `<button class="rec" data-id="${esc(v.id)}">
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
     <span><span class="m">${typeTag(v)}${sexTag(v)}${v.member?"No."+esc(v.member):"会員番号なし"}</span>
-      <span class="c">${esc(v.course||"コース未入力")}${v.min?"（"+v.min+"分）":""}${v.memo?"　✎":""}</span>${(v.opts||[]).length?`<span style="display:block">${optTags(v)}</span>`:""}</span>
+      <span class="c">${esc(v.course||"コース未入力")}${v.min?"（"+v.min+"分）":""}${v.memo?"　✎":""}</span>${(v.opts||[]).length?`<span style="display:block">${optTags(v)}</span>`:""}${memberNote(v.member)?`<span class="feat-line">📌 ${esc(memberNote(v.member))}</span>`:""}</span>
     <span class="a num">${yen(total(v))}</span></button>`;
 }
 function bindRecs(root){root.querySelectorAll(".rec").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}))}
@@ -915,7 +954,9 @@ function showDetail(v){
   $("sheetBody").innerHTML=`<h2 id="sheetTitle" class="num">${dayLabel(v.date)}　${esc(timeLabel(v.time))}${endTime(v)}</h2>
     <div>${typeTag(v)}${sexTag(v)}${optTags(v)}</div>
     <div class="amt num">${yen(total(v))}</div>
+    <div id="sheetFeat"></div>
     <table class="num">${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
+  renderFeature($("sheetFeat"),v.member);
   $("sheet").hidden=false;
 }
 function closeDetail(){$("sheet").hidden=true;sheetId=null}
@@ -1073,8 +1114,10 @@ function renderMembers(){
     const sum=list.reduce((a,v)=>a+total(v),0), sh=list.filter(v=>v.type==="shimei").length;
     body.innerHTML=`<button class="back" id="memBack">‹ 会員一覧</button>
       <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(memberOpen)}</div>
-      <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div></div></div>
+      <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div></div>
+      <div id="memFeat"></div></div>
       ${list.map(v=>`<div class="day-head num" style="padding-top:4px"><span>${dayLabel(v.date)}</span></div>${recRow(v)}${v.memo?`<p class="note" style="margin:-2px 6px 10px">メモ：${esc(v.memo)}</p>`:""}`).join("")}`;
+    renderFeature($("memFeat"),memberOpen);
     $("memBack").addEventListener("click",()=>{memberOpen=null;renderMembers()});
     bindRecs(body);return;
   }
@@ -1082,10 +1125,10 @@ function renderMembers(){
   visits.forEach(v=>{if(!v.member)return;const m=map[v.member]=map[v.member]||{no:v.member,n:0,s:0,sh:0,last:"",sex:""};
     if(v.sex&&v.date>=m.last)m.sex=v.sex;m.n++;m.s+=total(v);if(v.type==="shimei")m.sh++;if(v.date>m.last)m.last=v.date});
   let arr=Object.values(map).sort((a,b)=>b.last.localeCompare(a.last));
-  if(memberQuery)arr=arr.filter(m=>m.no.includes(memberQuery));
+  if(memberQuery)arr=arr.filter(m=>m.no.includes(memberQuery)||memberNote(m.no).includes(memberQuery));
   body.innerHTML=`<div class="card"><label class="lbl" for="mSearch">会員番号で探す</label>
     <input class="fld num" id="mSearch" inputmode="numeric" value="${esc(memberQuery)}" placeholder="番号の一部でもOK"></div>
-    ${arr.length?arr.map(m=>`<button class="mem" data-no="${esc(m.no)}"><span><span class="no num">No.${esc(m.no)}</span> ${sexTag(m)}<br><span class="d num">最終 ${dayLabel(m.last)}・${m.n}回（指名${m.sh}）</span></span><b class="num">${yen(m.s)}</b></button>`).join("")
+    ${arr.length?arr.map(m=>`<button class="mem" data-no="${esc(m.no)}"><span><span class="no num">No.${esc(m.no)}</span> ${sexTag(m)}<br><span class="d num">最終 ${dayLabel(m.last)}・${m.n}回（指名${m.sh}）</span>${memberNote(m.no)?`<span class="feat-line">📌 ${esc(memberNote(m.no))}</span>`:""}</span><b class="num">${yen(m.s)}</b></button>`).join("")
       :`<div class="empty">${memberQuery?"該当する会員番号がありません。":"会員番号つきの記録がまだありません。"}</div>`}`;
   const inp=$("mSearch");
   inp.addEventListener("input",()=>{memberQuery=inp.value.trim();renderMembers();const n=$("mSearch");n.focus();n.setSelectionRange(n.value.length,n.value.length)});
@@ -1116,7 +1159,7 @@ async function saveFile(filename,text,mime){
     toast("「ダウンロード」フォルダに保存しました："+filename);return true}catch(e){}
   toast("保存できませんでした。「文字でコピー」を使ってください");return false;
 }
-function backupJSON(){return JSON.stringify({app:"yoyaku-note",version:1,exportedAt:new Date().toISOString(),visits,days,settings})}
+function backupJSON(){return JSON.stringify({app:"yoyaku-note",version:1,exportedAt:new Date().toISOString(),visits,days,settings,members})}
 $("bkFile").addEventListener("click",()=>saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"));
 $("bkCopy").addEventListener("click",async()=>{
   const t=backupJSON(),out=$("bkOut");out.value=t;out.hidden=false;out.focus();out.select();
@@ -1136,6 +1179,7 @@ $("bkRestore").addEventListener("click",async()=>{
   o.visits.forEach(v=>{if(v&&v.id&&v.date){normalize(v);byId.set(v.id,v)}});
   visits=sortVisits([...byId.values()]);
   if(o.days&&typeof o.days==="object")Object.assign(days,o.days);
+  if(o.members&&typeof o.members==="object")Object.assign(members,o.members);
   if(o.settings)settings=mergeSettings(o.settings);
   writeCache();renderAll();
   if(col){
@@ -1143,6 +1187,7 @@ $("bkRestore").addEventListener("click",async()=>{
     try{
       for(const v of o.visits){if(!v||!v.id)continue;const {id,...body}=v;await col.doc(id).set(body)}
       for(const [dk,d] of Object.entries(o.days||{}))await col.doc("d_"+dk).set(d);
+      for(const [no,m] of Object.entries(o.members||{}))await col.doc("m_"+no).set(m);
       await col.doc("settings").set(settings);
     }catch(e){toast("一部の記録をクラウドに保存できませんでした");return}
   }
@@ -1150,9 +1195,9 @@ $("bkRestore").addEventListener("click",async()=>{
   toast(o.visits.length+"件の記録を復元しました");show("input");
 });
 $("exportCsv").addEventListener("click",async()=>{
-  const head=["日付","時間","指名の種類","性別","会員番号","コース","施術時間(分)","オプション","料金(指名料込み)","うち指名料","メモ"];
+  const head=["日付","時間","指名の種類","性別","会員番号","コース","施術時間(分)","オプション","お客様の特徴","料金(指名料込み)","うち指名料","メモ"];
   const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
-  const rows=visits.slice().reverse().map(v=>[v.date,v.time,typeLabel(v.type),SEX[v.sex]||"",v.member,v.course,vMin(v),optNames(v).join("・"),total(v),feeOf(v),v.memo].map(q).join(","));
+  const rows=visits.slice().reverse().map(v=>[v.date,v.time,typeLabel(v.type),SEX[v.sex]||"",v.member,v.course,vMin(v),optNames(v).join("・"),memberNote(v.member),total(v),feeOf(v),v.memo].map(q).join(","));
   const sideRows=Object.keys(days).filter(dk=>sideText(dk)).sort().map(dk=>{const d=dayOf(dk);return [dk,"open" in d?"あり":"なし",d.open||0,"close" in d?"あり":"なし",d.close||0].map(q).join(",")});
   const csv="\uFEFF"+[head.map(q).join(","),...rows,"",["付随業務の日付","開店業務","開店業務の金額","閉店業務","閉店業務の金額"].map(q).join(","),...sideRows].join("\r\n");
   await saveFile("予約記録_"+dateKey(new Date())+".csv",csv,"text/csv");

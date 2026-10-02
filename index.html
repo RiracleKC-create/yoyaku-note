@@ -636,6 +636,12 @@ function applyMask(){
   ["todayAmt","todayMeta","weekAmt","monthAmt"].forEach(id=>{$(id).textContent=$(id).textContent.replace(/¥[\d,]+/g,"¥−−−")});
 }
 $("eyeBtn").addEventListener("click",()=>{hideAmt=!hideAmt;try{localStorage.setItem(MASK_KEY,hideAmt?"1":"0")}catch(e){}renderHeader()});
+// 施術時間の合計（例：4時間30分）
+// 分を「1.5時間」の形に（小数第2位まで、余分な0は省く）
+function hoursText(m){return (Math.round((m||0)/60*100)/100)+"時間"}
+// 分の表示（例：405分）
+function hmText(m){return (m||0)+"分"}
+function workText(list){return hmText(list.reduce((a,v)=>a+(vMin(v)||0),0))}
 function renderHeader(){
   const tk=bizToday();
   const today=visits.filter(v=>v.date===tk);
@@ -643,7 +649,7 @@ function renderHeader(){
   const s=today.filter(v=>v.type==="shimei").length, g=today.filter(v=>v.type==="gm"||v.type==="gf").length, f=today.length-s-g;
   $("todayAmt").textContent=yen(sum);
   const st=sideText(tk);
-  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+(st?"　"+st:"");
+  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分"+(st?"　"+st:"");
   // 今週（月曜はじまり）・今月
   const t=new Date(tk+"T00:00");const ws=new Date(t);ws.setDate(t.getDate()-((t.getDay()+6)%7));
   const we=new Date(ws);we.setDate(ws.getDate()+6);
@@ -651,10 +657,10 @@ function renderHeader(){
   const wk=visits.filter(v=>v.date>=wsK&&v.date<=weK), mo=visits.filter(v=>v.date.startsWith(mk));
   $("weekLabel").textContent=`今週（${ws.getMonth()+1}/${ws.getDate()}〜${we.getMonth()+1}/${we.getDate()}）`;
   $("weekAmt").textContent=yen(wk.reduce((a,v)=>a+total(v),0));
-  $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length;
+  $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0));
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
-  $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length;
+  $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0));
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
 }
@@ -998,7 +1004,7 @@ function renderList(){
     const arr=byD[dk].slice().sort((a,b)=>a.time.localeCompare(b.time));
     const st=sideText(dk);
     const sum=arr.reduce((a,v)=>a+total(v),0);
-    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${arr.length}件${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}</b></div>${arr.map(recRow).join("")}</div>`;
+    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${arr.length}件${arr.length?"・施術 "+workText(arr):""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1020,7 +1026,7 @@ function renderTime(){
   const dv=visits.filter(v=>v.date===timeDay&&startMin(v)!==null).map(v=>({v,s:startMin(v),e:startMin(v)+(vMin(v)||60)})).sort((a,b)=>a.s-b.s);
   const worked=dv.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
-  $("tSum").textContent=(dv.length?`施術 ${Math.floor(worked/60)}時間${worked%60}分・${yen(dv.reduce((a,x)=>a+total(x.v),0))}`:"")+(st?"　"+st:"");
+  $("tSum").textContent=(dv.length?`施術 ${hmText(worked)}・${yen(dv.reduce((a,x)=>a+total(x.v),0))}`:"")+(st?"　"+st:"");
   let h0=OPEN_H,h1=CLOSE_H;
   dv.forEach(x=>{h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.e/60))});
   const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.e;x.c=c});
@@ -1115,7 +1121,7 @@ function renderStats(){
     <div class="card num">
       <h3>メニュー別（組み合わせ含む）</h3>
       <table class="brk">${PARTS.map(p=>{const arr=mv.filter(v=>(v.parts||[]).some(x=>x.k===p.k));return `<tr><td>${p.k}　${p.name}</td><td>${arr.length}件・${arr.reduce((a,v)=>a+(v.parts.find(x=>x.k===p.k).m),0)}分</td></tr>`}).join("")}
-      <tr><td>施術時間の合計</td><td>${Math.floor(mv.reduce((a,v)=>a+vMin(v),0)/60)}時間${mv.reduce((a,v)=>a+vMin(v),0)%60}分</td></tr></table>
+      <tr><td>施術時間の合計</td><td>${hoursText(mv.reduce((a,v)=>a+vMin(v),0))}</td></tr></table>
     </div>
     <div class="card num">
       <h3>オプション</h3>

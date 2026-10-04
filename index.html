@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{
+  --ok:#2E7D4F;
   --bg:#E9EEEC; --panel:#FFFFFF; --ink:#1D2A2F; --sub:#5F7069; --line:#D3DCD8;
   --shimei:#3446A0; --shimei-soft:#E3E7F7; --free:#6E8279; --free-soft:#E6ECE9;
   --money:#B7791F; --danger:#B3261E; --field:#F4F7F6;
@@ -57,6 +58,9 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .period div{background:var(--panel);border-radius:12px;padding:8px 12px}
 .period span{display:block;font-size:12px;color:var(--sub)}
 .period b{display:block;font-size:20px;font-weight:900;line-height:1.25}
+.net{font-size:13px;color:var(--sub);margin-top:2px}
+.net b{color:var(--ok,#2E7D4F);font-weight:900}
+.period .net{font-size:12px;margin-top:2px;display:block}
 .period small{font-size:12px;color:var(--sub)}
 .split{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin-top:10px}
 .split span{display:block;height:100%}
@@ -266,6 +270,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <div class="today-label" id="todayLabel">今日の売上</div>
         <div class="today-amt num" id="todayAmt">¥0</div>
         <div class="today-meta num" id="todayMeta">0件</div>
+        <div class="net num" id="todayNet"></div>
       </div>
       <div class="top-btns">
         <button class="eye" id="eyeBtn" aria-pressed="false">金額を隠す</button>
@@ -274,8 +279,8 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </div>
     <div class="split" id="todaySplit" aria-hidden="true"></div>
     <div class="period">
-      <div><span id="weekLabel">今週</span><b class="num" id="weekAmt">¥0</b><small class="num" id="weekMeta">0件</small></div>
-      <div><span id="monthLabel">今月</span><b class="num" id="monthAmt">¥0</b><small class="num" id="monthMeta">0件</small></div>
+      <div><span id="weekLabel">今週</span><b class="num" id="weekAmt">¥0</b><small class="num" id="weekMeta">0件</small><span class="net num" id="weekNet"></span></div>
+      <div><span id="monthLabel">今月</span><b class="num" id="monthAmt">¥0</b><small class="num" id="monthMeta">0件</small><span class="net num" id="monthNet"></span></div>
     </div>
   </header>
 
@@ -403,6 +408,19 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <p class="note">入力する料金に含まれる指名料の額です。集計で「うち指名料」を出すのに使います。変更すると、これから保存する記録に反映されます。</p>
     </div>
     <div class="card">
+      <h3>売上から引かれる金額</h3>
+      <span class="lbl">システム利用料（指名料を除いた売上の何％か・月ごと）</span>
+      <div id="rateEditor"></div>
+      <button type="button" class="btn ghost" id="addRate" style="margin-top:6px">率が変わる月を追加</button>
+      <p class="note">初期値は基本システム利用料率の48％です。お店のアプリの「合計システム利用料率」に合わせて変更してください。設定した月から、次に設定した月の前まで、その率で計算します。最初に設定した月より前の記録は、最初の率で計算します。</p>
+      <div class="gap"></div>
+      <div class="row2">
+        <div><label class="lbl" for="setFac">施設利用料（15分あたり）</label><input class="fld num" id="setFac" inputmode="numeric" placeholder="53"></div>
+        <div><label class="lbl" for="setMat">固定材料費（15分あたり）</label><input class="fld num" id="setMat" inputmode="numeric" placeholder="27"></div>
+      </div>
+      <p class="note">施設利用料・固定材料費は、施術時間15分ごとにかかる金額です。指名料にはシステム利用料はかかりません。収入＝売上−（システム利用料＋施設利用料＋固定材料費）で計算します。</p>
+    </div>
+    <div class="card">
       <h3>付随業務の金額（「あり」を選んだときに自動入力）</h3>
       <div class="row2">
         <div><label class="lbl" for="setOpen">開店業務</label><input class="fld num" id="setOpen" inputmode="numeric" placeholder="0"></div>
@@ -469,7 +487,7 @@ const DEFAULT_SETTINGS = {
 let visits = [];
 let members = {}; // 会員番号 → {note:お客様の特徴}
 let days = {}; // 営業日 → {open:金額, close:金額}（行った業務だけキーを持つ）
-let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+let settings = null; // 下の mergeSettings で初期値をそろえる
 let col = null;           // db collection when available
 let downloads = null;
 let editingId = null;
@@ -491,7 +509,8 @@ function dayLabel(dk){const d=new Date(dk+"T00:00");return (d.getMonth()+1)+"/"+
 function yen(n){return "¥"+(Number(n)||0).toLocaleString("ja-JP")}
 function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isNaN(n)?0:n}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0)};return r}
+function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27};return r}
+settings=mergeSettings({});
 function total(v){return v.incl?(v.price||0):(v.price||0)+(v.fee||0)+(v.extra||0)}
 const DAY_START=3; // 日付の切り替わり（翌3:00）
 const OPEN_H=9, CLOSE_H=27; // 営業時間 9:00〜27:00
@@ -634,6 +653,7 @@ function applyMask(){
   $("eyeBtn").setAttribute("aria-pressed",hideAmt);$("eyeBtn").textContent=hideAmt?"金額を表示":"金額を隠す";
   if(!hideAmt)return;
   ["todayAmt","todayMeta","weekAmt","monthAmt"].forEach(id=>{$(id).textContent=$(id).textContent.replace(/¥[\d,]+/g,"¥−−−")});
+  ["todayNet","weekNet","monthNet"].forEach(id=>{$(id).innerHTML=$(id).innerHTML.replace(/[−-]?¥[\d,]+/g,"¥−−−")});
 }
 $("eyeBtn").addEventListener("click",()=>{hideAmt=!hideAmt;try{localStorage.setItem(MASK_KEY,hideAmt?"1":"0")}catch(e){}renderHeader()});
 // 施術時間の合計（例：4時間30分）
@@ -642,12 +662,34 @@ function hoursText(m){return (Math.round((m||0)/60*100)/100)+"時間"}
 // 分の表示（例：405分）
 function hmText(m){return (m||0)+"分"}
 function workText(list){return hmText(list.reduce((a,v)=>a+(vMin(v)||0),0))}
+// 売上から引かれる金額と収入
+// その月のシステム利用料率（設定した月から次の設定の前まで有効）
+function rateFor(mk){
+  const keys=Object.keys(settings.sysRates||{}).sort();
+  if(!keys.length)return settings.sysRate||0;
+  let r=settings.sysRates[keys[0]];
+  for(const k of keys){if(k<=mk)r=settings.sysRates[k];else break}
+  return r;
+}
+function calcNet(list){
+  const sales=list.reduce((a,v)=>a+total(v),0);
+  const units=list.reduce((a,v)=>a+Math.ceil((vMin(v)||0)/15),0);
+  // 指名料は100%自分の収入なので、システム利用料は指名料を除いた施術分にだけかかる
+  const fees=list.reduce((a,v)=>a+feeOf(v),0);
+  const byM={};list.forEach(v=>{const mk=v.date.slice(0,7);byM[mk]=(byM[mk]||0)+total(v)-feeOf(v)});
+  const sys=Object.entries(byM).reduce((a,[mk,base])=>a+Math.round(base*rateFor(mk)/100),0);
+  const fac=units*(settings.facRate||0), mat=units*(settings.matRate||0);
+  const cost=sys+fac+mat;
+  return {sales,fees,units,sys,fac,mat,cost,net:sales-cost};
+}
+function netText(list){const c=calcNet(list);return `収入 <b>${yen(c.net)}</b>（引かれる額 ${yen(c.cost)}）`}
 function renderHeader(){
   const tk=bizToday();
   const today=visits.filter(v=>v.date===tk);
   const sum=today.reduce((a,v)=>a+total(v),0);
   const s=today.filter(v=>v.type==="shimei").length, g=today.filter(v=>v.type==="gm"||v.type==="gf").length, f=today.length-s-g;
   $("todayAmt").textContent=yen(sum);
+  $("todayNet").innerHTML=today.length?netText(today):"";
   const st=sideText(tk);
   $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分"+(st?"　"+st:"");
   // 今週（月曜はじまり）・今月
@@ -657,9 +699,11 @@ function renderHeader(){
   const wk=visits.filter(v=>v.date>=wsK&&v.date<=weK), mo=visits.filter(v=>v.date.startsWith(mk));
   $("weekLabel").textContent=`今週（${ws.getMonth()+1}/${ws.getDate()}〜${we.getMonth()+1}/${we.getDate()}）`;
   $("weekAmt").textContent=yen(wk.reduce((a,v)=>a+total(v),0));
+  $("weekNet").innerHTML=wk.length?`収入 <b>${yen(calcNet(wk).net)}</b>`:"";
   $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0));
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
+  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net)}</b>`:"";
   $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0));
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
@@ -1004,7 +1048,7 @@ function renderList(){
     const arr=byD[dk].slice().sort((a,b)=>a.time.localeCompare(b.time));
     const st=sideText(dk);
     const sum=arr.reduce((a,v)=>a+total(v),0);
-    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${arr.length}件${arr.length?"・施術 "+workText(arr):""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}</b></div>${arr.map(recRow).join("")}</div>`;
+    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${arr.length}件${arr.length?"・施術 "+workText(arr):""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${arr.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(arr).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1026,7 +1070,7 @@ function renderTime(){
   const dv=visits.filter(v=>v.date===timeDay&&startMin(v)!==null).map(v=>({v,s:startMin(v),e:startMin(v)+(vMin(v)||60)})).sort((a,b)=>a.s-b.s);
   const worked=dv.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
-  $("tSum").textContent=(dv.length?`施術 ${hmText(worked)}・${yen(dv.reduce((a,x)=>a+total(x.v),0))}`:"")+(st?"　"+st:"");
+  $("tSum").textContent=(dv.length?`施術 ${hmText(worked)}・${yen(dv.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dv.map(x=>x.v)).net)}）`:"")+(st?"　"+st:"");
   let h0=OPEN_H,h1=CLOSE_H;
   dv.forEach(x=>{h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.e/60))});
   const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.e;x.c=c});
@@ -1113,6 +1157,19 @@ function renderStats(){
         <tr><td>指名料を除いた施術分</td><td>${yen(sum-fees)}</td></tr>
       </table>
     </div>
+    ${(()=>{const c=calcNet(mv);return `<div class="card num">
+      <h3>引かれる金額と収入</h3>
+      <table class="brk">
+        <tr><td>売上</td><td>${yen(c.sales)}</td></tr>
+        <tr><td>システム利用料（指名料を除く${yen(c.sales-c.fees)}の${rateFor(statsMonth)}％）</td><td>−${yen(c.sys)}</td></tr>
+        <tr><td>施設利用料（${settings.facRate}円×${c.units}）</td><td>−${yen(c.fac)}</td></tr>
+        <tr><td>固定材料費（${settings.matRate}円×${c.units}）</td><td>−${yen(c.mat)}</td></tr>
+        <tr><td><b>収入（差し引き後）</b></td><td style="color:var(--ok)">${yen(c.net)}</td></tr>
+        <tr><td>付随業務</td><td>＋${yen(sideSum)}</td></tr>
+        <tr><td><b>付随業務を含めた収入</b></td><td style="color:var(--ok)">${yen(c.net+sideSum)}</td></tr>
+      </table>
+      ${rateFor(statsMonth)?"":`<p class="note">システム利用料が未設定です。⚙︎から入力してください。</p>`}
+    </div>`})()}
     ${sideCard}
     <div class="card num">
       <h3>組み合わせ別</h3>
@@ -1172,9 +1229,26 @@ function renderMembers(){
 }
 
 /* ---------- settings ---------- */
-function renderSettings(){$("setFee").value=settings.shimeiFee;$("setGm").value=settings.gmFee||"";$("setGf").value=settings.gfFee||"";$("setOpen").value=settings.openAmt||"";$("setClose").value=settings.closeAmt||""}
+let draftRates=[];
+function drawRates(){
+  $("rateEditor").innerHTML=draftRates.map((x,i)=>`<div class="set-course">
+    <input class="fld num" type="month" data-i="${i}" data-k="m" value="${esc(x.m)}" aria-label="適用する月">
+    <input class="fld num" data-i="${i}" data-k="r" inputmode="decimal" value="${esc(x.r)}" placeholder="48" aria-label="システム利用料率（％）">
+    <button class="x" data-del="${i}" aria-label="削除">×</button></div>`).join("");
+  $("rateEditor").querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{
+    draftRates[inp.dataset.i][inp.dataset.k]=inp.dataset.k==="r"?String(inp.value).replace(/[^\d.]/g,""):inp.value}));
+  $("rateEditor").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{draftRates.splice(b.dataset.del,1);drawRates()}));
+}
+$("addRate").addEventListener("click",()=>{
+  const last=draftRates.map(x=>x.m).sort().pop();let m=bizToday().slice(0,7);
+  if(last&&last>=m)m=shiftMonth(last,1);
+  draftRates.push({m,r:""});drawRates();
+});
+function renderSettings(){$("setFee").value=settings.shimeiFee;$("setGm").value=settings.gmFee||"";$("setGf").value=settings.gfFee||"";$("setOpen").value=settings.openAmt||"";$("setClose").value=settings.closeAmt||"";draftRates=Object.entries(settings.sysRates||{}).sort().map(([m,r])=>({m,r}));
+  if(!draftRates.length)draftRates=[{m:bizToday().slice(0,7),r:settings.sysRate||""}];
+  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate}
 $("saveSettings").addEventListener("click",async()=>{
-  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value)};
+  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value)};
   await saveSettingsData();toast("設定を保存しました（指名料 "+yen(settings.shimeiFee)+"）");show("input");
 });
 // ファイル保存：Claude上ではdownloads機能、単体アプリでは通常のダウンロード

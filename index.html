@@ -239,7 +239,9 @@ h3{font-size:15px;margin:0 0 10px}
 .mc .md .amt{display:block}
 .mc .md .dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap}
 .mc .md .dots i{width:6px;height:6px;border-radius:50%}
-.mc .md .sd{position:absolute;top:4px;right:4px;font-size:9px;color:var(--money);font-weight:700}
+.mc .md .sd{position:absolute;top:3px;right:3px;display:flex;gap:1px}
+.mc .md .sd em{font-style:normal;font-size:9px;font-weight:700;color:#fff;border-radius:3px;padding:0 2px;line-height:1.4}
+.mc .md .sd em.open{background:#B7791F}.mc .md .sd em.close{background:#6B4E9B}
 /* 週表示 */
 .wk{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));gap:0}
 .wk .wh{text-align:center;font-size:11px;padding:4px 0;color:var(--sub);line-height:1.3}
@@ -1214,10 +1216,10 @@ function renderMonthCal(){
     const d=new Date(dk+"T00:00"),w=d.getDay(),dv=visits.filter(v=>v.date===dk),sd=sideText(dk);
     const dots=["shimei","gm","gf","free"].flatMap(t=>dv.filter(v=>(TYPES[v.type]?v.type:"free")===t).map(()=>`<i style="background:${TYPE_COLOR[t]}"></i>`)).join("");
     html+=`<button type="button" class="md num${dk.slice(0,7)!==mk?" out":""}${dk===today?" today":""}${w===0?" sun":w===6?" sat":""}" data-day="${dk}" aria-label="${dayLabel(dk)} ${dv.length}件">
-      <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">業</span>`:""}
+      <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
       ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}</button>`;
   }
-  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。「業」は付随業務がある日です。</p>`;
+  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。</p>`;
   $("tlBody").innerHTML=html;
   $("tlBody").querySelectorAll(".md").forEach(b=>b.addEventListener("click",()=>{timeDay=b.dataset.day;timeMode="day";renderTime()}));
 }

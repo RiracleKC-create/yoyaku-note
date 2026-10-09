@@ -1,6 +1,6 @@
 // 予約ノート service worker
 // アプリを更新したら VERSION の数字を1つ上げてください
-const VERSION = "v26";
+const VERSION = "v30";
 const CACHE = "yoyaku-note-" + VERSION;
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./access.js"];
 

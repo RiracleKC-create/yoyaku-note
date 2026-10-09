@@ -64,8 +64,8 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .period small{font-size:12px;color:var(--sub)}
 .split{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin-top:10px}
 .split span{display:block;height:100%}
-.top-btns{display:flex;gap:8px;align-items:center;align-self:flex-start}
-.eye{border:0;background:var(--panel);height:40px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:700;color:var(--sub)}
+.top-btns{display:flex;gap:8px;align-items:center;align-self:flex-start;flex-shrink:0}
+.eye{white-space:nowrap;border:0;background:var(--panel);height:40px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:700;color:var(--sub)}
 .eye[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 .gear{border:0;background:var(--panel);width:40px;height:40px;border-radius:50%;font-size:18px;color:var(--sub)}
 
@@ -225,6 +225,9 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .hr{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
 .tl .hr span{position:absolute;left:-44px;top:-9px;width:38px;text-align:right;font-size:12px;color:var(--sub)}
 .tl .blk{position:absolute;border:0;text-align:left;border-radius:8px;padding:4px 7px;overflow:hidden;font-size:12px;line-height:1.35;color:#fff}
+.tl .blk .iv{position:absolute;left:0;right:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 4px,rgba(255,255,255,.35) 4px 8px);border-radius:0 0 8px 8px;pointer-events:none}
+.tl .blk .ivt{color:rgba(255,255,255,.7);font-size:11px;font-weight:400}
+.wk .wb .iv{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.5)}
 .tl .blk.shimei{background:var(--shimei)}
 .tl .blk.free{background:var(--free)}
 .tl .blk b{font-size:13px}
@@ -491,6 +494,11 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       </div>
       <p class="note">日ごとに金額は変更できます。</p>
     </div>
+    <div class="card">
+      <label class="lbl" for="setIv">インターバル時間（分）</label>
+      <input class="fld num" id="setIv" inputmode="numeric" placeholder="10">
+      <p class="note">施術が終わってから次の施術までの時間です。時間タブで、施術の後ろに薄い色で表示します。</p>
+    </div>
     <button class="btn" id="saveSettings">設定を保存</button>
     <div class="gap"></div>
     <div class="card">
@@ -575,7 +583,7 @@ function dayLabel(dk){const d=new Date(dk+"T00:00");return (d.getMonth()+1)+"/"+
 function yen(n){return "¥"+(Number(n)||0).toLocaleString("ja-JP")}
 function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isNaN(n)?0:n}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27};return r}
+function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10};return r}
 settings=mergeSettings({});
 // キャンセルした予約は売上・件数・施術時間・収入に含めない
 function live(list){return list.filter(v=>!v.cancel)}
@@ -1092,6 +1100,7 @@ function showDetail(v){
     ["指名の種類",typeLabel(v.type)],
     ["性別",SEX[v.sex]||"未入力"],
     ["コース",esc(v.course||"未入力")+(vMin(v)?`（${vMin(v)}分）`:"")],
+    ...(vMin(v)&&v.time&&ivMin(v)?[["インターバル込み",`${ivMin(v)}分 → ${hm(startMin(v)+vMin(v)+ivMin(v))}まで`]]:[]),
     ["オプション",optNames(v).length?optNames(v).map(esc).join("<br>"):"なし"],
     ["料金",yen(total(v))+(fee?`<br><small style="color:var(--sub)">うち指名料 ${yen(fee)}</small>`:"")],
     ["メモ",v.memo?`<span class="memo">${esc(v.memo)}</span>`:"なし"]
@@ -1151,6 +1160,8 @@ $("lNext").addEventListener("click",()=>{listMonth=shiftMonth(listMonth,1);rende
 
 /* ---------- time ---------- */
 const PX=56;
+function ivMin(v){return v.cancel?0:(settings.interval||0)}
+function hm(m){return Math.floor(m/60)+":"+pad(m%60)}
 function startMin(v){if(!v.time)return null;const [h,m]=v.time.split(":").map(Number);return h*60+m}
 function weekStart(dk){const d=new Date(dk+"T00:00");d.setDate(d.getDate()-((d.getDay()+6)%7));return dateKey(d)}
 function addDays(dk,n){const d=new Date(dk+"T00:00");d.setDate(d.getDate()+n);return dateKey(d)}
@@ -1172,16 +1183,16 @@ function renderTime(){
   const st=sideText(timeDay);
   $("tSum").textContent=(dl.length?`施術 ${hmText(worked)}・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:"");
   let h0=OPEN_H,h1=CLOSE_H;
-  dv.forEach(x=>{h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.e/60))});
-  const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.e;x.c=c});
+  dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
+  const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.ie;x.c=c});
   const nc=Math.max(1,cols.length);
   let html=`<div class="tl" style="height:${(h1-h0)*PX}px">`;
   for(let h=h0;h<=h1;h++)html+=`<div class="hr" style="top:${(h-h0)*PX}px"><span class="num">${h}:00</span></div>`;
   if(timeDay===bizToday()){const nm=bizNow().min;if(nm>=h0*60&&nm<=h1*60)html+=`<div class="now" style="top:${(nm-h0*60)/60*PX}px"></div>`}
   dv.forEach(x=>{
-    const top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.e-x.s)/60*PX-2);
+    const iv=x.ie-x.e, top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.ie-x.s)/60*PX-2), ivh=iv/60*PX;
     html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
-      ${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
+      ${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
   });
   html+="</div>";
   if(!dv.length)html=`<div class="empty">この日の記録はありません。</div>`;
@@ -1218,7 +1229,7 @@ function renderWeek(){
   const wv=live(visits.filter(v=>v.date>=days[0]&&v.date<=days[6]));
   $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
   let h0=OPEN_H,h1=CLOSE_H;
-  all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
+  all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60)+ivMin(v);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
   const WPX=34,H=(h1-h0)*WPX;
   let html=`<div class="wk"><div></div>`;
   days.forEach(dk=>{const d=new Date(dk+"T00:00"),w=d.getDay();
@@ -1230,8 +1241,8 @@ function renderWeek(){
     html+=`<div class="col${dk===today?" today":""}" style="height:${H}px">`;
     for(let h=h0;h<=h1;h++)html+=`<div class="hl" style="top:${(h-h0)*WPX}px"></div>`;
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
-      const s=startMin(v),m=vMin(v)||60,top=(s-h0*60)/60*WPX,ht=Math.max(14,m/60*WPX-1);
-      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}"><span class="num">${esc(timeLabel(v.time))}</span>${ht>=26&&v.member?`<br>${esc(v.member)}`:""}</button>`;
+      const s=startMin(v),m=vMin(v)||60,iv=ivMin(v),top=(s-h0*60)/60*WPX,ht=Math.max(14,(m+iv)/60*WPX-1);
+      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span>${ht>=36&&v.member?`<br>${esc(v.member)}`:""}</button>`;
     });
     html+=`</div>`;
   });
@@ -1409,9 +1420,9 @@ $("addRate").addEventListener("click",()=>{
 });
 function renderSettings(){$("setFee").value=settings.shimeiFee;$("setGm").value=settings.gmFee||"";$("setGf").value=settings.gfFee||"";$("setOpen").value=settings.openAmt||"";$("setClose").value=settings.closeAmt||"";draftRates=Object.entries(settings.sysRates||{}).sort().map(([m,r])=>({m,r}));
   if(!draftRates.length)draftRates=[{m:bizToday().slice(0,7),r:settings.sysRate||""}];
-  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate}
+  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate;$("setIv").value=settings.interval}
 $("saveSettings").addEventListener("click",async()=>{
-  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value)};
+  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value),interval:Math.min(120,toInt($("setIv").value))};
   await saveSettingsData();toast("設定を保存しました（指名料 "+yen(settings.shimeiFee)+"）");show("input");
 });
 // ファイル保存：Claude上ではdownloads機能、単体アプリでは通常のダウンロード

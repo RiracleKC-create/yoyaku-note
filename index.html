@@ -197,6 +197,18 @@ h3{font-size:15px;margin:0 0 10px}
 .feat .txt{word-break:break-all}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .feat{background:#2B2417;border-color:#6B5427}
  :root:not([data-theme="light"]) .feat .txt{color:#F2E3C4} :root:not([data-theme="light"]) .feat h4,:root:not([data-theme="light"]) .feat-line{color:#E3B25C}}
+/* キャンセル */
+.tag.cx{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+.rec.cx{opacity:.6}
+.rec.cx .t,.rec.cx .a{text-decoration:line-through}
+.tl .blk.cx,.wk .wb.cx{background:var(--field)!important;color:var(--sub);border:1.5px dashed var(--line)}
+.tl .blk.cx b{text-decoration:line-through}
+.tl .blk.cx .sx-m,.tl .blk.cx .sx-f{color:var(--sub)}
+.mc .md .cxn{display:block;color:var(--danger);font-weight:700}
+.cx-note{background:#FDECEA;color:var(--danger);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;margin-bottom:10px}
+.btn.cxbtn{margin-top:10px;background:transparent;border:1.5px solid var(--danger);color:var(--danger)}
+.btn.cxbtn.armed{background:var(--danger);color:#fff}
+.btn.cxbtn.undo{border-color:var(--line);color:var(--ink)}
 /* 詳細の小窓 */
 #sheet{position:fixed;inset:0;z-index:50}
 #sheet .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
@@ -381,6 +393,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <p class="note" style="margin:8px 0 0">お客様ではなく日付ごとの記録です。「記録を保存」で保存されます。予約がなくても付随業務だけ保存できます。</p>
     </div>
 
+    <div class="cx-note" id="cxEditNote" hidden>この予約はキャンセルになっています。予約に戻すときは、一覧で予約を押して「キャンセルを取り消す」を押してください。</div>
     <button class="btn" id="saveBtn">記録を保存</button>
     <div class="btn-row" id="editBtns" hidden>
       <button class="btn ghost" id="cancelEdit">編集をやめる</button>
@@ -510,6 +523,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <div class="bg" id="sheetBg"></div>
   <div class="card2" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
     <div id="sheetBody"></div>
+    <button type="button" class="btn cxbtn" id="sheetCancel">この予約をキャンセルにする</button>
     <div class="btn-row">
       <button class="btn ghost" id="sheetClose">閉じる</button>
       <button class="btn" id="sheetEdit">編集する</button>
@@ -545,7 +559,8 @@ let timeDay = null;
 let timeMode = "day"; // day / week
 let parts = {H:0,A:0,F:0,T:0};
 let legacyCourse = "";
-let editFee = null; // fee kept when editing an existing record
+let editFee = null;
+let editCancel = false; // 編集中の予約がキャンセルかどうか // fee kept when editing an existing record
 
 /* ---------- utils ---------- */
 function pad(n){return String(n).padStart(2,"0")}
@@ -559,6 +574,8 @@ function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isN
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27};return r}
 settings=mergeSettings({});
+// キャンセルした予約は売上・件数・施術時間・収入に含めない
+function live(list){return list.filter(v=>!v.cancel)}
 function total(v){return v.incl?(v.price||0):(v.price||0)+(v.fee||0)+(v.extra||0)}
 const DAY_START=3; // 日付の切り替わり（翌3:00）
 const OPEN_H=9, CLOSE_H=27; // 営業時間 9:00〜27:00
@@ -733,18 +750,18 @@ function calcNet(list){
 function netText(list){const c=calcNet(list);return `収入 <b>${yen(c.net)}</b>（引かれる額 ${yen(c.cost)}）`}
 function renderHeader(){
   const tk=bizToday();
-  const today=visits.filter(v=>v.date===tk);
+  const todayAll=visits.filter(v=>v.date===tk),today=live(todayAll),cxToday=todayAll.length-today.length;
   const sum=today.reduce((a,v)=>a+total(v),0);
   const s=today.filter(v=>v.type==="shimei").length, g=today.filter(v=>v.type==="gm"||v.type==="gf").length, f=today.length-s-g;
   $("todayAmt").textContent=yen(sum);
   $("todayNet").innerHTML=today.length?netText(today):"";
   const st=sideText(tk);
-  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分"+(st?"　"+st:"");
+  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分"+(cxToday?"・キャンセル "+cxToday:"")+(st?"　"+st:"");
   // 今週（月曜はじまり）・今月
   const t=new Date(tk+"T00:00");const ws=new Date(t);ws.setDate(t.getDate()-((t.getDay()+6)%7));
   const we=new Date(ws);we.setDate(ws.getDate()+6);
   const wsK=dateKey(ws),weK=dateKey(we),mk=tk.slice(0,7);
-  const wk=visits.filter(v=>v.date>=wsK&&v.date<=weK), mo=visits.filter(v=>v.date.startsWith(mk));
+  const wk=live(visits.filter(v=>v.date>=wsK&&v.date<=weK)), mo=live(visits.filter(v=>v.date.startsWith(mk)));
   $("weekLabel").textContent=`今週（${ws.getMonth()+1}/${ws.getDate()}〜${we.getMonth()+1}/${we.getDate()}）`;
   $("weekAmt").textContent=yen(wk.reduce((a,v)=>a+total(v),0));
   $("weekNet").innerHTML=wk.length?`収入 <b>${yen(calcNet(wk).net)}</b>`:"";
@@ -838,7 +855,7 @@ function currentFee(){return fType==="free"?0:(editFee!==null?editFee:feeFor(fTy
 ["fTimeH","fTimeM"].forEach(id=>$(id).addEventListener("change",renderChips));
 
 function memberStats(no){
-  const list=visits.filter(v=>v.member===no&&v.id!==editingId);
+  const list=live(visits.filter(v=>v.member===no&&v.id!==editingId));
   return {list,count:list.length,sum:list.reduce((a,v)=>a+total(v),0),shimei:list.filter(v=>v.type==="shimei").length};
 }
 function renderMemberHint(){
@@ -907,6 +924,7 @@ function resetForm(){
   sideDraft={};cancelArmed=null;
   $("fMember").value="";parts={H:0,A:0,F:0,T:0};legacyCourse="";editFee=null;$("fPrice").value="";$("fMemo").value="";fOpts=[];renderOpts();
   setType("free",false);setSex("");renderSideCard();renderChips();renderMemberHint();updateTotal();
+  editCancel=false;$("cxEditNote").hidden=true;
   $("saveBtn").textContent="記録を保存";$("editBtns").hidden=true;disarmDelete();
 }
 function loadForm(v){
@@ -916,6 +934,7 @@ function loadForm(v){
   $("fPrice").value=total(v)||"";editFee=v.type!=="free"?(v.fee||0):null;$("fMemo").value=v.memo||"";fOpts=[...(v.opts||[])];renderOpts();
   setType(v.type,false);setSex(v.sex);renderSideCard();
   renderChips();renderMemberHint();updateTotal();
+  editCancel=!!v.cancel;$("cxEditNote").hidden=!editCancel;
   $("saveBtn").textContent="変更を保存";$("editBtns").hidden=false;
   show("input");
 }
@@ -936,6 +955,7 @@ $("saveBtn").addEventListener("click",async()=>{
     parts:PARTS.filter(p=>parts[p.k]).map(p=>({k:p.k,m:parts[p.k]})),
     price:toInt($("fPrice").value),fee:currentFee(),extra:0,incl:true,
     opts:[...fOpts],memo:$("fMemo").value.trim(),updatedAt:Date.now()};
+  if(editingId&&editCancel)v.cancel=true;
   const wasEdit=!!editingId;
   resetForm();
   await saveVisit(v);
@@ -1045,9 +1065,9 @@ $("pasteBox").addEventListener("input",()=>{clearTimeout(pasteTimer);pasteTimer=
 
 /* ---------- list ---------- */
 function recRow(v){
-  return `<button class="rec" data-id="${esc(v.id)}">
+  return `<button class="rec${v.cancel?" cx":""}" data-id="${esc(v.id)}">
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
-    <span><span class="m">${typeTag(v)}${sexTag(v)}${v.member?"No."+esc(v.member):"会員番号なし"}</span>
+    <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${v.member?"No."+esc(v.member):"会員番号なし"}</span>
       <span class="c">${esc(v.course||"コース未入力")}${v.min?"（"+v.min+"分）":""}${v.memo?"　✎":""}</span>${(v.opts||[]).length?`<span style="display:block">${optTags(v)}</span>`:""}${memberNote(v.member)?`<span class="feat-line">📌 ${esc(memberNote(v.member))}</span>`:""}</span>
     <span class="a num">${yen(total(v))}</span></button>`;
 }
@@ -1056,12 +1076,12 @@ function bindRecs(root){root.querySelectorAll(".rec").forEach(b=>b.addEventListe
 let sheetId=null;
 function endTime(v){const m=vMin(v);if(!v.time||!m)return "";const [h,mi]=v.time.split(":").map(Number);const e=h*60+mi+m;return "〜"+Math.floor(e/60)+":"+pad(e%60)}
 // 前回来店（この予約より前の同じ会員番号の予約）
-function prevVisit(v){if(!v.member)return null;const k=v.date+v.time;return visits.find(x=>x.member===v.member&&x.id!==v.id&&(x.date+x.time)<k)||null}
+function prevVisit(v){if(!v.member)return null;const k=v.date+v.time;return visits.find(x=>!x.cancel&&x.member===v.member&&x.id!==v.id&&(x.date+x.time)<k)||null}
 function daysBetween(a,b){return Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/86400000)}
 function agoText(from,to){const d=daysBetween(from,to);return d===0?"同じ日":d>0?d+"日前":(-d)+"日後"}
 function showDetail(v){
   sheetId=v.id;
-  const prev=v.member?visits.filter(x=>x.member===v.member&&(x.date+x.time)<=(v.date+v.time)).length:0;
+  const prev=v.member&&!v.cancel?live(visits).filter(x=>x.member===v.member&&(x.date+x.time)<=(v.date+v.time)).length:0;
   const fee=feeOf(v);
   const rows=[
     ["会員番号",v.member?"No."+esc(v.member)+(prev?`（${prev}回目のご来店）`:""):"未入力"],
@@ -1074,14 +1094,30 @@ function showDetail(v){
     ["メモ",v.memo?`<span class="memo">${esc(v.memo)}</span>`:"なし"]
   ];
   $("sheetBody").innerHTML=`<h2 id="sheetTitle" class="num">${dayLabel(v.date)}　${esc(timeLabel(v.time))}${endTime(v)}</h2>
-    <div>${typeTag(v)}${sexTag(v)}${optTags(v)}</div>
-    <div class="amt num">${yen(total(v))}</div>
+    ${v.cancel?`<div class="cx-note">この予約はキャンセルになりました（売上・件数・収入には含めません）</div>`:""}
+    <div>${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${optTags(v)}</div>
+    <div class="amt num" style="${v.cancel?"text-decoration:line-through;opacity:.5":""}">${yen(total(v))}</div>
     <div id="sheetFeat"></div>
     <table class="num">${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
   renderFeature($("sheetFeat"),v.member);
+  disarmCancel();
+  $("sheetCancel").textContent=v.cancel?"キャンセルを取り消す（予約に戻す）":"この予約をキャンセルにする";
+  $("sheetCancel").classList.toggle("undo",!!v.cancel);
   $("sheet").hidden=false;
 }
-function closeDetail(){$("sheet").hidden=true;sheetId=null}
+function closeDetail(){$("sheet").hidden=true;sheetId=null;disarmCancel()}
+// キャンセル（2回タップで確定）／取り消しは1回で
+let cxArmed=null;
+function disarmCancel(){clearTimeout(cxArmed);cxArmed=null;$("sheetCancel").classList.remove("armed")}
+$("sheetCancel").addEventListener("click",async()=>{
+  const v=visits.find(x=>x.id===sheetId);if(!v)return;
+  if(!v.cancel&&!cxArmed){$("sheetCancel").textContent="もう一度押すとキャンセルにします";$("sheetCancel").classList.add("armed");
+    cxArmed=setTimeout(()=>{disarmCancel();$("sheetCancel").textContent="この予約をキャンセルにする"},4000);return}
+  disarmCancel();
+  const nv={...v,cancel:!v.cancel,updatedAt:Date.now()};if(!nv.cancel)delete nv.cancel;
+  await saveVisit(nv);showDetail(nv);
+  toast(nv.cancel?"キャンセルにしました":"予約に戻しました");
+});
 $("sheetBg").addEventListener("click",closeDetail);
 $("sheetClose").addEventListener("click",closeDetail);
 $("sheetEdit").addEventListener("click",()=>{const v=visits.find(x=>x.id===sheetId);closeDetail();if(v)loadForm(v)});
@@ -1095,8 +1131,9 @@ function renderList(){
   $("listBody").innerHTML=Object.keys(byD).sort().reverse().map(dk=>{
     const arr=byD[dk].slice().sort((a,b)=>a.time.localeCompare(b.time));
     const st=sideText(dk);
-    const sum=arr.reduce((a,v)=>a+total(v),0);
-    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${arr.length}件${arr.length?"・施術 "+workText(arr):""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${arr.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(arr).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
+    const la=live(arr),cxn=arr.length-la.length;
+    const sum=la.reduce((a,v)=>a+total(v),0);
+    return `<div class="day"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la):""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1126,9 +1163,10 @@ function renderTime(){
   if(timeMode==="month"){renderMonthCal();renderHeat();return}
   $("tDay").textContent=dayLabel(timeDay);
   const dv=visits.filter(v=>v.date===timeDay&&startMin(v)!==null).map(v=>({v,s:startMin(v),e:startMin(v)+(vMin(v)||60)})).sort((a,b)=>a.s-b.s);
-  const worked=dv.reduce((a,x)=>a+(x.e-x.s),0);
+  const dl=dv.filter(x=>!x.v.cancel),cxDay=dv.length-dl.length;
+  const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
-  $("tSum").textContent=(dv.length?`施術 ${hmText(worked)}・${yen(dv.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dv.map(x=>x.v)).net)}）`:"")+(st?"　"+st:"");
+  $("tSum").textContent=(dl.length?`施術 ${hmText(worked)}・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:"");
   let h0=OPEN_H,h1=CLOSE_H;
   dv.forEach(x=>{h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.e/60))});
   const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.e;x.c=c});
@@ -1138,8 +1176,8 @@ function renderTime(){
   if(timeDay===bizToday()){const nm=bizNow().min;if(nm>=h0*60&&nm<=h1*60)html+=`<div class="now" style="top:${(nm-h0*60)/60*PX}px"></div>`}
   dv.forEach(x=>{
     const top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.e-x.s)/60*PX-2);
-    html+=`<button class="blk ${x.v.type}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
-      <b class="num">${esc(timeLabel(x.v.time))}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
+    html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
+      ${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
   });
   html+="</div>";
   if(!dv.length)html=`<div class="empty">この日の記録はありません。</div>`;
@@ -1150,7 +1188,7 @@ function renderTime(){
 function renderHeat(){
   const mk=timeDay.slice(0,7);
   $("heatTitle").textContent=monthLabel(mk)+"の混み具合（曜日×時間）";
-  const mv=visits.filter(v=>v.date.startsWith(mk)&&startMin(v)!==null);
+  const mv=live(visits).filter(v=>v.date.startsWith(mk)&&startMin(v)!==null);
   let h0=OPEN_H,h1=CLOSE_H;
   mv.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
   const grid={};let max=0;
@@ -1173,7 +1211,7 @@ function renderWeek(){
   const s0=new Date(days[0]+"T00:00"),s6=new Date(days[6]+"T00:00");
   $("tDay").textContent=`${s0.getMonth()+1}/${s0.getDate()}（月）〜${s6.getMonth()+1}/${s6.getDate()}（日）`;
   const all=visits.filter(v=>v.date>=days[0]&&v.date<=days[6]&&startMin(v)!==null);
-  const wv=visits.filter(v=>v.date>=days[0]&&v.date<=days[6]);
+  const wv=live(visits.filter(v=>v.date>=days[0]&&v.date<=days[6]));
   $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
   let h0=OPEN_H,h1=CLOSE_H;
   all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
@@ -1189,12 +1227,12 @@ function renderWeek(){
     for(let h=h0;h<=h1;h++)html+=`<div class="hl" style="top:${(h-h0)*WPX}px"></div>`;
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
       const s=startMin(v),m=vMin(v)||60,top=(s-h0*60)/60*WPX,ht=Math.max(14,m/60*WPX-1);
-      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}"><span class="num">${esc(timeLabel(v.time))}</span>${ht>=26&&v.member?`<br>${esc(v.member)}`:""}</button>`;
+      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}"><span class="num">${esc(timeLabel(v.time))}</span>${ht>=26&&v.member?`<br>${esc(v.member)}`:""}</button>`;
     });
     html+=`</div>`;
   });
   html+=`<div></div>`;
-  days.forEach(dk=>{const dv=visits.filter(v=>v.date===dk);
+  days.forEach(dk=>{const dv=live(visits.filter(v=>v.date===dk));
     html+=`<div class="wf num${dk===today?" today":""}">${dv.length?`<b>${dv.length}件</b>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分`:"−"}</div>`});
   html+=`</div>`;
   $("tlBody").innerHTML=html;
@@ -1206,18 +1244,18 @@ function renderWeek(){
 function renderMonthCal(){
   const mk=timeDay.slice(0,7),today=bizToday();
   $("tDay").textContent=monthLabel(mk);
-  const mv=visits.filter(v=>v.date.startsWith(mk));
+  const mv=live(visits.filter(v=>v.date.startsWith(mk)));
   $("tSum").textContent=mv.length?`${mv.length}件・${new Set(mv.map(v=>v.date)).size}日出勤・施術 ${hoursText(mv.reduce((a,v)=>a+(vMin(v)||0),0))}・${yen(mv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(mv).net)}）`:"";
   const first=mk+"-01",start=weekStart(first);
   const last=dateKey(new Date(Number(mk.slice(0,4)),Number(mk.slice(5,7)),0));
   const end=addDays(weekStart(last),6);
   let html=`<div class="mc">`+["月","火","水","木","金","土","日"].map((w,i)=>`<div class="mh${i===5?" sat":i===6?" sun":""}">${w}</div>`).join("");
   for(let dk=start;dk<=end;dk=addDays(dk,1)){
-    const d=new Date(dk+"T00:00"),w=d.getDay(),dv=visits.filter(v=>v.date===dk),sd=sideText(dk);
+    const d=new Date(dk+"T00:00"),w=d.getDay(),dAll=visits.filter(v=>v.date===dk),dv=live(dAll),cxn=dAll.length-dv.length,sd=sideText(dk);
     const dots=["shimei","gm","gf","free"].flatMap(t=>dv.filter(v=>(TYPES[v.type]?v.type:"free")===t).map(()=>`<i style="background:${TYPE_COLOR[t]}"></i>`)).join("");
     html+=`<button type="button" class="md num${dk.slice(0,7)!==mk?" out":""}${dk===today?" today":""}${w===0?" sun":w===6?" sat":""}" data-day="${dk}" aria-label="${dayLabel(dk)} ${dv.length}件">
       <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
-      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}</button>`;
+      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
   }
   html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。</p>`;
   $("tlBody").innerHTML=html;
@@ -1234,7 +1272,7 @@ document.querySelectorAll(".tmode button").forEach(b=>b.addEventListener("click"
 /* ---------- stats ---------- */
 function renderStats(){
   $("sMonth").textContent=monthLabel(statsMonth);
-  const mv=visits.filter(v=>v.date.startsWith(statsMonth));
+  const mAll=visits.filter(v=>v.date.startsWith(statsMonth)),mv=live(mAll),mcx=mAll.filter(v=>v.cancel);
   const sideDays=Object.keys(days).filter(dk=>dk.startsWith(statsMonth)&&sideText(dk));
   const sideSum=sideDays.reduce((a,dk)=>a+sideTotal(dk),0);
   const sideCard=`<div class="card num"><h3>付随業務</h3><table class="brk">${SIDES.map(x=>{const ds=sideDays.filter(dk=>x.k in dayOf(dk));return `<tr><td>${x.name}　${ds.length}日</td><td>${yen(ds.reduce((a,dk)=>a+(dayOf(dk)[x.k]||0),0))}</td></tr>`}).join("")}<tr><td>付随業務の合計</td><td>${yen(sideSum)}</td></tr></table></div>`;
@@ -1265,6 +1303,9 @@ function renderStats(){
         <div><span>男性</span><b>${mv.filter(v=>v.sex==="m").length}件</b></div>
         <div><span>女性</span><b>${mv.filter(v=>v.sex==="f").length}件</b></div>
         <div><span>性別未入力</span><b>${mv.filter(v=>!v.sex).length}件</b></div>
+        <div><span>キャンセル</span><b>${mcx.length}件</b></div>
+        <div><span>キャンセル率</span><b>${mAll.length?Math.round(mcx.length/mAll.length*100):0}%</b></div>
+        <div><span>キャンセル分の金額</span><b>${yen(mcx.reduce((a,v)=>a+total(v),0))}</b></div>
       </div>
     </div>
     <div class="card num">
@@ -1315,11 +1356,11 @@ let memberQuery="";
 function renderMembers(){
   const body=$("memberBody");
   if(memberOpen){
-    const list=visits.filter(v=>v.member===memberOpen);
+    const listAll=visits.filter(v=>v.member===memberOpen),list=live(listAll),cxm=listAll.length-list.length;
     const sum=list.reduce((a,v)=>a+total(v),0), sh=list.filter(v=>v.type==="shimei").length;
     body.innerHTML=`<button class="back" id="memBack">‹ 会員一覧</button>
       <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(memberOpen)}</div>
-      <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div></div>
+      <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div>${cxm?`<div><span>キャンセル</span><b>${cxm}回</b></div>`:""}</div>
       ${(()=>{if(!list.length)return "";const l=list[0];const today=bizToday();
         const gaps=[];for(let i=0;i<list.length-1;i++)gaps.push(daysBetween(list[i+1].date,list[i].date));
         const avg=gaps.length?Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length):null;
@@ -1327,13 +1368,13 @@ function renderMembers(){
           ${list[1]?`<tr><td>その前の来店</td><td>${dayLabel(list[1].date)} ${esc(timeLabel(list[1].time))}</td></tr>`:""}
           ${avg!==null?`<tr><td>平均の来店間隔</td><td>${avg}日</td></tr>`:""}</table>`})()}
       <div id="memFeat"></div></div>
-      ${list.map(v=>`<div class="day-head num" style="padding-top:4px"><span>${dayLabel(v.date)}</span></div>${recRow(v)}${v.memo?`<p class="note" style="margin:-2px 6px 10px">メモ：${esc(v.memo)}</p>`:""}`).join("")}`;
+      ${listAll.map(v=>`<div class="day-head num" style="padding-top:4px"><span>${dayLabel(v.date)}</span></div>${recRow(v)}${v.memo?`<p class="note" style="margin:-2px 6px 10px">メモ：${esc(v.memo)}</p>`:""}`).join("")}`;
     renderFeature($("memFeat"),memberOpen);
     $("memBack").addEventListener("click",()=>{memberOpen=null;renderMembers()});
     bindRecs(body);return;
   }
   const map={};
-  visits.forEach(v=>{if(!v.member)return;const m=map[v.member]=map[v.member]||{no:v.member,n:0,s:0,sh:0,last:"",sex:""};
+  live(visits).forEach(v=>{if(!v.member)return;const m=map[v.member]=map[v.member]||{no:v.member,n:0,s:0,sh:0,last:"",sex:""};
     if(v.sex&&v.date>=m.last)m.sex=v.sex;m.n++;m.s+=total(v);if(v.type==="shimei")m.sh++;if(v.date>m.last)m.last=v.date});
   let arr=Object.values(map).sort((a,b)=>b.last.localeCompare(a.last));
   if(memberQuery)arr=arr.filter(m=>m.no.includes(memberQuery)||memberNote(m.no).includes(memberQuery));
@@ -1423,9 +1464,9 @@ $("bkRestore").addEventListener("click",async()=>{
   toast(o.visits.length+"件の記録を復元しました");show("input");
 });
 $("exportCsv").addEventListener("click",async()=>{
-  const head=["日付","時間","指名の種類","性別","会員番号","コース","施術時間(分)","オプション","お客様の特徴","料金(指名料込み)","うち指名料","メモ"];
+  const head=["日付","時間","状態","指名の種類","性別","会員番号","コース","施術時間(分)","オプション","お客様の特徴","料金(指名料込み)","うち指名料","メモ"];
   const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
-  const rows=visits.slice().reverse().map(v=>[v.date,v.time,typeLabel(v.type),SEX[v.sex]||"",v.member,v.course,vMin(v),optNames(v).join("・"),memberNote(v.member),total(v),feeOf(v),v.memo].map(q).join(","));
+  const rows=visits.slice().reverse().map(v=>[v.date,v.time,v.cancel?"キャンセル":"",typeLabel(v.type),SEX[v.sex]||"",v.member,v.course,vMin(v),optNames(v).join("・"),memberNote(v.member),total(v),feeOf(v),v.memo].map(q).join(","));
   const sideRows=Object.keys(days).filter(dk=>sideText(dk)).sort().map(dk=>{const d=dayOf(dk);return [dk,"open" in d?"あり":"なし",d.open||0,"close" in d?"あり":"なし",d.close||0].map(q).join(",")});
   const csv="\uFEFF"+[head.map(q).join(","),...rows,"",["付随業務の日付","開店業務","開店業務の金額","閉店業務","閉店業務の金額"].map(q).join(","),...sideRows].join("\r\n");
   await saveFile("予約記録_"+dateKey(new Date())+".csv",csv,"text/csv");

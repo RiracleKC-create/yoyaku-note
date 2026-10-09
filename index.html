@@ -1151,7 +1151,7 @@ function renderList(){
     const st=sideText(dk);
     const la=live(arr),cxn=arr.length-la.length;
     const sum=la.reduce((a,v)=>a+total(v),0);
-    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dk===bizToday()?`<span class="tdy-badge">今日</span>`:""}${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la):""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
+    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la):""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1275,7 +1275,7 @@ function renderMonthCal(){
     const d=new Date(dk+"T00:00"),w=d.getDay(),dAll=visits.filter(v=>v.date===dk),dv=live(dAll),cxn=dAll.length-dv.length,sd=sideText(dk);
     const dots=["shimei","gm","gf","free"].flatMap(t=>dv.filter(v=>(TYPES[v.type]?v.type:"free")===t).map(()=>`<i style="background:${TYPE_COLOR[t]}"></i>`)).join("");
     html+=`<button type="button" class="md num${dk.slice(0,7)!==mk?" out":""}${dk===today?" today":""}${w===0?" sun":w===6?" sat":""}" data-day="${dk}" aria-label="${dayLabel(dk)} ${dv.length}件">
-      <span class="dn">${d.getDate()}</span>${dk===today?`<span class="tdy">今日</span>`:""}${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
+      <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
       ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
   }
   html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。</p>`;

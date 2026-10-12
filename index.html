@@ -831,6 +831,8 @@ function hoursText(m){return (Math.round((m||0)/60*100)/100)+"時間"}
 // 分の表示（例：405分）
 function hmText(m){return (m||0)+"分"}
 function workText(list){return hmText(list.reduce((a,v)=>a+(vMin(v)||0),0))}
+// 指名（type==="shimei"）の施術時間（分）
+function shMin(list){return list.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)}
 // 売上から引かれる金額と収入
 // その月のシステム利用料率（設定した月から次の設定の前まで有効）
 function rateFor(mk){
@@ -860,7 +862,7 @@ function renderHeader(){
   $("todayAmt").textContent=yen(sum);
   $("todayNet").innerHTML=today.length?netText(today):"";
   const st=sideText(tk);
-  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分"+(cxToday?"・キャンセル "+cxToday:"")+(st?"　"+st:"");
+  $("todayMeta").textContent=today.length+"件　指名 "+s+(g?"・男女指名 "+g:"")+"・フリー "+f+"・施術 "+today.reduce((a,v)=>a+(vMin(v)||0),0)+"分（指名 "+shMin(today)+"分）"+(cxToday?"・キャンセル "+cxToday:"")+(st?"　"+st:"");
   // 今週（月曜はじまり）・今月
   const t=new Date(tk+"T00:00");const ws=new Date(t);ws.setDate(t.getDate()-((t.getDay()+6)%7));
   const we=new Date(ws);we.setDate(ws.getDate()+6);
@@ -869,11 +871,11 @@ function renderHeader(){
   $("weekLabel").textContent=`今週（${ws.getMonth()+1}/${ws.getDate()}〜${we.getMonth()+1}/${we.getDate()}）`;
   $("weekAmt").textContent=yen(wk.reduce((a,v)=>a+total(v),0));
   $("weekNet").innerHTML=wk.length?`収入 <b>${yen(calcNet(wk).net)}</b>`:"";
-  $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0));
+  $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"（指名 "+hoursText(shMin(wk))+"）";
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
   $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net)}</b>`:"";
-  $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0));
+  $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"（指名 "+hoursText(shMin(mo))+"）";
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
 }
@@ -1239,7 +1241,7 @@ function renderList(){
     const st=sideText(dk);
     const la=live(arr),cxn=arr.length-la.length;
     const sum=la.reduce((a,v)=>a+total(v),0);
-    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la):""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
+    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la)+"（指名 "+hmText(shMin(la))+"）":""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1275,7 +1277,7 @@ function renderTime(){
   const dl=dv.filter(x=>!x.v.cancel),cxDay=dv.length-dl.length;
   const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
-  $("tSum").textContent=(dl.length?`施術 ${hmText(worked)}・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:"");
+  $("tSum").textContent=(dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:"");
   let h0=OPEN_H,h1=CLOSE_H;
   dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
   const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.ie;x.c=c});
@@ -1321,7 +1323,7 @@ function renderWeek(){
   $("tDay").textContent=`${s0.getMonth()+1}/${s0.getDate()}（月）〜${s6.getMonth()+1}/${s6.getDate()}（日）`;
   const all=visits.filter(v=>v.date>=days[0]&&v.date<=days[6]&&startMin(v)!==null);
   const wv=live(visits.filter(v=>v.date>=days[0]&&v.date<=days[6]));
-  $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
+  $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(wv))}）・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
   let h0=OPEN_H,h1=CLOSE_H;
   all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60)+ivMin(v);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
   const WPX=34,H=(h1-h0)*WPX;
@@ -1354,7 +1356,7 @@ function renderMonthCal(){
   const mk=timeDay.slice(0,7),today=bizToday();
   $("tDay").textContent=monthLabel(mk);
   const mv=live(visits.filter(v=>v.date.startsWith(mk)));
-  $("tSum").textContent=mv.length?`${mv.length}件・${new Set(mv.map(v=>v.date)).size}日出勤・施術 ${hoursText(mv.reduce((a,v)=>a+(vMin(v)||0),0))}・${yen(mv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(mv).net)}）`:"";
+  $("tSum").textContent=mv.length?`${mv.length}件・${new Set(mv.map(v=>v.date)).size}日出勤・施術 ${hoursText(mv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(mv))}）・${yen(mv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(mv).net)}）`:"";
   const first=mk+"-01",start=weekStart(first);
   const last=dateKey(new Date(Number(mk.slice(0,4)),Number(mk.slice(5,7)),0));
   const end=addDays(weekStart(last),6);
@@ -1423,6 +1425,8 @@ function renderStats(){
         <div><span>指名率</span><b>${Math.round(sh.length/mv.length*100)}%</b></div>
         <div><span>1件平均</span><b>${yen(Math.round(sum/mv.length))}</b></div>
         <div><span>指名</span><b>${sh.length}件</b></div>
+        <div><span>指名施術時間</span><b>${hoursText(shMin(mv))}</b></div>
+        <div><span>指名時間率</span><b>${(()=>{const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);return t?Math.round(shMin(mv)/t*1000)/10:0})()}%</b></div>
         <div><span>男性指名</span><b>${cnt("gm").length}件</b></div>
         <div><span>女性指名</span><b>${cnt("gf").length}件</b></div>
         <div><span>フリー</span><b>${cnt("free").length}件</b></div>
@@ -1464,7 +1468,8 @@ function renderStats(){
     <div class="card num">
       <h3>メニュー別（組み合わせ含む）</h3>
       <table class="brk">${PARTS.map(p=>{const arr=mv.filter(v=>(v.parts||[]).some(x=>x.k===p.k));return `<tr><td>${p.k}　${p.name}</td><td>${arr.length}件・${arr.reduce((a,v)=>a+(v.parts.find(x=>x.k===p.k).m),0)}分</td></tr>`}).join("")}
-      <tr><td>施術時間の合計</td><td>${hoursText(mv.reduce((a,v)=>a+vMin(v),0))}</td></tr></table>
+      <tr><td>施術時間の合計</td><td>${hoursText(mv.reduce((a,v)=>a+vMin(v),0))}</td></tr>
+      <tr><td>うち指名の施術時間</td><td>${hoursText(shMin(mv))}（${(()=>{const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);return t?Math.round(shMin(mv)/t*1000)/10:0})()}%）</td></tr></table>
     </div>
     <div class="card num">
       <h3>オプション</h3>

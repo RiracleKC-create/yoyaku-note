@@ -72,18 +72,19 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .calc-btn{border:0;background:var(--panel);width:40px;height:40px;border-radius:50%;color:var(--sub);display:grid;place-items:center;padding:0}
 .calc-btn svg{width:20px;height:20px}
 /* 電卓 */
-#calc{position:fixed;inset:0;z-index:60}
-#calc .bg{position:absolute;inset:0;background:rgba(0,0,0,.35)}
-#calc .pad{position:absolute;left:0;right:0;bottom:0;max-width:440px;margin:0 auto;background:var(--panel);border-radius:18px 18px 0 0;
-  padding:12px 14px calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 24px rgba(0,0,0,.2)}
-#calc .chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#calc{position:fixed;z-index:60;left:calc(100vw - 296px);top:120px;width:min(288px,calc(100vw - 16px));background:var(--panel);border-radius:16px;
+  padding:0 10px 10px;box-shadow:0 8px 28px rgba(0,0,0,.28),0 0 0 1px var(--line)}
+#calc .chead{display:flex;justify-content:space-between;align-items:center;padding:8px 0 6px;touch-action:none;cursor:move;user-select:none;-webkit-user-select:none}
+#calc .grip{display:flex;align-items:center;gap:6px;flex:1;min-height:30px}
+#calc .grip i{width:36px;height:5px;border-radius:3px;background:var(--sub);opacity:.35}
+#calc.drag{opacity:.92}
 #calc .chead span{font-size:13px;font-weight:700;color:var(--sub)}
 #calc .chead button{border:0;background:var(--field);border-radius:999px;padding:6px 14px;font-weight:700;color:var(--sub)}
-#calc .disp{background:var(--field);border-radius:12px;padding:8px 12px;text-align:right;margin-bottom:10px;min-height:76px}
-#calc .expr{font-size:15px;color:var(--sub);min-height:20px;word-break:break-all}
-#calc .res{font-size:34px;font-weight:900;color:var(--ink);line-height:1.2;word-break:break-all}
-#calc .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-#calc .keys button{border:0;height:54px;border-radius:12px;background:var(--field);color:var(--ink);font-size:22px;font-weight:700}
+#calc .disp{background:var(--field);border-radius:10px;padding:6px 10px;text-align:right;margin-bottom:8px;min-height:62px}
+#calc .expr{font-size:13px;color:var(--sub);min-height:20px;word-break:break-all}
+#calc .res{font-size:28px;font-weight:900;color:var(--ink);line-height:1.2;word-break:break-all}
+#calc .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#calc .keys button{border:0;height:46px;border-radius:10px;background:var(--field);color:var(--ink);font-size:20px;font-weight:700;touch-action:manipulation}
 #calc .keys button.op{background:color-mix(in srgb,var(--money) 16%,var(--field));color:var(--money)}
 #calc .keys button.fn{color:var(--sub);font-size:18px}
 #calc .keys button.eq{background:var(--money);color:#fff}
@@ -572,9 +573,8 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   </div>
 </div>
 <div id="calc" hidden>
-  <div class="bg" id="calcBg"></div>
-  <div class="pad" role="dialog" aria-modal="true" aria-label="電卓">
-    <div class="chead"><span>電卓</span><button type="button" id="calcClose">閉じる</button></div>
+  <div class="pad" role="dialog" aria-label="電卓">
+    <div class="chead" id="calcHead"><div class="grip" aria-label="移動"><i></i></div><button type="button" id="calcClose">閉じる</button></div>
     <div class="disp num"><div class="expr" id="calcExpr"></div><div class="res" id="calcRes">0</div></div>
     <div class="keys num" id="calcKeys">
       <button type="button" class="fn" data-k="C">C</button><button type="button" class="fn" data-k="B">⌫</button><button type="button" class="fn" data-k="%">%</button><button type="button" class="op" data-k="/">÷</button>
@@ -797,10 +797,21 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
     else{if(L.endsWith("%"))return;if(L==="0"&&k!==".")ex=ex.slice(0,-1);if(k==="00"&&!/^[\d.]+$/.test(L))k="0";ex+=k}
     draw()}
   $("calcKeys").addEventListener("click",e=>{const b=e.target.closest("button");if(b)key(b.dataset.k)});
-  const open=()=>{$("calc").hidden=false;draw()},close=()=>{$("calc").hidden=true};
-  $("calcBtn").addEventListener("click",open);$("calcBg").addEventListener("click",close);$("calcClose").addEventListener("click",close);
+  const box=$("calc"),POS="rirakuLog.calcPos";
+  function place(x,y){const w=box.offsetWidth,h=box.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
+    x=Math.max(4,Math.min(x,vw-w-4));y=Math.max(4,Math.min(y,vh-h-4));box.style.left=x+"px";box.style.top=y+"px";return [x,y]}
+  const open=()=>{box.hidden=false;draw();let p=null;try{p=JSON.parse(localStorage.getItem(POS))}catch(e){}
+    if(p)place(p[0],p[1]);else place(window.innerWidth-box.offsetWidth-8,Math.max(8,window.innerHeight-box.offsetHeight-90))};
+  const close=()=>{box.hidden=true};
+  $("calcBtn").addEventListener("click",()=>box.hidden?open():close());$("calcClose").addEventListener("click",close);
+  window.addEventListener("resize",()=>{if(!box.hidden)place(box.offsetLeft,box.offsetTop)});
+  let drag=null;const head=$("calcHead");
+  head.addEventListener("pointerdown",e=>{if(e.target.closest("button"))return;drag={id:e.pointerId,dx:e.clientX-box.offsetLeft,dy:e.clientY-box.offsetTop};head.setPointerCapture(e.pointerId);box.classList.add("drag");e.preventDefault()});
+  head.addEventListener("pointermove",e=>{if(!drag||e.pointerId!==drag.id)return;place(e.clientX-drag.dx,e.clientY-drag.dy)});
+  const stop=e=>{if(!drag)return;drag=null;box.classList.remove("drag");try{localStorage.setItem(POS,JSON.stringify([box.offsetLeft,box.offsetTop]))}catch(err){}};
+  head.addEventListener("pointerup",stop);head.addEventListener("pointercancel",stop);
   document.addEventListener("keydown",e=>{if($("calc").hidden)return;
-    if(e.key==="Escape")close();else if(/^[\d.+\-*/%]$/.test(e.key))key(e.key);else if(e.key==="Enter"||e.key==="=")key("=");else if(e.key==="Backspace")key("B")});
+    if(e.target.closest&&e.target.closest("input,textarea,select"))return;if(e.key==="Escape")close();else if(/^[\d.+\-*/%]$/.test(e.key))key(e.key);else if(e.key==="Enter"||e.key==="=")key("=");else if(e.key==="Backspace")key("B")});
 })();
 $("setBack").addEventListener("click",()=>show("input"));
 

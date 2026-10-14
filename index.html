@@ -133,7 +133,8 @@ textarea.fld{min-height:64px;resize:vertical}
 .member-hint p{margin:2px 0}
 .member-hint .first{color:var(--sub)}
 .member-hint.ask{border-left-color:var(--money);background:color-mix(in srgb,var(--money) 10%,var(--panel))}
-.member-hint .q{font-weight:700;color:var(--ink);margin-bottom:6px}
+.member-hint .q{font-weight:700;color:var(--ink);margin-bottom:0}
+.member-hint .q2{color:var(--ink);margin-bottom:6px}
 .member-hint .ok-mark{color:var(--ok);font-size:12px;font-weight:700}
 .mh-btns{display:flex;gap:8px;margin-top:10px}
 .mh-btns button{flex:1;border:0;border-radius:10px;padding:10px 6px;font-weight:700;font-size:14px}
@@ -211,10 +212,11 @@ h3{font-size:15px;margin:0 0 10px}
 .chg ul{margin:0;padding-left:1.2em}
 .chg li{font-size:14px;line-height:1.6;margin:3px 0}
 .chg+.chg{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
-#news{position:fixed;inset:0;z-index:70}
-#news .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
-#news .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
-#news h2{font-size:18px;margin:0 0 10px}
+#news,#bkRemind{position:fixed;inset:0;z-index:70}
+#news .bg,#bkRemind .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#news .card2,#bkRemind .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#news h2,#bkRemind h2{font-size:18px;margin:0 0 10px}
+#bkRemind p{font-size:14px;line-height:1.6;margin:0 0 8px}
 
 .side-link{border:0;background:var(--field);color:var(--ink);border-radius:8px;padding:2px 8px;font-size:13px;font-weight:700}
 .saved{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px;margin-bottom:12px}
@@ -567,11 +569,12 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li><b>予約内容を貼り付け</b>：予約通知の文章を貼り付けると、時間・会員番号・コースなどを自動で読み取ります。</li>
       <li><b>日付・予約時間</b>：24時〜26時も選べます（前の日の営業として記録）。</li>
       <li><b>指名の種類</b>：指名・フリー・男性指名・女性指名。指名料は⚙設定の金額が自動で入ります。</li>
-      <li><b>会員番号</b>：入れると下に前回の来店やお客様の特徴が出ます。登録済みの番号は「このお客様で入力」を選んでから保存します。同じ番号で別の人なら「同じ番号の別のお客様（新しく登録）」を押し、見分けられるように特徴を入れてください。</li>
+      <li><b>会員番号</b>：入れると下に前回の来店やお客様の特徴が出ます。登録済みの番号は「この会員番号はすでに登録があります」と出るので、今回のお客様の「このお客様を選ぶ」を押してから保存します。同じ番号で別の人なら「同じ番号の別のお客様（新しく登録）」を押し、見分けられるように特徴を入れてください。</li>
       <li><b>コース</b>：H（ほぐし）・A（あたま）・F（足つぼ）・T（ハンド）を組み合わせて選びます。</li>
       <li><b>料金</b>：指名料込みの金額を入れます。</li>
       <li><b>付随業務</b>：開店業務・閉店業務がある日は「あり」を選びます（金額は⚙設定で決めた額）。</li>
       <li>記録を直すときは、一覧などから記録を開いて「編集する」。削除は2回押すと消えます。</li>
+      <li><b>別のお客様に付け替える</b>：同じ番号の別のお客様を選んでしまったときは、記録を開いて「編集する」→ 会員番号の下の「選び直す」→ 正しいお客様の「このお客様を選ぶ」（まだ登録していない人なら「同じ番号の別のお客様（新しく登録）」）→「変更を保存」。来店回数や累計も数え直されます。</li>
       <li>キャンセルになった予約は、記録を開いて「この予約をキャンセルにする」。売上・件数・施術時間・収入には入りません。</li>
     </ul>
   </details>
@@ -617,7 +620,8 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <details class="card"><summary>設定とバックアップ</summary>
     <ul>
       <li>指名料・システム利用料・施設利用料・固定材料費・付随業務の金額・インターバル時間を決められます。</li>
-      <li><b>バックアップ</b>：ファイルで保存、または文字でコピーできます。こまめに保存しておくと安心です。</li>
+      <li><b>バックアップ</b>：ファイルで保存、または文字でコピーできます。こまめに保存しておくと安心です。最後にバックアップした日も表示されます。</li>
+      <li><b>月初のバックアップ案内</b>：毎月1日〜3日にアプリを開くと案内が出ます。「今すぐバックアップする」でファイルに保存すると、その月はもう出ません（⚙設定からバックアップしても同じです）。「あとで」を押すとその日は出ず、次の日にまた出ます。ほかの方法でバックアップした場合は「済みにする」を押してください。</li>
       <li><b>CSVで保存</b>：Excelなどで開ける形で全記録を書き出します。</li>
       <li><b>復元</b>：バックアップのファイルや文字から、記録を元に戻します。</li>
     </ul>
@@ -682,6 +686,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <div class="card">
       <h3>バックアップ</h3>
       <p class="note" id="storeNote"></p>
+      <p class="note" id="bkLast" style="margin-top:-4px"></p>
       <button class="btn" id="bkFile">バックアップをファイルで保存</button>
       <div class="gap"></div>
       <button class="btn ghost" id="bkCopy">バックアップを文字でコピー</button>
@@ -738,6 +743,16 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <h2 id="newsTitle">アプリが新しくなりました</h2>
     <div id="newsBody"></div>
     <div class="btn-row"><button class="btn ghost" id="newsManual">使い方を見る</button><button class="btn" id="newsClose">閉じる</button></div>
+  </div>
+</div>
+<div id="bkRemind" hidden>
+  <div class="bg"></div>
+  <div class="card2" role="dialog" aria-modal="true" aria-labelledby="bkrTitle">
+    <h2 id="bkrTitle">月初のバックアップ</h2>
+    <p>毎月はじめに、記録のバックアップをしておきましょう。スマホの故障や機種変更のときに、記録を元に戻せます。</p>
+    <p class="note" id="bkrLast"></p>
+    <button class="btn" id="bkrNow">今すぐバックアップする</button>
+    <div class="btn-row"><button class="btn ghost" id="bkrLater">あとで</button><button class="btn ghost" id="bkrDone">済みにする</button></div>
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -1002,11 +1017,12 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=50;
+const APP_VER=55; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:55,date:"10月15日",items:["毎月1日〜3日にアプリを開くと、バックアップの案内が出るようにしました。バックアップをすると、その月はもう出ません。"]},
   {n:50,date:"10月15日",items:["⚙設定に「使い方」と「更新履歴」を追加しました。","アプリが新しくなったあと最初に開いたとき、変わった内容をお知らせするようにしました。"]},
-  {n:48,date:"10月14日",items:["同じ会員番号でも、別のお客様として登録できるようになりました。お客様の特徴で見分けて選べます。","同じ番号のお客様が複数いるときは「No.495（特徴）」のように表示します。"]},
-  {n:47,date:"10月14日",items:["登録済みの会員番号を入れたとき、「このお客様でいいですか？」と確認してから保存するようにしました。"]},
+  {n:48,date:"10月14日",items:["同じ会員番号でも、別のお客様として登録できるようになりました。同じ番号のお客様が2名以上いるときは、お客様の特徴や過去の来店履歴を見て選べます。","同じ番号のお客様が複数いるときは「No.495（特徴）」のように表示します。"]},
+  {n:47,date:"10月14日",items:["登録済みの会員番号を入れたとき、「この会員番号はすでに登録があります」と表示し、今回のお客様を選んでから保存するようにしました。"]},
   {n:46,date:"10月14日",items:["集計タブの「月の合計」の右に「月の収入」を表示しました。"]},
   {n:45,date:"10月14日",items:["時間タブで入店時間（予定も含む）を入れられるようになりました。1時間ごとの枠を押して入力します。","入店時間を日・週・月、今週・今月の欄に表示します。","集計タブに入店時間・稼働率・入店1時間あたりの売上と収入を追加しました。"]},
   {n:36,date:"10月13日",items:["指名の施術時間を表示するようにしました。集計タブに指名時間率も追加しました。"]},
@@ -1030,12 +1046,12 @@ $("verNote").textContent="最終更新："+CHANGELOG[0].date;
 // 前に見た版より新しい分を、まとめてお知らせする（何回分たまっていても全部出す）
 setTimeout(function(){let seen=0;try{seen=Number(localStorage.getItem(SEEN_KEY))||0}catch(e){}
   // はじめて使う人（記録がまだない）にはお知らせを出さない
-  if(!seen&&!visits.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};return}
+  if(!seen&&!visits.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};maybeBackupRemind();return}
   const fresh=seen?CHANGELOG.filter(c=>c.n>seen):CHANGELOG.slice(0,1);
-  const done=()=>{$("news").hidden=true;try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){}};
+  const done=()=>{$("news").hidden=true;try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};setTimeout(maybeBackupRemind,300)};
   $("newsClose").addEventListener("click",done);$("news").querySelector(".bg").addEventListener("click",done);
   $("newsManual").addEventListener("click",()=>{done();showHelp("manual")});
-  if(seen>=APP_VER||!fresh.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};return}
+  if(seen>=APP_VER||!fresh.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};maybeBackupRemind();return}
   $("newsTitle").textContent="アプリが新しくなりました";
   $("newsBody").innerHTML=chgHtml(fresh);
   $("news").hidden=false;
@@ -1200,7 +1216,7 @@ function custCard(key,withBtn){
     <p>${sex?sex+"・":""}${st.count?`<b>${st.count+1}回目</b>のご来店（うち指名 ${st.shimei}回）・累計 ${yen(st.sum)}`:"来店記録なし"}</p>
     ${last?`<p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}（${agoText(last.date,$("fDate").value||bizToday())}）　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>`:""}
     ${last&&last.memo?`<p>前回のメモ：${esc(last.memo)}</p>`:""}
-    ${withBtn?`<button type="button" class="pick" data-mh="pick" data-who="${keyWho(key)}">このお客様で入力</button>`:""}
+    ${withBtn?`<button type="button" class="pick" data-mh="pick" data-who="${keyWho(key)}">このお客様を選ぶ</button>`:""}
   </div>`}
 function renderMemberHint(){
   const no=$("fMember").value.trim();
@@ -1215,7 +1231,8 @@ function renderMemberHint(){
       <div class="mh-btns"><button type="button" class="no" data-mh="redo">選び直す</button></div></div>`;
     return}
   $("memberHint").innerHTML=`<div class="member-hint num ask">
-    <p class="q">${whos.length>1?`No.${esc(no)}のお客様が${whos.length}人登録されています。どのお客様ですか？`:"すでに登録がある以下のお客様でいいですか？"}</p>
+    <p class="q">この会員番号（No.${esc(no)}）はすでに${whos.length>1?whos.length+"名の":""}登録があります。</p>
+    <p class="q2">今回のお客様を選んでください。</p>
     ${whos.map(w=>custCard(ckOf(no,w),true)).join("")}
     <div class="mh-btns"><button type="button" class="no" data-mh="new">同じ番号の別のお客様（新しく登録）</button></div>
   </div>`;
@@ -1513,7 +1530,7 @@ function addDays(dk,n){const d=new Date(dk+"T00:00");d.setDate(d.getDate()+n);re
 function renderTime(){
   if(!timeDay)timeDay=bizToday();
   const today=bizToday();
-  document.querySelectorAll(".tmode button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===timeMode?"true":"false"));
+  document.querySelectorAll(".tmode button[data-m]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===timeMode?"true":"false"));
   $("tToday").disabled=timeMode==="day"?timeDay===today:timeMode==="week"?weekStart(timeDay)===weekStart(today):timeDay.slice(0,7)===today.slice(0,7);
   const unit={day:"日",week:"週",month:"月"}[timeMode];
   $("tPrev").setAttribute("aria-label","前の"+unit);
@@ -1666,7 +1683,7 @@ $("tlBody").addEventListener("click",e=>{const b=e.target.closest("button.st");i
   el.addEventListener("touchend",end);el.addEventListener("touchcancel",end);
   el.addEventListener("click",e=>{if(swiped){e.stopPropagation();e.preventDefault()}},true);
 })();
-document.querySelectorAll(".tmode button").forEach(b=>b.addEventListener("click",()=>{timeMode=b.dataset.m;renderTime()}));
+document.querySelectorAll(".tmode button[data-m]").forEach(b=>b.addEventListener("click",()=>{timeMode=b.dataset.m;renderTime()}));
 
 /* ---------- stats ---------- */
 function renderStats(){
@@ -1835,9 +1852,25 @@ async function saveFile(filename,text,mime){
   toast("保存できませんでした。「文字でコピー」を使ってください");return false;
 }
 function backupJSON(){return JSON.stringify({app:"yoyaku-note",version:1,exportedAt:new Date().toISOString(),visits,days,settings,members})}
-$("bkFile").addEventListener("click",()=>saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"));
+/* ---------- 月初のバックアップ案内 ---------- */
+// 毎月1日〜3日に案内を出す。バックアップをする（または「済み」を押す）とその月はもう出ない。「あとで」はその日だけ出さない
+const BK_DONE="rirakuLog.bkDoneMonth",BK_LAST="rirakuLog.bkLast",BK_SNOOZE="rirakuLog.bkSnooze";
+function lsGet(k){try{return localStorage.getItem(k)||""}catch(e){return ""}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function bkLastText(){const d=lsGet(BK_LAST);return d?"最後のバックアップ："+Number(d.slice(5,7))+"月"+Number(d.slice(8,10))+"日":"まだバックアップをしていません"}
+function markBackup(){const t=bizToday();lsSet(BK_LAST,t);lsSet(BK_DONE,t.slice(0,7));$("bkLast").textContent=bkLastText();$("bkRemind").hidden=true}
+function maybeBackupRemind(){const t=bizToday(),day=Number(t.slice(8,10));
+  if(day>3||!visits.length||lsGet(BK_DONE)===t.slice(0,7)||lsGet(BK_SNOOZE)===t||!$("news").hidden)return;
+  $("bkrLast").textContent=bkLastText();$("bkRemind").hidden=false}
+$("bkrNow").addEventListener("click",async()=>{if(await saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"))markBackup()});
+$("bkrDone").addEventListener("click",()=>{markBackup();toast("今月のバックアップ済みにしました")});
+const bkLater=()=>{lsSet(BK_SNOOZE,bizToday());$("bkRemind").hidden=true};
+$("bkrLater").addEventListener("click",bkLater);$("bkRemind").querySelector(".bg").addEventListener("click",bkLater);
+$("bkLast").textContent=bkLastText();
+$("bkFile").addEventListener("click",async()=>{if(await saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"))markBackup()});
 $("bkCopy").addEventListener("click",async()=>{
   const t=backupJSON(),out=$("bkOut");out.value=t;out.hidden=false;out.focus();out.select();
+  markBackup();
   try{await navigator.clipboard.writeText(t);toast("コピーしました。メモアプリなどに貼り付けて保存してください")}
   catch(e){toast("下の文字を長押しして全選択→コピーしてください")}
 });

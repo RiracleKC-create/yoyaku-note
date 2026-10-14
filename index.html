@@ -132,6 +132,17 @@ textarea.fld{min-height:64px;resize:vertical}
 .member-hint{margin-top:10px;border-left:3px solid var(--shimei);padding:8px 12px;background:var(--shimei-soft);border-radius:0 10px 10px 0;font-size:14px}
 .member-hint p{margin:2px 0}
 .member-hint .first{color:var(--sub)}
+.member-hint.ask{border-left-color:var(--money);background:color-mix(in srgb,var(--money) 10%,var(--panel))}
+.member-hint .q{font-weight:700;color:var(--ink);margin-bottom:6px}
+.member-hint .ok-mark{color:var(--ok);font-size:12px;font-weight:700}
+.mh-btns{display:flex;gap:8px;margin-top:10px}
+.mh-btns button{flex:1;border:0;border-radius:10px;padding:10px 6px;font-weight:700;font-size:14px}
+.mh-btns .yes{background:var(--money);color:#fff}
+.mh-btns .no{background:var(--field);color:var(--ink)}
+.member-hint .cust{background:var(--panel);border-radius:10px;padding:8px 10px;margin:8px 0}
+.member-hint .cust .cf{color:#8A5A12;font-weight:700}
+.member-hint .cust .cf.none{color:var(--sub);font-weight:400}
+.member-hint .cust .pick{display:block;width:100%;margin-top:8px;border:0;border-radius:10px;padding:10px;font-weight:700;font-size:14px;background:var(--money);color:#fff}
 
 .total-line{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
 .total-line span{color:var(--sub);font-size:14px}
@@ -746,6 +757,21 @@ function liftSide(remote){
 }
 // お客様の特徴（会員番号ごと）
 function memberNote(no){return no&&members[no]?members[no].note||"":""}
+// 同じ会員番号でも別のお客様を見分ける：2人目以降は who に 2,3… を入れ、キーは「495_2」のようにする
+function ckOf(no,who){return no?(who>1?no+"_"+who:no):""}
+function ck(v){return ckOf(v.member,v.who)}
+function keyNo(k){return String(k||"").split("_")[0]}
+function keyWho(k){const w=Number(String(k||"").split("_")[1]);return w>1?w:1}
+// その会員番号のお客様（1人目・2人目…）
+function whosFor(no,exceptId){const set=new Set();
+  visits.forEach(v=>{if(v.member===no&&v.id!==exceptId)set.add(v.who>1?v.who:1)});
+  Object.keys(members).forEach(k=>{if(keyNo(k)===no&&memberNote(k))set.add(keyWho(k))});
+  return [...set].sort((a,b)=>a-b)}
+function shortNote(k,n){const t=memberNote(k).replace(/\s+/g," ").trim();return t.length>n?t.slice(0,n)+"…":t}
+// 表示用の名前。同じ番号のお客様が複数いるときだけ、特徴（なければ「2人目」）を添える
+function keyLabel(k){if(!k)return "";const no=keyNo(k),w=keyWho(k);
+  if(whosFor(no).length<2&&w===1)return "No."+no;
+  const f=shortNote(k,10);return "No."+no+"（"+(f||w+"人目")+"）"}
 async function saveMemberNote(no,note){
   note=note.trim();
   if(note)members[no]={note,updatedAt:Date.now()};else delete members[no];
@@ -756,11 +782,11 @@ async function saveMemberNote(no,note){
 function renderFeature(el,no){
   if(!no){el.innerHTML=`<div class="feat"><h4>お客様の特徴</h4><div class="empty2">会員番号がないため登録できません</div></div>`;return}
   const note=memberNote(no);
-  el.innerHTML=`<div class="feat"><h4>お客様の特徴（No.${esc(no)}）</h4>
+  el.innerHTML=`<div class="feat"><h4>お客様の特徴（${esc(keyLabel(no))}）</h4>
     ${note?`<div class="txt">${esc(note)}</div>`:`<div class="empty2">まだ登録されていません</div>`}
     <div class="row"><button type="button" data-act="edit">${note?"特徴を編集":"特徴を登録"}</button></div></div>`;
   el.querySelector('[data-act="edit"]').addEventListener("click",()=>{
-    el.innerHTML=`<div class="feat"><h4>お客様の特徴（No.${esc(no)}）</h4>
+    el.innerHTML=`<div class="feat"><h4>お客様の特徴（${esc(keyLabel(no))}）</h4>
       <textarea placeholder="例：強めの圧が好み／会話少なめ希望／右肩に古傷">${esc(note)}</textarea>
       <div class="row"><button type="button" class="ghost" data-act="cancel">やめる</button><button type="button" data-act="save">保存する</button></div></div>`;
     const ta=el.querySelector("textarea");ta.focus();
@@ -999,29 +1025,50 @@ function currentFee(){return fType==="free"?0:(editFee!==null?editFee:feeFor(fTy
 ["fPrice"].forEach(id=>$(id).addEventListener("input",updateTotal));
 ["fTimeH","fTimeM"].forEach(id=>$(id).addEventListener("change",renderChips));
 
-function memberStats(no){
-  const list=live(visits.filter(v=>v.member===no&&v.id!==editingId));
+function memberStats(key){
+  const list=live(visits.filter(v=>ck(v)===key&&v.id!==editingId));
   return {list,count:list.length,sum:list.reduce((a,v)=>a+total(v),0),shimei:list.filter(v=>v.type==="shimei").length};
 }
+// 登録済みの会員番号は「どのお客様か」を選んでもらう。memberOK＝選んだお客様のキー
+let memberOK="",fWho=1,newFeatDraft="";
+function custCard(key,withBtn){
+  const st=memberStats(key),fn=memberNote(key),last=st.list[0];
+  const sex=last&&last.sex?SEX[last.sex]:((visits.find(v=>ck(v)===key&&v.sex)||{}).sex?SEX[(visits.find(v=>ck(v)===key&&v.sex)).sex]:"");
+  return `<div class="cust">
+    ${fn?`<p class="cf">📌 ${esc(fn)}</p>`:`<p class="cf none">特徴は未登録</p>`}
+    <p>${sex?sex+"・":""}${st.count?`<b>${st.count+1}回目</b>のご来店（うち指名 ${st.shimei}回）・累計 ${yen(st.sum)}`:"来店記録なし"}</p>
+    ${last?`<p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}（${agoText(last.date,$("fDate").value||bizToday())}）　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>`:""}
+    ${last&&last.memo?`<p>前回のメモ：${esc(last.memo)}</p>`:""}
+    ${withBtn?`<button type="button" class="pick" data-mh="pick" data-who="${keyWho(key)}">このお客様で入力</button>`:""}
+  </div>`}
 function renderMemberHint(){
   const no=$("fMember").value.trim();
   if(!no){$("memberHint").innerHTML="";return}
-  const st=memberStats(no);
-  const fn=memberNote(no);const featHtml=fn?`<p style="color:#8A5A12"><b>特徴：</b>${esc(fn)}</p>`:"";
-  if(!st.count){$("memberHint").innerHTML=`<div class="member-hint"><p class="first">はじめての会員番号です</p>${featHtml}</div>`;return}
-  const last=st.list[0];
-  $("memberHint").innerHTML=`<div class="member-hint num">
-    <p><b>${st.count+1}回目</b>のご来店（うち指名 ${st.shimei}回）・累計 ${yen(st.sum)}</p>
-    <p>前回 ${dayLabel(last.date)} ${esc(timeLabel(last.time))}（${agoText(last.date,$("fDate").value||bizToday())}）　${esc(last.course||"コース未入力")}　${typeLabel(last.type)}</p>
-    ${featHtml}
-    ${last.memo?`<p>前回のメモ：${esc(last.memo)}</p>`:""}
+  const whos=whosFor(no,editingId),key=ckOf(no,fWho);
+  if(!whos.length&&fWho===1){$("memberHint").innerHTML=`<div class="member-hint"><p class="first">はじめての会員番号です</p></div>`;return}
+  if(memberOK===key){
+    const isNew=!whos.includes(fWho);
+    $("memberHint").innerHTML=`<div class="member-hint num">
+      <p class="ok-mark">✓ ${isNew?`No.${esc(no)}の別のお客様として新しく登録します`:esc(keyLabel(key))+" のお客様で入力中"}</p>
+      ${isNew?`<p>見分けられるように、お客様の特徴を入れてください（あとからでも登録できます）。</p><textarea class="fld" id="fNewFeat" rows="2" placeholder="例：30代男性・眼鏡・肩こりが強い" style="margin-top:6px;width:100%">${esc(newFeatDraft)}</textarea>`:custCard(key,false)}
+      <div class="mh-btns"><button type="button" class="no" data-mh="redo">選び直す</button></div></div>`;
+    return}
+  $("memberHint").innerHTML=`<div class="member-hint num ask">
+    <p class="q">${whos.length>1?`No.${esc(no)}のお客様が${whos.length}人登録されています。どのお客様ですか？`:"すでに登録がある以下のお客様でいいですか？"}</p>
+    ${whos.map(w=>custCard(ckOf(no,w),true)).join("")}
+    <div class="mh-btns"><button type="button" class="no" data-mh="new">同じ番号の別のお客様（新しく登録）</button></div>
   </div>`;
 }
-$("fMember").addEventListener("input",()=>{
-  renderMemberHint();
-  const no=$("fMember").value.trim();
-  if(no&&!fSex){const prev=visits.find(v=>v.member===no&&v.sex&&v.id!==editingId);if(prev)setSex(prev.sex)}
-});
+$("memberHint").addEventListener("input",e=>{if(e.target.id==="fNewFeat")newFeatDraft=e.target.value});
+$("memberHint").addEventListener("click",e=>{const b=e.target.closest("[data-mh]");if(!b)return;
+  const no=$("fMember").value.trim(),act=b.dataset.mh;
+  if(act==="pick"){fWho=Number(b.dataset.who)||1;memberOK=ckOf(no,fWho);
+    if(!fSex){const prev=visits.find(v=>ck(v)===memberOK&&v.sex&&v.id!==editingId);if(prev)setSex(prev.sex)}}
+  else if(act==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
+  else if(act==="redo"){memberOK="";fWho=1}
+  renderMemberHint()});
+function memberNeedsOK(){const no=$("fMember").value.trim();return !!no&&memberOK!==ckOf(no,fWho)&&(whosFor(no,editingId).length>0||fWho>1)}
+$("fMember").addEventListener("input",()=>{memberOK="";fWho=1;renderMemberHint()});
 
 function roundedNow(){let m=Math.ceil(bizNow().min/5)*5;m=Math.max(OPEN_H*60,Math.min(m,CLOSE_H*60-5));return pad(Math.floor(m/60))+":"+pad(m%60)}
 (function(){
@@ -1064,7 +1111,7 @@ function renderSideCard(){
 }
 $("fDate").addEventListener("change",renderSideCard);
 function resetForm(){
-  editingId=null;
+  editingId=null;memberOK="";fWho=1;newFeatDraft="";
   $("fDate").value=bizToday();setTime(roundedNow());
   sideDraft={};cancelArmed=null;
   $("fMember").value="";parts={H:0,A:0,F:0,T:0};legacyCourse="";editFee=null;$("fPrice").value="";$("fMemo").value="";fOpts=[];renderOpts();
@@ -1073,7 +1120,7 @@ function resetForm(){
   $("saveBtn").textContent="記録を保存";$("editBtns").hidden=true;disarmDelete();
 }
 function loadForm(v){
-  editingId=v.id;
+  editingId=v.id;fWho=v.who>1?v.who:1;memberOK=ck(v);
   $("fDate").value=v.date;setTime(v.time);$("fMember").value=v.member||"";
   parts={H:0,A:0,F:0,T:0};(v.parts||[]).forEach(x=>{parts[x.k]=x.m});legacyCourse=v.parts&&v.parts.length?"":(v.course||"");
   $("fPrice").value=total(v)||"";editFee=v.type!=="free"?(v.fee||0):null;$("fMemo").value=v.memo||"";fOpts=[...(v.opts||[])];renderOpts();
@@ -1090,19 +1137,21 @@ $("saveBtn").addEventListener("click",async()=>{
   const hasVisit=!!(toInt($("fPrice").value)||partsMin()||legacyCourse||$("fMember").value.trim()||$("fMemo").value.trim()||fOpts.length);
   const draft={...sideDraft};const hasSide=Object.keys(draft).length>0;
   if(!hasVisit&&!hasSide){toast("予約か付随業務を入力してください");return}
+  if(hasVisit&&memberNeedsOK()){renderMemberHint();$("memberHint").scrollIntoView({behavior:"smooth",block:"center"});toast("会員番号のお客様を確認してください");return}
   let sideMsg="";
   if(hasSide){const d=dayOf(dk);Object.assign(d,draft);sideDraft={};await saveDay(dk,d);
     sideMsg=SIDES.filter(x=>x.k in draft).map(x=>x.short).join("・")+"業務を保存";}
   // 予約の中身が何もなければ付随業務だけ保存（空のフリー予約は作らない）
   if(!hasVisit){resetForm();$("fDate").value=dk;renderSideCard();toast(dayLabel(dk)+"の"+sideMsg+"しました");return}
   const v={id:editingId||newId(),date:$("fDate").value,time:getTime(),type:fType,
-    member:$("fMember").value.trim(),sex:fSex,course:partsMin()?partsLabel():legacyCourse,min:partsMin()||guessMin({course:legacyCourse}),
+    member:$("fMember").value.trim(),...($("fMember").value.trim()&&fWho>1?{who:fWho}:{}),sex:fSex,course:partsMin()?partsLabel():legacyCourse,min:partsMin()||guessMin({course:legacyCourse}),
     parts:PARTS.filter(p=>parts[p.k]).map(p=>({k:p.k,m:parts[p.k]})),
     price:toInt($("fPrice").value),fee:currentFee(),extra:0,incl:true,
     opts:[...fOpts],memo:$("fMemo").value.trim(),updatedAt:Date.now()};
   if(editingId&&editCancel)v.cancel=true;
-  const wasEdit=!!editingId;
+  const wasEdit=!!editingId,nf=newFeatDraft.trim();
   resetForm();
+  {const k=ck(v);if(nf&&k&&!memberNote(k))await saveMemberNote(k,nf)}
   await saveVisit(v);
   toast((wasEdit?"変更を保存しました":"記録を保存しました（"+yen(total(v))+"）")+(sideMsg?"・"+sideMsg:""));
 });
@@ -1190,11 +1239,11 @@ function parseReservation(text){
 function applyReservation(){
   const r=parseReservation($("pasteBox").value);
   if(!r.found){$("pasteMsg").textContent="読み取れる項目がありませんでした。予約通知の文章をそのまま貼り付けてください。";return}
-  if(r.member!==undefined)$("fMember").value=r.member;
+  if(r.member!==undefined){$("fMember").value=r.member;memberOK="";fWho=1}
   if(r.time)setTime(r.time);
   if(r.type)setType(r.type,true);
   if(r.sex)setSex(r.sex);
-  else if(r.member){const prev=visits.find(v=>v.member===r.member&&v.sex);if(prev)setSex(prev.sex)}
+  
   if(r.parts&&Object.keys(r.parts).length){parts={H:0,A:0,F:0,T:0};Object.assign(parts,r.parts);legacyCourse=""}
   else if(r.span){parts={H:0,A:0,F:0,T:0};legacyCourse=r.span+"分"}
   if(r.price)$("fPrice").value=r.price;
@@ -1212,8 +1261,8 @@ $("pasteBox").addEventListener("input",()=>{clearTimeout(pasteTimer);pasteTimer=
 function recRow(v){
   return `<button class="rec${v.cancel?" cx":""}" data-id="${esc(v.id)}">
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
-    <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${v.member?"No."+esc(v.member):"会員番号なし"}</span>
-      <span class="c">${esc(v.course||"コース未入力")}${v.min?"（"+v.min+"分）":""}${v.memo?"　✎":""}</span>${(v.opts||[]).length?`<span style="display:block">${optTags(v)}</span>`:""}${memberNote(v.member)?`<span class="feat-line">📌 ${esc(memberNote(v.member))}</span>`:""}</span>
+    <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${v.member?esc(keyLabel(ck(v))):"会員番号なし"}</span>
+      <span class="c">${esc(v.course||"コース未入力")}${v.min?"（"+v.min+"分）":""}${v.memo?"　✎":""}</span>${(v.opts||[]).length?`<span style="display:block">${optTags(v)}</span>`:""}${memberNote(ck(v))?`<span class="feat-line">📌 ${esc(memberNote(ck(v)))}</span>`:""}</span>
     <span class="a num">${yen(total(v))}</span></button>`;
 }
 function bindRecs(root){root.querySelectorAll(".rec").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}))}
@@ -1221,15 +1270,15 @@ function bindRecs(root){root.querySelectorAll(".rec").forEach(b=>b.addEventListe
 let sheetId=null;
 function endTime(v){const m=vMin(v);if(!v.time||!m)return "";const [h,mi]=v.time.split(":").map(Number);const e=h*60+mi+m;return "〜"+Math.floor(e/60)+":"+pad(e%60)}
 // 前回来店（この予約より前の同じ会員番号の予約）
-function prevVisit(v){if(!v.member)return null;const k=v.date+v.time;return visits.find(x=>!x.cancel&&x.member===v.member&&x.id!==v.id&&(x.date+x.time)<k)||null}
+function prevVisit(v){if(!v.member)return null;const k=v.date+v.time;return visits.find(x=>!x.cancel&&ck(x)===ck(v)&&x.id!==v.id&&(x.date+x.time)<k)||null}
 function daysBetween(a,b){return Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/86400000)}
 function agoText(from,to){const d=daysBetween(from,to);return d===0?"同じ日":d>0?d+"日前":(-d)+"日後"}
 function showDetail(v){
   sheetId=v.id;
-  const prev=v.member&&!v.cancel?live(visits).filter(x=>x.member===v.member&&(x.date+x.time)<=(v.date+v.time)).length:0;
+  const prev=v.member&&!v.cancel?live(visits).filter(x=>ck(x)===ck(v)&&(x.date+x.time)<=(v.date+v.time)).length:0;
   const fee=feeOf(v);
   const rows=[
-    ["会員番号",v.member?"No."+esc(v.member)+(prev?`（${prev}回目のご来店）`:""):"未入力"],
+    ["会員番号",v.member?esc(keyLabel(ck(v)))+(prev?`（${prev}回目のご来店）`:""):"未入力"],
     ...(v.member?[["前回来店",(pv=>pv?`${dayLabel(pv.date)} ${esc(timeLabel(pv.time))}<br><small style="color:var(--sub)">${agoText(pv.date,v.date)}・${esc(pv.course||"コース未入力")}・${typeLabel(pv.type)}</small>`:"初めてのご来店")(prevVisit(v))]]:[]),
     ["指名の種類",typeLabel(v.type)],
     ["性別",SEX[v.sex]||"未入力"],
@@ -1245,7 +1294,7 @@ function showDetail(v){
     <div class="amt num" style="${v.cancel?"text-decoration:line-through;opacity:.5":""}">${yen(total(v))}</div>
     <div id="sheetFeat"></div>
     <table class="num">${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
-  renderFeature($("sheetFeat"),v.member);
+  renderFeature($("sheetFeat"),ck(v));
   disarmCancel();
   $("sheetCancel").textContent=v.cancel?"キャンセルを取り消す（予約に戻す）":"この予約をキャンセルにする";
   $("sheetCancel").classList.toggle("undo",!!v.cancel);
@@ -1336,7 +1385,7 @@ function renderTime(){
   dv.forEach(x=>{
     const iv=x.ie-x.e, top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.ie-x.s)/60*PX-2), ivh=iv/60*PX;
     html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
-      ${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
+      ${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</b> ${x.v.member?esc(keyLabel(ck(x.v))):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
   });
   html+="</div>";
   if(!dv.length&&!sl.length&&!stayEdit)html=`<div class="empty">この日の記録はありません。<br><small>「入店時間」を押すと、入店した時間を入れられます。</small></div>`;
@@ -1552,10 +1601,10 @@ let memberQuery="";
 function renderMembers(){
   const body=$("memberBody");
   if(memberOpen){
-    const listAll=visits.filter(v=>v.member===memberOpen),list=live(listAll),cxm=listAll.length-list.length;
+    const listAll=visits.filter(v=>ck(v)===memberOpen),list=live(listAll),cxm=listAll.length-list.length;
     const sum=list.reduce((a,v)=>a+total(v),0), sh=list.filter(v=>v.type==="shimei").length;
     body.innerHTML=`<button class="back" id="memBack">‹ 会員一覧</button>
-      <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(memberOpen)}</div>
+      <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(keyNo(memberOpen))}</div>${whosFor(keyNo(memberOpen)).length>1?`<p class="note" style="margin:2px 0 6px">同じ番号のお客様が${whosFor(keyNo(memberOpen)).length}人います（${keyWho(memberOpen)}人目）</p>`:""}
       <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div>${cxm?`<div><span>キャンセル</span><b>${cxm}回</b></div>`:""}</div>
       ${(()=>{if(!list.length)return "";const l=list[0];const today=bizToday();
         const gaps=[];for(let i=0;i<list.length-1;i++)gaps.push(daysBetween(list[i+1].date,list[i].date));
@@ -1570,13 +1619,13 @@ function renderMembers(){
     bindRecs(body);return;
   }
   const map={};
-  live(visits).forEach(v=>{if(!v.member)return;const m=map[v.member]=map[v.member]||{no:v.member,n:0,s:0,sh:0,last:"",sex:""};
+  live(visits).forEach(v=>{if(!v.member)return;const k=ck(v);const m=map[k]=map[k]||{key:k,no:v.member,n:0,s:0,sh:0,last:"",sex:""};
     if(v.sex&&v.date>=m.last)m.sex=v.sex;m.n++;m.s+=total(v);if(v.type==="shimei")m.sh++;if(v.date>m.last)m.last=v.date});
   let arr=Object.values(map).sort((a,b)=>b.last.localeCompare(a.last));
-  if(memberQuery)arr=arr.filter(m=>m.no.includes(memberQuery)||memberNote(m.no).includes(memberQuery));
+  if(memberQuery)arr=arr.filter(m=>m.no.includes(memberQuery)||memberNote(m.key).includes(memberQuery));
   body.innerHTML=`<div class="card"><label class="lbl" for="mSearch">会員番号で探す</label>
     <input class="fld num" id="mSearch" inputmode="numeric" value="${esc(memberQuery)}" placeholder="番号の一部でもOK"></div>
-    ${arr.length?arr.map(m=>`<button class="mem" data-no="${esc(m.no)}"><span><span class="no num">No.${esc(m.no)}</span> ${sexTag(m)}<br><span class="d num">最終 ${dayLabel(m.last)}・${m.n}回（指名${m.sh}）</span>${memberNote(m.no)?`<span class="feat-line">📌 ${esc(memberNote(m.no))}</span>`:""}</span><b class="num">${yen(m.s)}</b></button>`).join("")
+    ${arr.length?arr.map(m=>`<button class="mem" data-no="${esc(m.key)}"><span><span class="no num">${esc(keyLabel(m.key))}</span> ${sexTag(m)}<br><span class="d num">最終 ${dayLabel(m.last)}・${m.n}回（指名${m.sh}）</span>${memberNote(m.key)?`<span class="feat-line">📌 ${esc(memberNote(m.key))}</span>`:""}</span><b class="num">${yen(m.s)}</b></button>`).join("")
       :`<div class="empty">${memberQuery?"該当する会員番号がありません。":"会員番号つきの記録がまだありません。"}</div>`}`;
   const inp=$("mSearch");
   inp.addEventListener("input",()=>{memberQuery=inp.value.trim();renderMembers();const n=$("mSearch");n.focus();n.setSelectionRange(n.value.length,n.value.length)});
@@ -1662,7 +1711,7 @@ $("bkRestore").addEventListener("click",async()=>{
 $("exportCsv").addEventListener("click",async()=>{
   const head=["日付","時間","状態","指名の種類","性別","会員番号","コース","施術時間(分)","オプション","お客様の特徴","料金(指名料込み)","うち指名料","メモ"];
   const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
-  const rows=visits.slice().reverse().map(v=>[v.date,v.time,v.cancel?"キャンセル":"",typeLabel(v.type),SEX[v.sex]||"",v.member,v.course,vMin(v),optNames(v).join("・"),memberNote(v.member),total(v),feeOf(v),v.memo].map(q).join(","));
+  const rows=visits.slice().reverse().map(v=>[v.date,v.time,v.cancel?"キャンセル":"",typeLabel(v.type),SEX[v.sex]||"",v.member+(v.who>1?"（"+v.who+"人目）":""),v.course,vMin(v),optNames(v).join("・"),memberNote(ck(v)),total(v),feeOf(v),v.memo].map(q).join(","));
   const sideRows=Object.keys(days).filter(dk=>sideText(dk)).sort().map(dk=>{const d=dayOf(dk);return [dk,"open" in d?"あり":"なし",d.open||0,"close" in d?"あり":"なし",d.close||0].map(q).join(",")});
   const csv="\uFEFF"+[head.map(q).join(","),...rows,"",["付随業務の日付","開店業務","開店業務の金額","閉店業務","閉店業務の金額"].map(q).join(","),...sideRows].join("\r\n");
   await saveFile("予約記録_"+dateKey(new Date())+".csv",csv,"text/csv");

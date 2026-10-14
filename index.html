@@ -62,7 +62,8 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .net{font-size:13px;color:var(--sub);margin-top:2px}
 .net b{color:var(--ok,#2E7D4F);font-weight:900}
 .period .net{font-size:12px;margin-top:2px;display:block}
-.period small{font-size:12px;color:var(--sub)}
+.period small{display:block;font-size:11.5px;letter-spacing:-.02em;line-height:1.45;color:var(--sub)}
+.period small .nw{display:inline;white-space:nowrap;font-size:inherit;color:inherit}
 .split{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin-top:10px}
 .split span{display:block;height:100%}
 .top-btns{display:flex;gap:8px;align-items:center;position:absolute;top:0;right:0}
@@ -260,6 +261,24 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .blk.free{background:var(--free)}
 .tl .blk b{font-size:13px}
 .tl .now{position:absolute;left:0;right:0;border-top:2px solid var(--money);z-index:2}
+/* 入店時間 */
+#tSum{flex-basis:100%}
+#tSum .stx{color:var(--stay-ink);font-weight:400}
+:root{--stay:#7D8388;--stay-ink:#3F4549}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--stay-ink:#D5DADD}}
+:root[data-theme="dark"]{--stay-ink:#D5DADD}
+.tl .st,.wk .st{position:absolute;left:0;right:0;background:color-mix(in srgb,var(--stay) 22%,transparent);border:0;padding:0;margin:0;display:block}
+.tl .st{z-index:0}
+.wk .st{z-index:0}
+.stay-edit .st{background:transparent;border-top:1px dashed color-mix(in srgb,var(--stay) 35%,transparent);cursor:pointer;z-index:1}
+.stay-edit .st.on{background:color-mix(in srgb,var(--stay) 40%,transparent)}
+.stay-edit .blk,.stay-edit .wb{pointer-events:none;opacity:.4}
+.stay-btn{border:0;background:var(--panel);border-radius:999px;padding:7px 12px;font-weight:700;color:var(--stay-ink);white-space:nowrap}
+.stay-btn[aria-pressed="true"]{background:var(--stay-ink);color:var(--panel)}
+.tbar-r{display:flex;gap:6px;align-items:center}
+.stay-help{background:color-mix(in srgb,var(--stay) 14%,var(--panel));color:var(--ink);border-radius:10px;padding:8px 10px;font-size:13px;margin-bottom:8px}
+.wk .wf .wst{display:block;color:var(--stay-ink);font-weight:400;font-size:10px;white-space:nowrap}
+.mc .md .mst{display:block;color:var(--stay-ink);font-weight:400;white-space:nowrap}
 .heat{display:grid;gap:2px;font-size:10px;color:var(--sub)}
 .heat .c{aspect-ratio:1;border-radius:3px;background:var(--field)}
 .heat .h{text-align:center}
@@ -306,7 +325,7 @@ h3{font-size:15px;margin:0 0 10px}
 .wk .wf .ws{display:block;color:var(--money);font-weight:700;font-size:9px;letter-spacing:-.03em;white-space:nowrap}
 .wk .wf .wn{display:block;color:var(--ok);font-weight:700;font-size:9px;letter-spacing:-.03em;white-space:nowrap}
 .wk .wf.today{background:color-mix(in srgb,var(--money) 14%,var(--field));border-radius:0 0 8px 8px}
-.legend{display:flex;gap:14px;font-size:12px;color:var(--sub);margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--sub);margin-bottom:10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 
 /* Tab bar */
@@ -461,12 +480,13 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <button type="button" data-m="week" aria-pressed="false">週</button>
         <button type="button" data-m="month" aria-pressed="false">月</button>
       </div>
-      <button type="button" class="today-btn" id="tToday">今日</button>
+      <div class="tbar-r"><button type="button" class="stay-btn" id="stayBtn" aria-pressed="false">入店時間</button><button type="button" class="today-btn" id="tToday">今日</button></div>
     </div>
     <div class="card">
       <div class="legend"><span><i style="background:var(--shimei)"></i>指名</span><span><i style="background:#2E7D5B"></i>男性・女性指名</span><span><i style="background:var(--free)"></i>フリー</span><span id="tSum" class="num"></span></div>
-      <div class="legend" id="wkLegend" hidden><span>各日の下：件数・分・<b style="color:var(--money)">売上</b>・<b style="color:var(--ok)">収入</b></span></div>
+      <div class="legend" id="wkLegend" hidden><span>各日の下：件数・分・<b style="color:var(--money)">売上</b>・<b style="color:var(--ok)">収入</b>・<span style="color:var(--stay-ink)">入店時間</span></span></div>
       <div class="legend"><span>お客様：<b style="color:#2F6F9F">男性</b>・<b style="color:#B0476E">女性</b>（文字の色）</span></div>
+      <div class="stay-help" id="stayHelp" hidden>入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。終わったら「完了」を押してください。</div>
       <div class="swipe-wrap"><div id="tlBody"></div></div>
     </div>
     <div class="card">
@@ -692,7 +712,23 @@ const SIDES=[{k:"open",name:"開店業務",short:"開店"},{k:"close",name:"閉�
 // 旧形式 {side,sideAmt} は開店業務として扱う
 function dayOf(dk){const d=days[dk]||{};const r={};
   if(d.side&&!("open" in d)&&!("close" in d))r.open=d.sideAmt||0;
-  SIDES.forEach(x=>{if(typeof d[x.k]==="number")r[x.k]=d[x.k]});return r}
+  SIDES.forEach(x=>{if(typeof d[x.k]==="number")r[x.k]=d[x.k]});
+  if(Array.isArray(d.stay)&&d.stay.length)r.stay=d.stay.slice();return r}
+// 入店時間（1時間の枠の開始「分」を並べたもの。例：18:00→1080、25:00→1500）
+// 以前の30分枠のデータは、その時間の1時間枠として扱う
+const SLOT=60;
+function staySlots(dk){const d=days[dk];return d&&Array.isArray(d.stay)?[...new Set(d.stay.map(m=>Math.floor(m/SLOT)*SLOT))].sort((a,b)=>a-b):[]}
+function stayMinDay(dk){return staySlots(dk).length*SLOT}
+function stayMinRange(a,b){return Object.keys(days).filter(dk=>dk>=a&&dk<=b).reduce((t,dk)=>t+stayMinDay(dk),0)}
+function stayRanges(dk){const sl=staySlots(dk).slice().sort((a,b)=>a-b),out=[];
+  sl.forEach(m=>{const l=out[out.length-1];if(l&&l[1]===m)l[1]=m+SLOT;else out.push([m,m+SLOT])});
+  return out.map(([a,b])=>hm(a)+"-"+hm(b)).join("・")}
+function stayHours(m){return (Math.round(m/60*10)/10)+"時間"}
+async function toggleStay(dk,m){const d=dayOf(dk);const set=new Set(staySlots(dk));
+  if(set.has(m))set.delete(m);else set.add(m);
+  if(set.size)d.stay=[...set].sort((a,b)=>a-b);else delete d.stay;
+  await saveDay(dk,d)}
+let stayEdit=false;
 function sideTotal(dk){const d=dayOf(dk);return SIDES.reduce((a,x)=>a+(d[x.k]||0),0)}
 function sideText(dk){const d=dayOf(dk);return SIDES.filter(x=>x.k in d).map(x=>x.short+" "+yen(d[x.k])).join("・")}
 // 以前は予約ごとに付けていた付随業務を、日付ごとの記録へ移す
@@ -871,11 +907,11 @@ function renderHeader(){
   $("weekLabel").textContent=`今週（${ws.getMonth()+1}/${ws.getDate()}〜${we.getMonth()+1}/${we.getDate()}）`;
   $("weekAmt").textContent=yen(wk.reduce((a,v)=>a+total(v),0));
   $("weekNet").innerHTML=wk.length?`収入 <b>${yen(calcNet(wk).net)}</b>`:"";
-  $("weekMeta").textContent=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"（指名 "+hoursText(shMin(wk))+"）";
+  $("weekMeta").innerHTML=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(wk))+"）</span>"+(stayMinRange(wsK,weK)?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(wsK,weK))+"</span>":"");
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
   $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net)}</b>`:"";
-  $("monthMeta").textContent=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"（指名 "+hoursText(shMin(mo))+"）";
+  $("monthMeta").innerHTML=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(mo))+"）</span>"+(stayMinRange(mk+"-01",mk+"-31")?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(mk+"-01",mk+"-31"))+"</span>":"");
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
 }
@@ -1270,6 +1306,10 @@ function renderTime(){
   $("tPrev").setAttribute("aria-label","前の"+unit);
   $("tNext").setAttribute("aria-label","次の"+unit);
   $("wkLegend").hidden=timeMode!=="week";
+  if(timeMode==="month")stayEdit=false;
+  $("stayBtn").hidden=timeMode==="month";
+  $("stayBtn").setAttribute("aria-pressed",stayEdit?"true":"false");$("stayBtn").textContent=stayEdit?"完了":"入店時間";
+  $("stayHelp").hidden=!stayEdit;$("tlBody").classList.toggle("stay-edit",stayEdit);
   if(timeMode==="week"){renderWeek();renderHeat();return}
   if(timeMode==="month"){renderMonthCal();renderHeat();return}
   $("tDay").textContent=dayLabel(timeDay);
@@ -1277,12 +1317,17 @@ function renderTime(){
   const dl=dv.filter(x=>!x.v.cancel),cxDay=dv.length-dl.length;
   const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
-  $("tSum").textContent=(dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:"");
+  const sl=staySlots(timeDay);
+  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:""));
   let h0=OPEN_H,h1=CLOSE_H;
+  sl.forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))});
   dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
   const cols=[];dv.forEach(x=>{let c=cols.findIndex(end=>end<=x.s);if(c<0){c=cols.length;cols.push(0)}cols[c]=x.ie;x.c=c});
   const nc=Math.max(1,cols.length);
   let html=`<div class="tl" style="height:${(h1-h0)*PX}px">`;
+  {const on=new Set(sl);for(let m=h0*60;m<h1*60;m+=SLOT){if(!stayEdit&&!on.has(m))continue;
+    html+=stayEdit?`<button type="button" class="st${on.has(m)?" on":""}" data-day="${timeDay}" data-m="${m}" style="top:${(m-h0*60)/60*PX}px;height:${SLOT/60*PX}px" aria-label="${hm(m)}-${hm(m+SLOT)} 入店"></button>`
+      :`<div class="st" style="top:${(m-h0*60)/60*PX}px;height:${SLOT/60*PX}px"></div>`}}
   for(let h=h0;h<=h1;h++)html+=`<div class="hr" style="top:${(h-h0)*PX}px"><span class="num">${h}:00</span></div>`;
   if(timeDay===bizToday()){const nm=bizNow().min;if(nm>=h0*60&&nm<=h1*60)html+=`<div class="now" style="top:${(nm-h0*60)/60*PX}px"></div>`}
   dv.forEach(x=>{
@@ -1291,7 +1336,7 @@ function renderTime(){
       ${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</b> ${x.v.member?"No."+esc(x.v.member):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
   });
   html+="</div>";
-  if(!dv.length)html=`<div class="empty">この日の記録はありません。</div>`;
+  if(!dv.length&&!sl.length&&!stayEdit)html=`<div class="empty">この日の記録はありません。<br><small>「入店時間」を押すと、入店した時間を入れられます。</small></div>`;
   $("tlBody").innerHTML=html;
   $("tlBody").querySelectorAll(".blk").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}));
   renderHeat();
@@ -1324,8 +1369,11 @@ function renderWeek(){
   const all=visits.filter(v=>v.date>=days[0]&&v.date<=days[6]&&startMin(v)!==null);
   const wv=live(visits.filter(v=>v.date>=days[0]&&v.date<=days[6]));
   $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(wv))}）・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
+  const wst=stayMinRange(days[0],days[6]);
+  if(wst)$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(wst)}</b>　`+esc($("tSum").textContent);
   let h0=OPEN_H,h1=CLOSE_H;
   all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60)+ivMin(v);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
+  days.forEach(dk=>staySlots(dk).forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))}));
   const WPX=34,H=(h1-h0)*WPX;
   let html=`<div class="wk"><div></div>`;
   days.forEach(dk=>{const d=new Date(dk+"T00:00"),w=d.getDay();
@@ -1336,6 +1384,9 @@ function renderWeek(){
   days.forEach(dk=>{
     html+=`<div class="col${dk===today?" today":""}" style="height:${H}px">`;
     for(let h=h0;h<=h1;h++)html+=`<div class="hl" style="top:${(h-h0)*WPX}px"></div>`;
+    {const on=new Set(staySlots(dk));for(let m=h0*60;m<h1*60;m+=SLOT){if(!stayEdit&&!on.has(m))continue;
+      html+=stayEdit?`<button type="button" class="st${on.has(m)?" on":""}" data-day="${dk}" data-m="${m}" style="top:${(m-h0*60)/60*WPX}px;height:${SLOT/60*WPX}px" aria-label="${hm(m)}-${hm(m+SLOT)} 入店"></button>`
+        :`<div class="st" style="top:${(m-h0*60)/60*WPX}px;height:${SLOT/60*WPX}px"></div>`}}
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
       const s=startMin(v),m=vMin(v)||60,iv=ivMin(v),top=(s-h0*60)/60*WPX,ht=Math.max(14,(m+iv)/60*WPX-1);
       html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span>${ht>=36&&v.member?`<br>${esc(v.member)}`:""}</button>`;
@@ -1344,7 +1395,8 @@ function renderWeek(){
   });
   html+=`<div></div>`;
   days.forEach(dk=>{const dv=live(visits.filter(v=>v.date===dk));
-    html+=`<div class="wf num${dk===today?" today":""}">${dv.length?`<b>${dv.length}件</b>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分<span class="ws">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="wn">${yen(calcNet(dv).net)}</span>`:"−"}</div>`});
+    const smin=stayMinDay(dk);
+    html+=`<div class="wf num${dk===today?" today":""}">${dv.length?`<b>${dv.length}件</b>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分<span class="ws">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="wn">${yen(calcNet(dv).net)}</span>`:"−"}${smin?`<span class="wst">${smin}分</span>`:""}</div>`});
   html+=`</div>`;
   $("tlBody").innerHTML=html;
   $("tlBody").querySelectorAll(".wb").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}));
@@ -1357,6 +1409,8 @@ function renderMonthCal(){
   $("tDay").textContent=monthLabel(mk);
   const mv=live(visits.filter(v=>v.date.startsWith(mk)));
   $("tSum").textContent=mv.length?`${mv.length}件・${new Set(mv.map(v=>v.date)).size}日出勤・施術 ${hoursText(mv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(mv))}）・${yen(mv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(mv).net)}）`:"";
+  const mst=stayMinRange(mk+"-01",mk+"-31"),mstd=Object.keys(days).filter(dk=>dk.startsWith(mk)&&stayMinDay(dk)).length;
+  if(mst)$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(mst)}（${mstd}日）</b>　`+esc($("tSum").textContent);
   const first=mk+"-01",start=weekStart(first);
   const last=dateKey(new Date(Number(mk.slice(0,4)),Number(mk.slice(5,7)),0));
   const end=addDays(weekStart(last),6);
@@ -1366,9 +1420,9 @@ function renderMonthCal(){
     const dots=["shimei","gm","gf","free"].flatMap(t=>dv.filter(v=>(TYPES[v.type]?v.type:"free")===t).map(()=>`<i style="background:${TYPE_COLOR[t]}"></i>`)).join("");
     html+=`<button type="button" class="md num${dk.slice(0,7)!==mk?" out":""}${dk===today?" today":""}${w===0?" sun":w===6?" sat":""}" data-day="${dk}" aria-label="${dayLabel(dk)} ${dv.length}件">
       <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
-      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
+      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${stayMinDay(dk)?`<span class="mst">入${stayMinDay(dk)}分</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
   }
-  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。</p>`;
+  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。「入」は入店時間です。</p>`;
   $("tlBody").innerHTML=html;
   $("tlBody").querySelectorAll(".md").forEach(b=>b.addEventListener("click",()=>{timeDay=b.dataset.day;timeMode="day";renderTime()}));
 }
@@ -1378,6 +1432,9 @@ function shiftDay(d){
 $("tPrev").addEventListener("click",()=>shiftDay(-1));
 $("tNext").addEventListener("click",()=>shiftDay(1));
 $("tToday").addEventListener("click",()=>{timeDay=bizToday();renderTime()});
+$("stayBtn").addEventListener("click",()=>{stayEdit=!stayEdit;renderTime()});
+$("tlBody").addEventListener("click",e=>{const b=e.target.closest("button.st");if(!b||!stayEdit)return;
+  b.classList.toggle("on");toggleStay(b.dataset.day,Number(b.dataset.m))});
 /* 左右スワイプで前後の日・週・月へ */
 (()=>{const el=$("tlBody");let sx=0,sy=0,dx=0,on=false,horiz=null,swiped=false;
   el.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;on=true;horiz=null;dx=0;sx=e.touches[0].clientX;sy=e.touches[0].clientY;el.classList.remove("anim")},{passive:true});
@@ -1427,6 +1484,8 @@ function renderStats(){
         <div><span>指名</span><b>${sh.length}件</b></div>
         <div><span>指名施術時間</span><b>${hoursText(shMin(mv))}</b></div>
         <div><span>指名時間率</span><b>${(()=>{const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);return t?Math.round(shMin(mv)/t*1000)/10:0})()}%</b></div>
+        ${(()=>{const sm=stayMinRange(statsMonth+"-01",statsMonth+"-31");if(!sm)return "";const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);
+          return `<div><span>入店時間</span><b>${stayHours(sm)}</b></div><div><span>稼働率</span><b>${Math.round(t/sm*1000)/10}%</b></div><div><span>入店1時間あたり売上</span><b>${yen(Math.round(mv.reduce((a,v)=>a+total(v),0)/(sm/60)))}</b></div><div><span>入店1時間あたり収入</span><b>${yen(Math.round(calcNet(mv).net/(sm/60)))}</b></div>`})()}
         <div><span>男性指名</span><b>${cnt("gm").length}件</b></div>
         <div><span>女性指名</span><b>${cnt("gf").length}件</b></div>
         <div><span>フリー</span><b>${cnt("free").length}件</b></div>

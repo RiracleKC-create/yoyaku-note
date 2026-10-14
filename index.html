@@ -165,6 +165,9 @@ textarea.fld{min-height:64px;resize:vertical}
 
 /* Stats */
 .big{font-size:34px;font-weight:900;color:var(--money);line-height:1.15}
+.big-row{display:flex;justify-content:space-between;align-items:flex-end;gap:4px 12px;flex-wrap:wrap}
+.big-row .r{text-align:right;margin-left:auto}
+.big-row .big{font-size:30px}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .kv div{background:var(--field);border-radius:10px;padding:10px}
 .kv span{display:block;font-size:12px;color:var(--sub)}
@@ -1475,8 +1478,10 @@ function renderStats(){
   const maxDay=Math.max(...Object.values(byDay));
   $("statsBody").innerHTML=`
     <div class="card num">
-      <span class="lbl">月の合計</span>
-      <div class="big">${yen(sum)}</div>
+      <div class="big-row">
+        <div><span class="lbl">月の合計</span><div class="big">${yen(sum)}</div></div>
+        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net)}</div></div>
+      </div>
       <div class="kv">
         <div><span>件数</span><b>${mv.length}件</b></div>
         <div><span>指名率</span><b>${Math.round(sh.length/mv.length*100)}%</b></div>

@@ -197,6 +197,24 @@ h3{font-size:15px;margin:0 0 10px}
 .mem .no{font-weight:700;font-size:17px}
 .mem .d{font-size:13px;color:var(--sub)}
 .back{border:0;background:none;color:var(--shimei);font-weight:700;padding:6px 0;margin-bottom:8px}
+/* 使い方・更新履歴 */
+.help-tabs{margin-bottom:12px}
+.hp .card p,.hp .card li{font-size:14px;line-height:1.65}
+.hp .card ul{margin:6px 0 0;padding-left:1.2em}
+.hp .card li{margin:4px 0}
+.hp details.card summary{font-weight:700;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.hp details.card summary::-webkit-details-marker{display:none}
+.hp details.card summary::after{content:"＋";color:var(--sub);font-weight:400}
+.hp details.card[open] summary::after{content:"−"}
+.chg h4{margin:0 0 4px;font-size:15px}
+.chg h4 small{font-weight:400;color:var(--sub);margin-left:6px;font-size:12px}
+.chg ul{margin:0;padding-left:1.2em}
+.chg li{font-size:14px;line-height:1.6;margin:3px 0}
+.chg+.chg{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+#news{position:fixed;inset:0;z-index:70}
+#news .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#news .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#news h2{font-size:18px;margin:0 0 10px}
 
 .side-link{border:0;background:var(--field);color:var(--ink);border-radius:8px;padding:2px 8px;font-size:13px;font-weight:700}
 .saved{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px;margin-bottom:12px}
@@ -525,9 +543,104 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <div id="memberBody"></div>
   </section>
 
+  <!-- 使い方・更新履歴 -->
+  <section class="view" id="v-help">
+    <button class="back" id="helpBack">‹ 設定に戻る</button>
+    <div class="tmode help-tabs" role="group" aria-label="切り替え"><button type="button" data-h="manual" aria-pressed="true">使い方</button><button type="button" data-h="history" aria-pressed="false">更新履歴</button></div>
+<div class="hp" id="helpManual">
+  <div class="card">
+    <h3>はじめに</h3>
+    <p>予約ノートは、りらくるの予約と売上を自分用に記録するアプリです。記録は<b>このスマホの中</b>に保存されます。機種変更やアプリの削除の前には、⚙設定の「バックアップ」で必ず保存してください。</p>
+    <p>夜中の3時までは「前の日」の営業として数えます（例：25時＝翌1時の施術は、前の日の記録）。</p>
+  </div>
+  <details class="card"><summary>画面の上の部分</summary>
+    <ul>
+      <li><b>今日の売上</b>：今日の件数・指名・施術時間（うち指名）・キャンセル・付随業務と、収入（引かれる額を除いた金額）。</li>
+      <li><b>今週・今月</b>：売上・件数・施術時間（指名）・入店時間・収入。週は月曜はじまりです。</li>
+      <li><b>金額を隠す</b>：人に画面を見せるときに金額を「¥−−−」にします。もう一度押すと戻ります。</li>
+      <li><b>電卓のボタン</b>：画面の上に電卓が出ます。上の横線のところを押さえて動かせます。「閉じる」を押すまで消えません。</li>
+      <li><b>⚙</b>：設定・バックアップ・この使い方。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>入力タブ（予約を記録する）</summary>
+    <ul>
+      <li><b>予約内容を貼り付け</b>：予約通知の文章を貼り付けると、時間・会員番号・コースなどを自動で読み取ります。</li>
+      <li><b>日付・予約時間</b>：24時〜26時も選べます（前の日の営業として記録）。</li>
+      <li><b>指名の種類</b>：指名・フリー・男性指名・女性指名。指名料は⚙設定の金額が自動で入ります。</li>
+      <li><b>会員番号</b>：入れると下に前回の来店やお客様の特徴が出ます。登録済みの番号は「このお客様で入力」を選んでから保存します。同じ番号で別の人なら「同じ番号の別のお客様（新しく登録）」を押し、見分けられるように特徴を入れてください。</li>
+      <li><b>コース</b>：H（ほぐし）・A（あたま）・F（足つぼ）・T（ハンド）を組み合わせて選びます。</li>
+      <li><b>料金</b>：指名料込みの金額を入れます。</li>
+      <li><b>付随業務</b>：開店業務・閉店業務がある日は「あり」を選びます（金額は⚙設定で決めた額）。</li>
+      <li>記録を直すときは、一覧などから記録を開いて「編集する」。削除は2回押すと消えます。</li>
+      <li>キャンセルになった予約は、記録を開いて「この予約をキャンセルにする」。売上・件数・施術時間・収入には入りません。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>一覧タブ</summary>
+    <ul>
+      <li>月ごとに、日ごとの記録が並びます。今日の分はオレンジの枠で囲まれます。</li>
+      <li>日ごとに、件数・施術時間（指名）・キャンセル・付随業務・売上・収入が出ます。</li>
+      <li>記録を押すと詳しい内容が出ます。そこから編集やキャンセルができます。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>時間タブ</summary>
+    <ul>
+      <li><b>日・週・月</b>で切り替えます。左右にスワイプするか ‹ › で前後へ。「今日」で今日に戻ります。</li>
+      <li>予約は時間の表に色の帯で出ます（青＝指名、緑＝男性・女性指名、グレー＝フリー）。後ろの薄いしま模様はインターバルです。</li>
+      <li>週表示の各日の下には、件数・分・売上・収入・入店時間が出ます。曜日を押すとその日の表示に、月表示の日付を押すとその日の表示になります。</li>
+      <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。</li>
+      <li>下の「混み具合」は、その月に施術が多かった曜日と時間帯です。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>集計タブ</summary>
+    <ul>
+      <li>月の合計と月の収入、件数・指名率・1件平均など。</li>
+      <li>指名施術時間と指名時間率（施術時間のうち指名の割合）。</li>
+      <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
+      <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、日別の売上。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>会員タブ</summary>
+    <ul>
+      <li>会員番号ごとに、来店回数・指名回数・累計・最終来店・平均の来店間隔が見られます。</li>
+      <li>「お客様の特徴」を登録すると、入力のときや一覧にも表示されます。</li>
+      <li>番号の一部や特徴の言葉で探せます。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>収入の計算のしかた</summary>
+    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費）</p>
+    <ul>
+      <li>システム利用料：指名料を除いた売上 × ⚙設定の率（月ごとに変えられます）。</li>
+      <li>施設利用料・固定材料費：施術時間15分ごとにかかる金額 × 回数。</li>
+      <li>指名料は全額自分の収入です。付随業務の金額は、集計タブで別に足して表示します。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>設定とバックアップ</summary>
+    <ul>
+      <li>指名料・システム利用料・施設利用料・固定材料費・付随業務の金額・インターバル時間を決められます。</li>
+      <li><b>バックアップ</b>：ファイルで保存、または文字でコピーできます。こまめに保存しておくと安心です。</li>
+      <li><b>CSVで保存</b>：Excelなどで開ける形で全記録を書き出します。</li>
+      <li><b>復元</b>：バックアップのファイルや文字から、記録を元に戻します。</li>
+    </ul>
+  </details>
+  <details class="card"><summary>アプリの更新について</summary>
+    <ul>
+      <li>新しい版が出たら、ネットにつながった状態でアプリを開き直すと新しくなります（変わらないときは、一度アプリを閉じてもう一度開いてください）。</li>
+      <li>新しくなったあと最初に開いたときに、変わった内容のお知らせが出ます。何回分か更新をまとめて受け取った場合も、前に見たとき以降の内容がすべて出ます。</li>
+      <li>記録はそのまま残ります。</li>
+    </ul>
+  </details>
+</div>
+    <div class="hp" id="helpHistory" hidden></div>
+  </section>
+
   <!-- 設定 -->
   <section class="view" id="v-settings">
     <button class="back" id="setBack">‹ 戻る</button>
+    <div class="card help-entry">
+      <h3>使い方・更新のお知らせ</h3>
+      <div class="btn-row"><button type="button" class="btn ghost" id="openManual">使い方</button><button type="button" class="btn ghost" id="openHistory">更新履歴</button></div>
+      <p class="note" id="verNote" style="margin:8px 0 0"></p>
+    </div>
     <div class="card">
       <label class="lbl" for="setFee">指名料</label>
       <input class="fld num" id="setFee" inputmode="numeric" placeholder="500">
@@ -617,6 +730,14 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" class="op" data-k="+">＋</button>
       <button type="button" data-k="0">0</button><button type="button" data-k="00">00</button><button type="button" data-k=".">.</button><button type="button" class="eq" data-k="=">＝</button>
     </div>
+  </div>
+</div>
+<div id="news" hidden>
+  <div class="bg"></div>
+  <div class="card2" role="dialog" aria-modal="true" aria-labelledby="newsTitle">
+    <h2 id="newsTitle">アプリが新しくなりました</h2>
+    <div id="newsBody"></div>
+    <div class="btn-row"><button class="btn ghost" id="newsManual">使い方を見る</button><button class="btn" id="newsClose">閉じる</button></div>
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -879,6 +1000,46 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
     if(e.target.closest&&e.target.closest("input,textarea,select"))return;if(e.key==="Escape")close();else if(/^[\d.+\-*/%]$/.test(e.key))key(e.key);else if(e.key==="Enter"||e.key==="=")key("=");else if(e.key==="Backspace")key("B")});
 })();
 $("setBack").addEventListener("click",()=>show("input"));
+/* ---------- 使い方・更新のお知らせ ---------- */
+// 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
+const APP_VER=50;
+const CHANGELOG=[
+  {n:50,date:"10月15日",items:["⚙設定に「使い方」と「更新履歴」を追加しました。","アプリが新しくなったあと最初に開いたとき、変わった内容をお知らせするようにしました。"]},
+  {n:48,date:"10月14日",items:["同じ会員番号でも、別のお客様として登録できるようになりました。お客様の特徴で見分けて選べます。","同じ番号のお客様が複数いるときは「No.495（特徴）」のように表示します。"]},
+  {n:47,date:"10月14日",items:["登録済みの会員番号を入れたとき、「このお客様でいいですか？」と確認してから保存するようにしました。"]},
+  {n:46,date:"10月14日",items:["集計タブの「月の合計」の右に「月の収入」を表示しました。"]},
+  {n:45,date:"10月14日",items:["時間タブで入店時間（予定も含む）を入れられるようになりました。1時間ごとの枠を押して入力します。","入店時間を日・週・月、今週・今月の欄に表示します。","集計タブに入店時間・稼働率・入店1時間あたりの売上と収入を追加しました。"]},
+  {n:36,date:"10月13日",items:["指名の施術時間を表示するようにしました。集計タブに指名時間率も追加しました。"]},
+  {n:35,date:"10月12日",items:["画面の上に電卓を追加しました。指で動かせて、「閉じる」を押すまで消えません。","時間タブのカレンダーを左右にスワイプして、前後の日・週・月に切り替えられるようになりました。"]},
+  {n:32,date:"10月9日",items:["一覧タブと時間タブの週・月で、今日が色で分かるようにしました。"]},
+  {n:30,date:"10月9日まで",items:["予約のキャンセルを記録できるようになりました。","時間タブの週表示の各日の下に売上・収入を表示しました。","インターバル時間を表示し、⚙設定で変えられるようにしました。","時間の表示を「20:40-22:20」の形にしました。","時間タブに「今日」ボタンと週・月の表示を追加しました。","付随業務を開店業務・閉店業務に分けて記録できるようにしました。"]}
+];
+const SEEN_KEY="rirakuLog.seenVer";
+// 同じ日の更新はひとつにまとめて、更新した日だけを見出しにする
+function chgHtml(list){const g=[];list.forEach(c=>{const l=g[g.length-1];if(l&&l.date===c.date)l.items.push(...c.items);else g.push({date:c.date,items:[...c.items]})});
+  return g.map(c=>`<div class="chg"><h4>${esc(c.date)}の更新</h4><ul>${c.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}
+function showHelp(which){show("help");
+  document.querySelectorAll(".help-tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.h===which?"true":"false"));
+  $("helpManual").hidden=which!=="manual";$("helpHistory").hidden=which!=="history";
+  if(which==="history")$("helpHistory").innerHTML=`<div class="card">${chgHtml(CHANGELOG)}</div>`}
+document.querySelectorAll(".help-tabs button").forEach(b=>b.addEventListener("click",()=>showHelp(b.dataset.h)));
+$("openManual").addEventListener("click",()=>showHelp("manual"));
+$("openHistory").addEventListener("click",()=>showHelp("history"));
+$("helpBack").addEventListener("click",()=>show("settings"));
+$("verNote").textContent="最終更新："+CHANGELOG[0].date;
+// 前に見た版より新しい分を、まとめてお知らせする（何回分たまっていても全部出す）
+setTimeout(function(){let seen=0;try{seen=Number(localStorage.getItem(SEEN_KEY))||0}catch(e){}
+  // はじめて使う人（記録がまだない）にはお知らせを出さない
+  if(!seen&&!visits.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};return}
+  const fresh=seen?CHANGELOG.filter(c=>c.n>seen):CHANGELOG.slice(0,1);
+  const done=()=>{$("news").hidden=true;try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){}};
+  $("newsClose").addEventListener("click",done);$("news").querySelector(".bg").addEventListener("click",done);
+  $("newsManual").addEventListener("click",()=>{done();showHelp("manual")});
+  if(seen>=APP_VER||!fresh.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};return}
+  $("newsTitle").textContent="アプリが新しくなりました";
+  $("newsBody").innerHTML=chgHtml(fresh);
+  $("news").hidden=false;
+},0);
 
 /* ---------- header ---------- */
 const MASK_KEY="rirakuLog.hideAmt";

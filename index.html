@@ -212,10 +212,18 @@ h3{font-size:15px;margin:0 0 10px}
 .chg ul{margin:0;padding-left:1.2em}
 .chg li{font-size:14px;line-height:1.6;margin:3px 0}
 .chg+.chg{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
-#news,#bkRemind{position:fixed;inset:0;z-index:70}
-#news .bg,#bkRemind .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
-#news .card2,#bkRemind .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
-#news h2,#bkRemind h2{font-size:18px;margin:0 0 10px}
+#news,#bkRemind,#stRemind{position:fixed;inset:0;z-index:70}
+#news .bg,#bkRemind .bg,#stRemind .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#news .card2,#bkRemind .card2,#stRemind .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#news h2,#bkRemind h2,#stRemind h2{font-size:18px;margin:0 0 10px}
+#stRemind p,#settleBody p{font-size:14px;line-height:1.6;margin:0 0 8px}
+.st-dead{background:color-mix(in srgb,var(--danger) 10%,var(--panel));border-left:3px solid var(--danger);border-radius:0 8px 8px 0;padding:6px 10px;font-weight:700}
+.st-dead.today{color:var(--danger)}
+.st-tbl{width:100%;border-collapse:collapse;font-size:14px;margin:4px 0 8px}
+.st-tbl td{padding:5px 0;border-bottom:1px solid var(--line)}
+.st-tbl td:last-child{text-align:right;font-weight:700}
+.st-ok{color:var(--ok);font-weight:700}
+.st-ng{color:var(--danger);font-weight:700}
 #bkRemind p{font-size:14px;line-height:1.6;margin:0 0 8px}
 
 .side-link{border:0;background:var(--field);color:var(--ink);border-radius:8px;padding:2px 8px;font-size:13px;font-weight:700}
@@ -626,6 +634,15 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li><b>復元</b>：バックアップのファイルや文字から、記録を元に戻します。</li>
     </ul>
   </details>
+  <details class="card"><summary>売上の確定のお知らせ（りらくる）</summary>
+    <ul>
+      <li>りらくるの売上精算は、毎月<b>第3銀行営業日の14時頃</b>から確認でき、<b>第5銀行営業日の17時</b>までに確定処理が必要です。過ぎるとお支払いが翌月になります。</li>
+      <li>この期間にアプリを開くと「売上の確定を忘れずに」と出ます。締め切りの日時・お支払い予定日（15日。銀行の休みならその次の営業日）・先月分のこのアプリの売上と収入（確認用）が出ます。</li>
+      <li>確定したら「確定した」を押すと、その月はもう出ません。「あとで」を押すと3時間は出ません。</li>
+      <li>⚙設定の「売上の確定（りらくる）」で、今月の予定と、確定済みかどうかを確認・変更できます。</li>
+      <li>銀行の休み（土日・祝日・振替休日・12/31〜1/3）はアプリが自動で計算します。</li>
+    </ul>
+  </details>
   <details class="card"><summary>アプリの更新について</summary>
     <ul>
       <li>新しい版が出たら、ネットにつながった状態でアプリを開き直すと新しくなります（変わらないときは、一度アプリを閉じてもう一度開いてください）。</li>
@@ -683,6 +700,10 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </div>
     <button class="btn" id="saveSettings">設定を保存</button>
     <div class="gap"></div>
+    <div class="card" id="settleCard">
+      <h3>売上の確定（りらくる）</h3>
+      <div id="settleBody"></div>
+    </div>
     <div class="card">
       <h3>バックアップ</h3>
       <p class="note" id="storeNote"></p>
@@ -753,6 +774,14 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <p class="note" id="bkrLast"></p>
     <button class="btn" id="bkrNow">今すぐバックアップする</button>
     <div class="btn-row"><button class="btn ghost" id="bkrLater">あとで</button><button class="btn ghost" id="bkrDone">済みにする</button></div>
+  </div>
+</div>
+<div id="stRemind" hidden>
+  <div class="bg"></div>
+  <div class="card2" role="dialog" aria-modal="true" aria-labelledby="strTitle">
+    <h2 id="strTitle">売上の確定を忘れずに</h2>
+    <div id="strBody"></div>
+    <div class="btn-row"><button class="btn ghost" id="strLater">あとで</button><button class="btn" id="strDone">確定した</button></div>
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -960,7 +989,7 @@ function show(tab){
   document.querySelectorAll("section.view").forEach(s=>s.classList.remove("on"));
   $("v-"+tab).classList.add("on");
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
-  if(tab==="settings")renderSettings();
+  if(tab==="settings"){renderSettings();renderSettleCard()}
   window.scrollTo(0,0);
 }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="members")memberOpen=null;renderMembers();show(b.dataset.tab)}));
@@ -1017,8 +1046,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=55; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=56; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
   {n:55,date:"10月15日",items:["毎月1日〜3日にアプリを開くと、バックアップの案内が出るようにしました。バックアップをすると、その月はもう出ません。"]},
   {n:50,date:"10月15日",items:["⚙設定に「使い方」と「更新履歴」を追加しました。","アプリが新しくなったあと最初に開いたとき、変わった内容をお知らせするようにしました。"]},
   {n:48,date:"10月14日",items:["同じ会員番号でも、別のお客様として登録できるようになりました。同じ番号のお客様が2名以上いるときは、お客様の特徴や過去の来店履歴を見て選べます。","同じ番号のお客様が複数いるときは「No.495（特徴）」のように表示します。"]},
@@ -1046,12 +1076,12 @@ $("verNote").textContent="最終更新："+CHANGELOG[0].date;
 // 前に見た版より新しい分を、まとめてお知らせする（何回分たまっていても全部出す）
 setTimeout(function(){let seen=0;try{seen=Number(localStorage.getItem(SEEN_KEY))||0}catch(e){}
   // はじめて使う人（記録がまだない）にはお知らせを出さない
-  if(!seen&&!visits.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};maybeBackupRemind();return}
+  if(!seen&&!visits.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};nextRemind();return}
   const fresh=seen?CHANGELOG.filter(c=>c.n>seen):CHANGELOG.slice(0,1);
-  const done=()=>{$("news").hidden=true;try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};setTimeout(maybeBackupRemind,300)};
+  const done=()=>{$("news").hidden=true;try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};setTimeout(nextRemind,300)};
   $("newsClose").addEventListener("click",done);$("news").querySelector(".bg").addEventListener("click",done);
   $("newsManual").addEventListener("click",()=>{done();showHelp("manual")});
-  if(seen>=APP_VER||!fresh.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};maybeBackupRemind();return}
+  if(seen>=APP_VER||!fresh.length){try{localStorage.setItem(SEEN_KEY,String(APP_VER))}catch(e){};nextRemind();return}
   $("newsTitle").textContent="アプリが新しくなりました";
   $("newsBody").innerHTML=chgHtml(fresh);
   $("news").hidden=false;
@@ -1858,15 +1888,66 @@ const BK_DONE="rirakuLog.bkDoneMonth",BK_LAST="rirakuLog.bkLast",BK_SNOOZE="rira
 function lsGet(k){try{return localStorage.getItem(k)||""}catch(e){return ""}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function bkLastText(){const d=lsGet(BK_LAST);return d?"最後のバックアップ："+Number(d.slice(5,7))+"月"+Number(d.slice(8,10))+"日":"まだバックアップをしていません"}
-function markBackup(){const t=bizToday();lsSet(BK_LAST,t);lsSet(BK_DONE,t.slice(0,7));$("bkLast").textContent=bkLastText();$("bkRemind").hidden=true}
+function markBackup(){const t=bizToday();lsSet(BK_LAST,t);lsSet(BK_DONE,t.slice(0,7));$("bkLast").textContent=bkLastText();if(!$("bkRemind").hidden){$("bkRemind").hidden=true;setTimeout(nextRemind,300)}}
 function maybeBackupRemind(){const t=bizToday(),day=Number(t.slice(8,10));
-  if(day>3||!visits.length||lsGet(BK_DONE)===t.slice(0,7)||lsGet(BK_SNOOZE)===t||!$("news").hidden)return;
-  $("bkrLast").textContent=bkLastText();$("bkRemind").hidden=false}
+  if(day>3||!visits.length||lsGet(BK_DONE)===t.slice(0,7)||lsGet(BK_SNOOZE)===t)return false;
+  $("bkrLast").textContent=bkLastText();$("bkRemind").hidden=false;return true}
+// お知らせ → バックアップ → 売上の確定 の順に、ひとつずつ出す
+function nextRemind(){if(!$("news").hidden||!$("bkRemind").hidden||!$("stRemind").hidden)return;if(maybeBackupRemind())return;maybeSettleRemind()}
 $("bkrNow").addEventListener("click",async()=>{if(await saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"))markBackup()});
 $("bkrDone").addEventListener("click",()=>{markBackup();toast("今月のバックアップ済みにしました")});
-const bkLater=()=>{lsSet(BK_SNOOZE,bizToday());$("bkRemind").hidden=true};
+const bkLater=()=>{lsSet(BK_SNOOZE,bizToday());$("bkRemind").hidden=true;setTimeout(nextRemind,300)};
 $("bkrLater").addEventListener("click",bkLater);$("bkRemind").querySelector(".bg").addEventListener("click",bkLater);
 $("bkLast").textContent=bkLastText();
+/* ---------- 売上の確定（りらくる）のお知らせ ---------- */
+// 確認：毎月第3銀行営業日14時頃から／締め切り：第5銀行営業日17時／支払い：15日（銀行の休みならその次の営業日）
+// 日本の祝日（振替休日・国民の休日を含む）と銀行の休み
+function jpHolidays(y){
+  const H=new Set(),k=(m,d)=>y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+  const nthMon=(m,n)=>{const f=new Date(y,m-1,1).getDay();return 1+((8-f)%7)+(n-1)*7};
+  [[1,1],[2,11],[2,23],[4,29],[5,3],[5,4],[5,5],[8,11],[11,3],[11,23]].forEach(([m,d])=>H.add(k(m,d)));
+  H.add(k(1,nthMon(1,2)));H.add(k(7,nthMon(7,3)));H.add(k(9,nthMon(9,3)));H.add(k(10,nthMon(10,2)));
+  const q=Math.floor((y-1980)/4);
+  H.add(k(3,Math.floor(20.8431+0.242194*(y-1980)-q)));H.add(k(9,Math.floor(23.2488+0.242194*(y-1980)-q)));
+  // 国民の休日（祝日にはさまれた平日）
+  const add=(s,n)=>{const d=new Date(s+"T00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+  [...H].forEach(s=>{const m=add(s,1);if(H.has(add(s,2))&&!H.has(m)&&new Date(m+"T00:00").getDay()!==0)H.add(m)});
+  // 振替休日（日曜の祝日のあと、最初の祝日でない日）
+  [...H].sort().forEach(s=>{if(new Date(s+"T00:00").getDay()===0){let d=add(s,1);while(H.has(d))d=add(d,1);H.add(d)}});
+  return H}
+const holCache={};
+function isBankHoliday(d){const y=Number(d.slice(0,4)),md=d.slice(5),w=new Date(d+"T00:00").getDay();holCache[y]=holCache[y]||jpHolidays(y);
+  return w===0||w===6||holCache[y].has(d)||md==="12-31"||md==="01-02"||md==="01-03"}
+function nthBankDay(ym,n){let d=ym+"-01",c=0;for(;;){if(!isBankHoliday(d)&&++c===n)return d;d=addDays(d,1)}}
+function settleInfo(now){const ym=dateKey(now).slice(0,7);let pay=ym+"-15";while(isBankHoliday(pay))pay=addDays(pay,1);
+  return {ym,open:nthBankDay(ym,3),close:nthBankDay(ym,5),pay,prev:shiftMonth(ym,-1)}}
+const ST_DONE="rirakuLog.settleDone",ST_SNOOZE="rirakuLog.settleSnooze";
+function prevMonthText(pm){const mv=live(visits.filter(v=>v.date.startsWith(pm))),side=Object.keys(days).filter(dk=>dk.startsWith(pm)).reduce((a,dk)=>a+sideTotal(dk),0);
+  if(!mv.length&&!side)return "";const c=calcNet(mv);
+  return `<p class="note" style="margin:6px 0 4px">${Number(pm.slice(5))}月分のこのアプリの記録（確認用）</p><table class="st-tbl num"><tr><td>売上</td><td>${yen(c.sales)}</td></tr><tr><td>収入</td><td style="color:var(--ok)">${yen(c.net)}</td></tr>${side?`<tr><td>付随業務</td><td>${yen(side)}</td></tr><tr><td>付随業務を含めた収入</td><td style="color:var(--ok)">${yen(c.net+side)}</td></tr>`:""}</table>`}
+function maybeSettleRemind(){if(!visits.length)return false;
+  const now=new Date(),t=dateKey(now),h=now.getHours(),si=settleInfo(now);
+  if(lsGet(ST_DONE)===si.ym||t<si.open||t>si.close||(t===si.close&&h>=17))return false;
+  if(Date.now()<Number(lsGet(ST_SNOOZE)||0))return false;
+  const last=t===si.close;
+  $("strBody").innerHTML=`<p>${t===si.open&&h<14?"今日の14時頃から、りらくるで":"りらくるで"}${Number(si.prev.slice(5))}月分の売上精算内容を確認して、<b>確定処理</b>をしてください。確定しないと支払われません。</p>
+    <p class="st-dead${last?" today":""}">締め切り：${dayLabel(si.close)} 17時${last?"（今日です）":""}</p>
+    <p>お支払い予定日：${dayLabel(si.pay)}</p>
+    ${prevMonthText(si.prev)}
+    <p class="note">締め切りを過ぎると、お支払いが翌月になります。内容が違うときは、売上精算確認画面の「変更依頼」から依頼してください。</p>`;
+  $("stRemind").hidden=false;return true}
+$("strDone").addEventListener("click",()=>{lsSet(ST_DONE,settleInfo(new Date()).ym);$("stRemind").hidden=true;toast("今月の売上確定を済みにしました");renderSettleCard()});
+const stLater=()=>{lsSet(ST_SNOOZE,String(Date.now()+3*3600*1000));$("stRemind").hidden=true};
+$("strLater").addEventListener("click",stLater);$("stRemind").querySelector(".bg").addEventListener("click",stLater);
+function renderSettleCard(){const now=new Date(),si=settleInfo(now),done=lsGet(ST_DONE)===si.ym;
+  const t=dateKey(now),past=t>si.close||(t===si.close&&now.getHours()>=17);
+  $("settleBody").innerHTML=`<p class="note" style="margin:0 0 4px">${Number(si.ym.slice(5))}月の予定（${Number(si.prev.slice(5))}月分の売上）</p>
+    <table class="st-tbl num"><tr><td>確認できる日</td><td>${dayLabel(si.open)} 14時頃〜</td></tr><tr><td>確定の締め切り</td><td>${dayLabel(si.close)} 17時</td></tr><tr><td>お支払い予定日</td><td>${dayLabel(si.pay)}</td></tr>
+    <tr><td>今月の確定</td><td>${done?`<span class="st-ok">済み</span>`:past?`<span class="st-ng">締め切りを過ぎました</span>`:`<span class="st-ng">まだ</span>`}</td></tr></table>
+    <button type="button" class="btn ghost" id="settleToggle">${done?"確定済みを取り消す":"今月は確定済みにする"}</button>
+    <p class="note" style="margin-top:8px">第3銀行営業日から締め切りまでの間、アプリを開くとお知らせが出ます（「確定した」を押すまで）。</p>`;
+  $("settleToggle").addEventListener("click",()=>{if(lsGet(ST_DONE)===si.ym)lsSet(ST_DONE,"");else lsSet(ST_DONE,si.ym);renderSettleCard()})}
+renderSettleCard();
 $("bkFile").addEventListener("click",async()=>{if(await saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"))markBackup()});
 $("bkCopy").addEventListener("click",async()=>{
   const t=backupJSON(),out=$("bkOut");out.value=t;out.hidden=false;out.focus();out.select();

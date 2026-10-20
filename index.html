@@ -111,7 +111,16 @@ textarea.fld{min-height:64px;resize:vertical}
 .seg button[aria-pressed="true"][data-v="free"]{background:var(--free);border-color:var(--free);color:#fff}
 .seg button[aria-pressed="true"][data-v="gm"],.seg button[aria-pressed="true"][data-v="gf"]{background:#2E7D5B;border-color:#2E7D5B;color:#fff}
 .tag.gm,.tag.gf{background:#DDF0E6;color:#2E7D5B}
-.tl .blk.gm,.tl .blk.gf{background:#2E7D5B}
+.wdt{width:100%;border-collapse:collapse;font-size:13px}
+.wdt th{font-size:11px;color:var(--sub);font-weight:500;text-align:right;padding:0 2px 6px;line-height:1.2}
+.wdt th:first-child,.wdt td:first-child{text-align:left}
+.wdt td{text-align:right;padding:7px 2px;border-top:1px solid var(--line);line-height:1.3;vertical-align:top}
+.wdt td small{font-size:11px;color:var(--sub)}
+.wdt tr.sun td:first-child{color:#B3261E}.wdt tr.sat td:first-child{color:#2F6F9F}
+.wdt td:first-child{font-weight:700}
+.wbar{display:block;height:4px;background:var(--line);border-radius:2px;margin-top:4px;overflow:hidden}
+.wbar i{display:block;height:100%;background:var(--money)}
+.tl .blk.gm,.tl .blk.gf{background:var(--c-g)}
 /* 時間タブ：お客様の性別を文字色で */
 .tl .blk .sx-m{color:#BFE3FF;font-weight:700}
 .tl .blk .sx-f{color:#FFC6DC;font-weight:700}
@@ -212,10 +221,11 @@ h3{font-size:15px;margin:0 0 10px}
 .chg ul{margin:0;padding-left:1.2em}
 .chg li{font-size:14px;line-height:1.6;margin:3px 0}
 .chg+.chg{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
-#news,#bkRemind,#stRemind{position:fixed;inset:0;z-index:70}
-#news .bg,#bkRemind .bg,#stRemind .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
-#news .card2,#bkRemind .card2,#stRemind .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
-#news h2,#bkRemind h2,#stRemind h2{font-size:18px;margin:0 0 10px}
+#news,#bkRemind,#stRemind,#stayPop{position:fixed;inset:0;z-index:70}
+#news .bg,#bkRemind .bg,#stRemind .bg,#stayPop .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#news .card2,#bkRemind .card2,#stRemind .card2,#stayPop .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#stayPop ul{margin:0 0 4px;padding-left:1.2em}#stayPop li{font-size:14px;line-height:1.6;margin:4px 0}
+#news h2,#bkRemind h2,#stRemind h2,#stayPop h2{font-size:18px;margin:0 0 10px}
 #stRemind p,#settleBody p{font-size:14px;line-height:1.6;margin:0 0 8px}
 .st-dead{background:color-mix(in srgb,var(--danger) 10%,var(--panel));border-left:3px solid var(--danger);border-radius:0 8px 8px 0;padding:6px 10px;font-weight:700}
 .st-dead.today{color:var(--danger)}
@@ -299,25 +309,63 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .blk .iv{position:absolute;left:0;right:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 4px,rgba(255,255,255,.35) 4px 8px);border-radius:0 0 8px 8px;pointer-events:none}
 .tl .blk .ivt{color:rgba(255,255,255,.7);font-size:11px;font-weight:400}
 .wk .wb .iv{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.5)}
-.tl .blk.shimei{background:var(--shimei)}
-.tl .blk.free{background:var(--free)}
+/* 日表示のインターバルも斜線なしの1色に */
+.tl .blk .iv{background:rgba(255,255,255,.5)}
+/* 枠の中身はいつも上ぞろえ（ボタンは中身を上下中央にそろえてしまうため） */
+.tl .blk,.wk .wb{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+.tl .blk .bc,.wk .wb .bc{display:block}
+.wk .wb .bc{padding-right:9px;letter-spacing:-.03em}
+/* 人型のマーク */
+.pi{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:#fff;vertical-align:-3px;margin-right:2px}
+.pi svg{width:13px;height:13px}
+.pi.m svg{fill:#2EC4F5}.pi.f svg{fill:#E5281E}.pi.u svg{fill:#8A9096}
+/* 予約の濃い色の上で見えるように、枠の中のマークは明るめに */
+.tl .blk .pi.m svg,.wk .wb .pi.m svg{fill:#1EA7E8}
+.legend .pi{box-shadow:0 0 0 1px var(--line)}
+/* 日表示：サンプルのように「人型＋会員番号」を先頭に。白い下地は青い予約のときだけ */
+.tl .blk .who{display:flex;align-items:center;gap:3px;font-size:14px;margin-bottom:1px}
+.tl .blk .who .pi{background:#fff;border-radius:50%;width:18px;height:18px;margin:0}
+.tl .blk .who .pi svg{width:13px;height:13px}
+/* サンプルに合わせて下地なし。会員番号は濃いグレー、未入力のマークも濃いグレー */
+
+.tl .blk .who .pi.m svg{fill:#2EC4F5}
+
+.tl .blk .tm{font-weight:700;white-space:nowrap}
+.wk .wb .wpi{position:absolute;top:1px;right:1px;line-height:0}
+.wk .wb .wpi .pi{width:11px;height:11px;margin:0;background:#fff;border-radius:50%}
+.wk .wb .wpi .pi svg{width:8px;height:8px}
+
+/* メニューごとの色（ほぐしは指名の種類の色のまま） */
+.tl .blk,.wk .wb{isolation:isolate}
+/* メニューの色は枠の左はしの細い帯で出す（文字の後ろは指名の種類の色1色のまま） */
+.blk .seg,.wb .seg{position:absolute;left:0;width:9px;z-index:1}
+.wb .seg{width:5px}
+.tl .blk{padding-left:14px}
+.wk .wb{padding-left:7px}
+.seg.A{background:#7FC8E8}.seg.F{background:#D9443A}.seg.T{background:#F08DB4}
+
+.tl .blk.shimei{background:var(--c-shimei)}
+.tl .blk.free{background:var(--c-free)}
 .tl .blk b{font-size:13px}
 .tl .now{position:absolute;left:0;right:0;border-top:2px solid var(--money);z-index:2}
 /* 入店時間 */
 #tSum{flex-basis:100%}
 #tSum .stx{color:var(--stay-ink);font-weight:400}
+/* 予約の色（指名＝青、フリー＝黄色） */
+:root{--c-shimei:var(--shimei);--c-free:var(--free);--c-g:#2E7D5B}
 :root{--stay:#7D8388;--stay-ink:#3F4549}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--stay-ink:#D5DADD}}
 :root[data-theme="dark"]{--stay-ink:#D5DADD}
 .tl .st,.wk .st{position:absolute;left:0;right:0;background:color-mix(in srgb,var(--stay) 22%,transparent);border:0;padding:0;margin:0;display:block}
 .tl .st{z-index:0}
 .wk .st{z-index:0}
-.stay-edit .st{background:transparent;border-top:1px dashed color-mix(in srgb,var(--stay) 35%,transparent);cursor:pointer;z-index:1}
+.stay-edit .st{touch-action:none;background:transparent;border-top:1px dashed color-mix(in srgb,var(--stay) 35%,transparent);cursor:pointer;z-index:1}
 .stay-edit .st.on{background:color-mix(in srgb,var(--stay) 40%,transparent)}
 .stay-edit .blk,.stay-edit .wb{pointer-events:none;opacity:.4}
 .stay-btn{border:0;background:var(--panel);border-radius:999px;padding:7px 12px;font-weight:700;color:var(--stay-ink);white-space:nowrap}
 .stay-btn[aria-pressed="true"]{background:var(--stay-ink);color:var(--panel)}
 .tbar-r{display:flex;gap:6px;align-items:center}
+.stay-q{border:0;background:var(--panel);width:30px;height:30px;border-radius:50%;font-weight:800;color:var(--stay-ink);padding:0;font-size:14px}
 .stay-help{background:color-mix(in srgb,var(--stay) 14%,var(--panel));color:var(--ink);border-radius:10px;padding:8px 10px;font-size:13px;margin-bottom:8px}
 .wk .wf .wst{display:block;color:var(--stay-ink);font-weight:400;font-size:10px;white-space:nowrap}
 .mc .md .mst{display:block;color:var(--stay-ink);font-weight:400;white-space:nowrap}
@@ -361,7 +409,7 @@ h3{font-size:15px;margin:0 0 10px}
 .wk .col.today{background:color-mix(in srgb,var(--money) 8%,transparent);box-shadow:inset 2px 0 0 var(--money),inset -2px 0 0 var(--money)}
 .wk .col .hl{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.6}
 .wk .wb{position:absolute;left:1px;right:1px;border:0;border-radius:4px;padding:1px 2px;font-size:9px;line-height:1.2;color:#fff;overflow:hidden;text-align:left}
-.wk .wb.shimei{background:var(--shimei)}.wk .wb.free{background:var(--free)}.wk .wb.gm,.wk .wb.gf{background:#2E7D5B}
+.wk .wb.shimei{background:var(--c-shimei)}.wk .wb.free{background:var(--c-free)}.wk .wb.gm,.wk .wb.gf{background:var(--c-g)}
 .wk .wf{text-align:center;font-size:10px;color:var(--sub);padding:4px 0;line-height:1.3;border-left:1px solid var(--line)}
 .wk .wf b{display:block;color:var(--ink);font-size:11px}
 .wk .wf .ws{display:block;color:var(--money);font-weight:700;font-size:9px;letter-spacing:-.03em;white-space:nowrap}
@@ -522,13 +570,12 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <button type="button" data-m="week" aria-pressed="false">週</button>
         <button type="button" data-m="month" aria-pressed="false">月</button>
       </div>
-      <div class="tbar-r"><button type="button" class="stay-btn" id="stayBtn" aria-pressed="false">入店時間</button><button type="button" class="today-btn" id="tToday">今日</button></div>
+      <div class="tbar-r"><button type="button" class="stay-q" id="stayQ" aria-label="入店時間の入れ方">？</button><button type="button" class="stay-btn" id="stayBtn" aria-pressed="false">入店時間</button><button type="button" class="today-btn" id="tToday">今日</button></div>
     </div>
     <div class="card">
-      <div class="legend"><span><i style="background:var(--shimei)"></i>指名</span><span><i style="background:#2E7D5B"></i>男性・女性指名</span><span><i style="background:var(--free)"></i>フリー</span><span id="tSum" class="num"></span></div>
+      <div class="legend"><span><i style="background:var(--c-shimei)"></i>指名</span><span><i style="background:var(--c-g)"></i>男性・女性指名</span><span><i style="background:var(--c-free)"></i>フリー</span><span><i style="background:#D9443A"></i>足つぼ</span><span><i style="background:#7FC8E8"></i>あたま</span><span><i style="background:#F08DB4"></i>ハンド</span><span id="tSum" class="num"></span></div>
       <div class="legend" id="wkLegend" hidden><span>各日の下：件数・分・<b style="color:var(--money)">売上</b>・<b style="color:var(--ok)">収入</b>・<span style="color:var(--stay-ink)">入店時間</span></span></div>
-      <div class="legend"><span>お客様：<b style="color:#2F6F9F">男性</b>・<b style="color:#B0476E">女性</b>（文字の色）</span></div>
-      <div class="stay-help" id="stayHelp" hidden>入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。終わったら「完了」を押してください。</div>
+      <div class="legend"><span>お客様：<span class="pi m"><svg viewBox="0 0 16 16"><circle cx="8" cy="4.6" r="3.1"/><path d="M1.8 15.2c0-3.6 2.8-6 6.2-6s6.2 2.4 6.2 6z"/></svg></span>男性　<span class="pi f"><svg viewBox="0 0 16 16"><circle cx="8" cy="4.6" r="3.1"/><path d="M1.8 15.2c0-3.6 2.8-6 6.2-6s6.2 2.4 6.2 6z"/></svg></span>女性　<span class="pi u"><svg viewBox="0 0 16 16"><circle cx="8" cy="4.6" r="3.1"/><path d="M1.8 15.2c0-3.6 2.8-6 6.2-6s6.2 2.4 6.2 6z"/></svg></span>未入力</span></div>
       <div class="swipe-wrap"><div id="tlBody"></div></div>
     </div>
     <div class="card">
@@ -596,9 +643,11 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <details class="card"><summary>時間タブ</summary>
     <ul>
       <li><b>日・週・月</b>で切り替えます。左右にスワイプするか ‹ › で前後へ。「今日」で今日に戻ります。</li>
-      <li>予約は時間の表に色の帯で出ます（青＝指名、緑＝男性・女性指名、グレー＝フリー）。後ろの薄いしま模様はインターバルです。</li>
+      <li>予約は時間の表に色の帯で出ます（紺＝指名、緑＝男性・女性指名、グレー＝フリー）。下の少し薄い部分はインターバルです。</li>
+      <li>予約の左はしの細い帯は、メニューの色です（足つぼ＝赤、あたま＝水色、ハンド＝ピンク。ほぐし→足つぼ→あたま→ハンドの順に、時間の長さで表示）。</li>
+      <li>予約のいちばん上には、人型のマークと会員番号が出ます（マークの色：水色＝男性、赤＝女性、グレー＝性別未入力）。週表示では右上に小さく出ます。</li>
       <li>週表示の各日の下には、件数・分・売上・収入・入店時間が出ます。曜日を押すとその日の表示に、月表示の日付を押すとその日の表示になります。</li>
-      <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。</li>
+      <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。押したまま指をなぞると続けて選べます（色の付いた枠から始めると、まとめて消せます）。入力中に表を上下に動かすときは、左の時刻のところを触ってください。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。入れ方は「入店時間」の横の「？」でいつでも見られます。</li>
       <li>下の「混み具合」は、その月に施術が多かった曜日と時間帯です。</li>
     </ul>
   </details>
@@ -607,7 +656,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>月の合計と月の収入、件数・指名率・1件平均など。</li>
       <li>指名施術時間と指名時間率（施術時間のうち指名の割合）。</li>
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
-      <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、日別の売上。</li>
+      <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
     </ul>
   </details>
   <details class="card"><summary>会員タブ</summary>
@@ -782,6 +831,19 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <h2 id="strTitle">売上の確定を忘れずに</h2>
     <div id="strBody"></div>
     <div class="btn-row"><button class="btn ghost" id="strLater">あとで</button><button class="btn" id="strDone">確定した</button></div>
+  </div>
+</div>
+<div id="stayPop" hidden>
+  <div class="bg"></div>
+  <div class="card2" role="dialog" aria-modal="true" aria-labelledby="spTitle">
+    <h2 id="spTitle">入店時間の入れ方</h2>
+    <ul>
+      <li>入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。</li>
+      <li>押したまま指をなぞると、続けて選べます。色の付いた枠から始めると、なぞった枠をまとめて消せます。</li>
+      <li>入力中に表を上下に動かすときは、左の時刻のところを触って動かしてください。</li>
+      <li>終わったら「完了」を押してください。</li>
+    </ul>
+    <button class="btn" id="spOk" style="margin-top:10px">OK</button>
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -1046,8 +1108,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=56; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=57; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
   {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
   {n:55,date:"10月15日",items:["毎月1日〜3日にアプリを開くと、バックアップの案内が出るようにしました。バックアップをすると、その月はもう出ません。"]},
   {n:50,date:"10月15日",items:["⚙設定に「使い方」と「更新履歴」を追加しました。","アプリが新しくなったあと最初に開いたとき、変わった内容をお知らせするようにしました。"]},
@@ -1104,6 +1167,11 @@ function hoursText(m){return (Math.round((m||0)/60*100)/100)+"時間"}
 function hmText(m){return (m||0)+"分"}
 function workText(list){return hmText(list.reduce((a,v)=>a+(vMin(v)||0),0))}
 // 指名（type==="shimei"）の施術時間（分）
+// 予約の中を、メニューの時間の長さで色分けする帯（px＝1時間あたりの高さ）
+// 施術の順番：ほぐし→足つぼ→あたま→ハンド
+const SEG_ORDER={H:0,F:1,A:2,T:3};
+function segHtml(v,px){if(v.cancel||!v.parts||!v.parts.length)return "";let y=0,h="";
+  v.parts.slice().sort((a,b)=>(SEG_ORDER[a.k]??9)-(SEG_ORDER[b.k]??9)).forEach(p=>{const ht=p.m/60*px;if(p.k!=="H")h+=`<span class="seg ${p.k}" style="top:${y}px;height:${ht}px"></span>`;y+=ht});return h}
 function shMin(list){return list.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)}
 // 売上から引かれる金額と収入
 // その月のシステム利用料率（設定した月から次の設定の前まで有効）
@@ -1154,7 +1222,7 @@ function renderHeader(){
 
 /* ---------- input form ---------- */
 const TYPES={shimei:"指名",gm:"男性指名",gf:"女性指名",free:"フリー"};
-const TYPE_COLOR={shimei:"var(--shimei)",gm:"#2E7D5B",gf:"#2E7D5B",free:"var(--free)"};
+const TYPE_COLOR={shimei:"var(--c-shimei)",gm:"var(--c-g)",gf:"var(--c-g)",free:"var(--c-free)"};
 function typeLabel(t){return TYPES[t]||"フリー"}
 function typeTag(v){return `<span class="tag ${TYPES[v.type]?v.type:"free"}">${typeLabel(v.type)}</span>`}
 function feeFor(t){return t==="shimei"?settings.shimeiFee:t==="gm"?(settings.gmFee||0):t==="gf"?(settings.gfFee||0):0}
@@ -1191,6 +1259,8 @@ const SEX={m:"男性",f:"女性"};
 function setSex(x){fSex=x||"";document.querySelectorAll("#fSex button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===fSex?"true":"false"))}
 // もう一度押すと未選択に戻る
 document.querySelectorAll("#fSex button").forEach(b=>b.addEventListener("click",()=>setSex(fSex===b.dataset.v?"":b.dataset.v)));
+// 人型のマーク（男性＝水色、女性＝赤、未入力＝グレー）
+function personIcon(sx){const k=SEX[sx]?sx:"u";return `<span class="pi ${k}" role="img" aria-label="${SEX[sx]||"性別未入力"}"><svg viewBox="0 0 16 16"><circle cx="8" cy="4.6" r="3.1"/><path d="M1.8 15.2c0-3.6 2.8-6 6.2-6s6.2 2.4 6.2 6z"/></svg></span>`}
 function sexTag(v){return v.sex&&SEX[v.sex]?`<span class="tag sx-${v.sex}">${SEX[v.sex]}</span>`:""}
 function setType(t,autoFee){
   fType=t;
@@ -1567,9 +1637,9 @@ function renderTime(){
   $("tNext").setAttribute("aria-label","次の"+unit);
   $("wkLegend").hidden=timeMode!=="week";
   if(timeMode==="month")stayEdit=false;
-  $("stayBtn").hidden=timeMode==="month";
+  $("stayBtn").hidden=timeMode==="month";$("stayQ").hidden=timeMode==="month";
   $("stayBtn").setAttribute("aria-pressed",stayEdit?"true":"false");$("stayBtn").textContent=stayEdit?"完了":"入店時間";
-  $("stayHelp").hidden=!stayEdit;$("tlBody").classList.toggle("stay-edit",stayEdit);
+  $("tlBody").classList.toggle("stay-edit",stayEdit);
   if(timeMode==="week"){renderWeek();renderHeat();return}
   if(timeMode==="month"){renderMonthCal();renderHeat();return}
   $("tDay").textContent=dayLabel(timeDay);
@@ -1593,7 +1663,7 @@ function renderTime(){
   dv.forEach(x=>{
     const iv=x.ie-x.e, top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.ie-x.s)/60*PX-2), ivh=iv/60*PX;
     html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
-      ${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${x.v.cancel?"<small>キャンセル</small> ":""}<b class="num">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</b> ${x.v.member?esc(keyLabel(ck(x.v))):""}${x.v.sex?` <span class="sx-${x.v.sex}">${SEX[x.v.sex]}</span>`:""}${x.v.type==="gm"||x.v.type==="gf"?` <small>${typeLabel(x.v.type)}</small>`:""}<br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</button>`;
+      ${segHtml(x.v,PX)}${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}<span class="bc">${x.v.cancel?"<small>キャンセル</small> ":""}${`<span class="who">${personIcon(x.v.sex)}${x.v.member?`<b class="num">${esc(keyLabel(ck(x.v)))}</b>`:""}</span>`}<span class="num tm">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</span><br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</span></button>`;
   });
   html+="</div>";
   if(!dv.length&&!sl.length&&!stayEdit)html=`<div class="empty">この日の記録はありません。<br><small>「入店時間」を押すと、入店した時間を入れられます。</small></div>`;
@@ -1649,7 +1719,7 @@ function renderWeek(){
         :`<div class="st" style="top:${(m-h0*60)/60*WPX}px;height:${SLOT/60*WPX}px"></div>`}}
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
       const s=startMin(v),m=vMin(v)||60,iv=ivMin(v),top=(s-h0*60)/60*WPX,ht=Math.max(14,(m+iv)/60*WPX-1);
-      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span>${ht>=36&&v.member?`<br>${esc(v.member)}`:""}</button>`;
+      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${segHtml(v,WPX)}${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}${!v.cancel?`<span class="wpi">${personIcon(v.sex)}</span>`:""}<span class="bc"><span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span>${ht>=36&&v.member?`<br>${esc(v.member)}`:""}</span></button>`;
     });
     html+=`</div>`;
   });
@@ -1692,12 +1762,29 @@ function shiftDay(d){
 $("tPrev").addEventListener("click",()=>shiftDay(-1));
 $("tNext").addEventListener("click",()=>shiftDay(1));
 $("tToday").addEventListener("click",()=>{timeDay=bizToday();renderTime()});
-$("stayBtn").addEventListener("click",()=>{stayEdit=!stayEdit;renderTime()});
-$("tlBody").addEventListener("click",e=>{const b=e.target.closest("button.st");if(!b||!stayEdit)return;
-  b.classList.toggle("on");toggleStay(b.dataset.day,Number(b.dataset.m))});
+$("stayBtn").addEventListener("click",()=>{stayEdit=!stayEdit;renderTime();
+  // 説明は最初の1回だけ自動で出す。あとは「？」でいつでも見られる
+  if(stayEdit){let seen="";try{seen=localStorage.getItem("rirakuLog.stayHelpOff")||""}catch(e){}
+    if(!seen){$("stayPop").hidden=false;try{localStorage.setItem("rirakuLog.stayHelpOff","1")}catch(e){}}}});
+$("spOk").addEventListener("click",()=>{$("stayPop").hidden=true});
+$("stayQ").addEventListener("click",()=>{$("stayPop").hidden=false});
+$("stayPop").querySelector(".bg").addEventListener("click",()=>{$("stayPop").hidden=true});
+
+// 入店時間：押したまま上下（週は左右も）になぞると、続けて選べる／消せる
+// 最初に押した枠が空なら「入れる」、入っていれば「消す」をなぞった枠すべてに行い、指を離したときにまとめて保存
+let paint=null;
+function paintCell(b){if(!b||!paint)return;const day=b.dataset.day,m=Number(b.dataset.m),key=day+"|"+m;if(paint.done.has(key))return;paint.done.add(key);
+  if(!paint.sets[day])paint.sets[day]=new Set(staySlots(day));
+  if(paint.on){paint.sets[day].add(m);b.classList.add("on")}else{paint.sets[day].delete(m);b.classList.remove("on")}}
+$("tlBody").addEventListener("pointerdown",e=>{const b=e.target.closest("button.st");if(!b||!stayEdit)return;
+  e.preventDefault();paint={on:!b.classList.contains("on"),sets:{},done:new Set()};paintCell(b)});
+$("tlBody").addEventListener("pointermove",e=>{if(!paint)return;const el=document.elementFromPoint(e.clientX,e.clientY);paintCell(el&&el.closest&&el.closest("#tlBody button.st"))});
+const paintEnd=async()=>{if(!paint)return;const p=paint;paint=null;
+  for(const day of Object.keys(p.sets)){const d=dayOf(day),arr=[...p.sets[day]].sort((a,b)=>a-b);if(arr.length)d.stay=arr;else delete d.stay;await saveDay(day,d)}};
+window.addEventListener("pointerup",paintEnd);window.addEventListener("pointercancel",paintEnd);
 /* 左右スワイプで前後の日・週・月へ */
 (()=>{const el=$("tlBody");let sx=0,sy=0,dx=0,on=false,horiz=null,swiped=false;
-  el.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;on=true;horiz=null;dx=0;sx=e.touches[0].clientX;sy=e.touches[0].clientY;el.classList.remove("anim")},{passive:true});
+  el.addEventListener("touchstart",e=>{if(e.touches.length!==1||stayEdit)return;on=true;horiz=null;dx=0;sx=e.touches[0].clientX;sy=e.touches[0].clientY;el.classList.remove("anim")},{passive:true});
   el.addEventListener("touchmove",e=>{if(!on)return;const x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;
     if(horiz===null&&(Math.abs(x)>8||Math.abs(y)>8))horiz=Math.abs(x)>Math.abs(y)*1.2;
     if(horiz){dx=x;el.style.transform=`translateX(${x*.6}px)`;el.style.opacity=String(1-Math.min(Math.abs(x)/600,.4))}},{passive:true});
@@ -1796,6 +1883,15 @@ function renderStats(){
       <h3>オプション</h3>
       <table class="brk">${OPTS.map(o=>`<tr><td>${o.name}</td><td>${mv.filter(v=>(v.opts||[]).includes(o.k)).length}件</td></tr>`).join("")}</table>
     </div>
+    ${(()=>{const W=[1,2,3,4,5,6,0].map(w=>{const dv=mv.filter(v=>new Date(v.date+"T00:00").getDay()===w),dn=new Set(dv.map(v=>v.date)).size,sales=dv.reduce((a,v)=>a+total(v),0);
+        return {w,dn,n:dv.length,sh:dv.filter(v=>v.type==="shimei").length,sales,net:calcNet(dv).net,min:dv.reduce((a,v)=>a+(vMin(v)||0),0)}});
+      const mx=Math.max(1,...W.map(x=>x.dn?x.sales/x.dn:0));
+      return `<div class="card num">
+      <h3>曜日別</h3>
+      <table class="wdt"><tr><th>曜日</th><th>出勤</th><th>件数<br><small>(指名)</small></th><th>売上<br><small>収入</small></th><th>1日平均<br><small>売上</small></th></tr>
+      ${W.map(x=>`<tr class="${x.w===0?"sun":x.w===6?"sat":""}"><td>${"日月火水木金土"[x.w]}</td><td>${x.dn}日</td><td>${x.n}件<br><small>(${x.sh})</small></td><td>${yen(x.sales)}<br><small style="color:var(--ok)">${yen(x.net)}</small></td>
+        <td>${x.dn?yen(Math.round(x.sales/x.dn)):"−"}${x.dn?`<span class="wbar"><i style="width:${x.sales/x.dn/mx*100}%"></i></span>`:""}</td></tr>`).join("")}
+      </table><p class="note" style="margin:8px 0 0">1日平均は、その曜日に施術があった日の平均です。</p></div>`})()}
     <div class="card num bars">
       <h3>日別</h3>
       ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日</span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}

@@ -314,7 +314,7 @@ h3{font-size:15px;margin:0 0 10px}
 /* 枠の中身はいつも上ぞろえ（ボタンは中身を上下中央にそろえてしまうため） */
 .tl .blk,.wk .wb{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .tl .blk .bc,.wk .wb .bc{display:block}
-.wk .wb .bc{padding-right:9px;letter-spacing:-.03em}
+.wk .wb .bc{letter-spacing:-.03em}
 /* 人型のマーク */
 .pi{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:#fff;vertical-align:-3px;margin-right:2px}
 .pi svg{width:13px;height:13px}
@@ -331,7 +331,7 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .blk .who .pi.m svg{fill:#2EC4F5}
 
 .tl .blk .tm{font-weight:700;white-space:nowrap}
-.wk .wb .wpi{position:absolute;top:1px;right:1px;line-height:0}
+.wk .wb .wpi{display:inline-flex;align-items:center;gap:1px;white-space:nowrap}
 .wk .wb .wpi .pi{width:11px;height:11px;margin:0;background:#fff;border-radius:50%}
 .wk .wb .wpi .pi svg{width:8px;height:8px}
 
@@ -341,7 +341,7 @@ h3{font-size:15px;margin:0 0 10px}
 .blk .seg,.wb .seg{position:absolute;left:0;width:9px;z-index:1}
 .wb .seg{width:5px}
 .tl .blk{padding-left:14px}
-.wk .wb{padding-left:7px}
+.wk .col .wb{padding-left:7px}
 .seg.A{background:#7FC8E8}.seg.F{background:#D9443A}.seg.T{background:#F08DB4}
 
 .tl .blk.shimei{background:var(--c-shimei)}
@@ -645,7 +645,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li><b>日・週・月</b>で切り替えます。左右にスワイプするか ‹ › で前後へ。「今日」で今日に戻ります。</li>
       <li>予約は時間の表に色の帯で出ます（紺＝指名、緑＝男性・女性指名、グレー＝フリー）。下の少し薄い部分はインターバルです。</li>
       <li>予約の左はしの細い帯は、メニューの色です（足つぼ＝赤、あたま＝水色、ハンド＝ピンク。ほぐし→足つぼ→あたま→ハンドの順に、時間の長さで表示）。</li>
-      <li>予約のいちばん上には、人型のマークと会員番号が出ます（マークの色：水色＝男性、赤＝女性、グレー＝性別未入力）。週表示では右上に小さく出ます。</li>
+      <li>予約のいちばん上には、人型のマークと会員番号が出ます（マークの色：水色＝男性、赤＝女性、グレー＝性別未入力）。週表示では会員番号の左に小さく出ます。</li>
       <li>週表示の各日の下には、件数・分・売上・収入・入店時間が出ます。曜日を押すとその日の表示に、月表示の日付を押すとその日の表示になります。</li>
       <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。押したまま指をなぞると続けて選べます（色の付いた枠から始めると、まとめて消せます）。入力中に表を上下に動かすときは、左の時刻のところを触ってください。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。入れ方は「入店時間」の横の「？」でいつでも見られます。</li>
       <li>下の「混み具合」は、その月に施術が多かった曜日と時間帯です。</li>
@@ -1108,7 +1108,7 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=57; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=58; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
   {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
   {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
@@ -1719,7 +1719,7 @@ function renderWeek(){
         :`<div class="st" style="top:${(m-h0*60)/60*WPX}px;height:${SLOT/60*WPX}px"></div>`}}
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
       const s=startMin(v),m=vMin(v)||60,iv=ivMin(v),top=(s-h0*60)/60*WPX,ht=Math.max(14,(m+iv)/60*WPX-1);
-      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${segHtml(v,WPX)}${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}${!v.cancel?`<span class="wpi">${personIcon(v.sex)}</span>`:""}<span class="bc"><span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span>${ht>=36&&v.member?`<br>${esc(v.member)}`:""}</span></button>`;
+      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${segHtml(v,WPX)}${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="bc"><span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span><br><span class="wpi">${v.cancel?"":personIcon(v.sex)}${v.member?esc(v.member):""}</span></span></button>`;
     });
     html+=`</div>`;
   });

@@ -118,6 +118,7 @@ textarea.fld{min-height:64px;resize:vertical}
 .wdt td small{font-size:11px;color:var(--sub)}
 .wdt tr.sun td:first-child{color:#B3261E}.wdt tr.sat td:first-child{color:#2F6F9F}
 .wdt td:first-child{font-weight:700}
+.bars .dw{font-size:11px;color:var(--sub)}.bars .dw.sun{color:#B3261E}.bars .dw.sat{color:#2F6F9F}
 .wbar{display:block;height:4px;background:var(--line);border-radius:2px;margin-top:4px;overflow:hidden}
 .wbar i{display:block;height:100%;background:var(--money)}
 .tl .blk.gm,.tl .blk.gf{background:var(--c-g)}
@@ -196,7 +197,7 @@ textarea.fld{min-height:64px;resize:vertical}
 table.brk{width:100%;border-collapse:collapse;font-size:14px}
 table.brk td{padding:8px 0;border-bottom:1px solid var(--line)}
 table.brk td:last-child{text-align:right;font-weight:700}
-.bars .b{display:grid;grid-template-columns:44px 1fr 76px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
+.bars .b{display:grid;grid-template-columns:70px 1fr 76px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
 .bars .track{height:10px;background:var(--field);border-radius:5px;overflow:hidden}
 .bars .fill{height:100%;background:var(--money);border-radius:5px}
 .bars .b span:last-child{text-align:right}
@@ -1106,7 +1107,7 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=59; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=60; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
   {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
   {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
@@ -1892,7 +1893,7 @@ function renderStats(){
       </table><p class="note" style="margin:8px 0 0">1日平均は、その曜日に施術があった日の平均です。</p></div>`})()}
     <div class="card num bars">
       <h3>日別</h3>
-      ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日</span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
+      ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日<small class="dw ${["sun","","","","","","sat"][new Date(dk+"T00:00").getDay()]}">（${"日月火水木金土"[new Date(dk+"T00:00").getDay()]}）</small></span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
     </div>`;
 }
 $("sPrev").addEventListener("click",()=>{statsMonth=shiftMonth(statsMonth,-1);renderStats()});

@@ -116,6 +116,25 @@ textarea.fld{min-height:64px;resize:vertical}
 .seg button[aria-pressed="true"][data-v="free"]{background:var(--free);border-color:var(--free);color:#fff}
 .seg button[aria-pressed="true"][data-v="gm"],.seg button[aria-pressed="true"][data-v="gf"]{background:#2E7D5B;border-color:#2E7D5B;color:#fff}
 .tag.gm,.tag.gf{background:#DDF0E6;color:#2E7D5B}
+.yt h3{margin-bottom:4px}
+.yt-sum{display:flex;gap:8px;margin:0 0 6px}
+.yt-sum>div{flex:1;background:var(--field);border-radius:10px;padding:8px 10px}
+.yt-sum span{display:block;font-size:12px;color:var(--sub)}
+.yt-sum b{display:block;font-size:24px;font-weight:900;color:var(--money);line-height:1.2}
+.yt-sum small{font-size:12px;color:var(--sub)}
+.yt-row{border-top:1px solid var(--line);padding:9px 0}
+.yt-h{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700}
+.yt-h b{color:var(--ok);font-size:16px}
+.yt-v{font-size:18px;font-weight:800;margin-top:2px}.yt-v small{font-size:12px;font-weight:400;color:var(--sub);margin-left:4px}
+.yt-n{font-size:12px;color:var(--sub);margin-top:4px}
+.yt-in{font-size:13px;color:var(--sub);margin-top:4px;line-height:2}
+.yt-in .fld{display:inline-block;width:auto;padding:4px 6px;font-size:14px;margin:0 2px}
+.yt-in input[data-yt="cumH"]{width:84px}
+.yt-in small{display:block;line-height:1.5}
+.ytbar{position:relative;display:block;height:6px;background:var(--line);border-radius:3px;margin-top:6px}
+.ytbar i{position:absolute;left:0;top:0;bottom:0;background:var(--shimei);border-radius:3px}
+.ytbar em{position:absolute;top:-2px;width:2px;height:10px;background:var(--sub);margin-left:-1px}
+.adj-in{width:110px;text-align:right;padding:6px 8px;font-size:15px}
 .wdt{width:100%;border-collapse:collapse;font-size:13px}
 .wdt th{font-size:11px;color:var(--sub);font-weight:500;text-align:right;padding:0 2px 6px;line-height:1.2}
 .wdt th:first-child,.wdt td:first-child{text-align:left}
@@ -679,6 +698,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>月の合計と月の収入、件数・指名率・1件平均など。</li>
       <li>指名施術時間と指名時間率（施術時間のうち指名の割合）。</li>
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
+      <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。</li>
       <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
     </ul>
   </details>
@@ -690,11 +710,13 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </ul>
   </details>
   <details class="card"><summary>収入の計算のしかた</summary>
-    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費）</p>
+    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費＋危機管理料）<br>入金予定額＝収入＋付随業務＋報酬調整額（りらくるの売上精算金額と同じ計算）</p>
     <ul>
-      <li>システム利用料：指名料を除いた売上 × ⚙設定の率（月ごとに変えられます）。</li>
+      <li>システム利用料：施術売上×⚙設定の率（りらくるの「合計システム利用料率」）＋オプション売上×50％＋男女指名料×100％。それぞれ10円未満切り上げ。個人指名料にはかかりません。</li>
+      <li>オプション売上は、予約で選んだプレミアムマットレス・Coolプレミアムの料金（⚙設定で変更可）から計算します。</li>
       <li>施設利用料・固定材料費：施術時間15分ごとにかかる金額 × 回数。</li>
-      <li>指名料は全額自分の収入です。付随業務の金額は、集計タブで別に足して表示します。</li>
+      <li>危機管理料：毎月決まった額（⚙設定で変更可）。</li>
+      <li>報酬調整額（キャンペーンの報奨金など）は、明細を見て集計タブに月ごとに入れてください。</li>
     </ul>
   </details>
   <details class="card"><summary>設定とバックアップ</summary>
@@ -746,7 +768,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </div>
     <div class="card">
       <h3>売上から引かれる金額</h3>
-      <span class="lbl">システム利用料（指名料を除いた売上の何％か・月ごと）</span>
+      <span class="lbl">システム利用料率（りらくるの「合計システム利用料率」・月ごと）</span>
       <div id="rateEditor"></div>
       <button type="button" class="btn ghost" id="addRate" style="margin-top:6px">率が変わる月を追加</button>
       <p class="note">初期値は基本システム利用料率の48％です。お店のアプリの「合計システム利用料率」に合わせて変更してください。設定した月から、次に設定した月の前まで、その率で計算します。最初に設定した月より前の記録は、最初の率で計算します。</p>
@@ -755,6 +777,14 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <div><label class="lbl" for="setFac">施設利用料（15分あたり）</label><input class="fld num" id="setFac" inputmode="numeric" placeholder="53"></div>
         <div><label class="lbl" for="setMat">固定材料費（15分あたり）</label><input class="fld num" id="setMat" inputmode="numeric" placeholder="27"></div>
       </div>
+      <div class="gap"></div>
+      <div class="row2">
+        <div><label class="lbl" for="setOptPm">プレミアムマットレスの料金</label><input class="fld num" id="setOptPm" inputmode="numeric" placeholder="330"></div>
+        <div><label class="lbl" for="setOptCpm">Coolプレミアムの料金</label><input class="fld num" id="setOptCpm" inputmode="numeric" placeholder="550"></div>
+      </div>
+      <div class="gap"></div>
+      <label class="lbl" for="setRisk">危機管理料（毎月）</label><input class="fld num" id="setRisk" inputmode="numeric" placeholder="245">
+      <p class="note">システム利用料は、りらくると同じく「施術売上×率」「オプション売上×50％」「男女指名料×100％」をそれぞれ10円未満切り上げで計算します。指名料にはかかりません。</p>
       <p class="note">施設利用料・固定材料費は、施術時間15分ごとにかかる金額です。指名料にはシステム利用料はかかりません。収入＝売上−（システム利用料＋施設利用料＋固定材料費）で計算します。</p>
     </div>
     <div class="card">
@@ -911,7 +941,7 @@ function dayLabel(dk){const d=new Date(dk+"T00:00");return (d.getMonth()+1)+"/"+
 function yen(n){return "¥"+(Number(n)||0).toLocaleString("ja-JP")}
 function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isNaN(n)?0:n}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10};return r}
+function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10,optPm:o.optPm!=null?toInt(o.optPm):330,optCpm:o.optCpm!=null?toInt(o.optCpm):550,yt:(o.yt&&typeof o.yt==="object")?o.yt:{},riskFee:o.riskFee!=null?toInt(o.riskFee):245,adj:(o.adj&&typeof o.adj==="object")?o.adj:{}};return r}
 settings=mergeSettings({});
 // キャンセルした予約は売上・件数・施術時間・収入に含めない
 function live(list){return list.filter(v=>!v.cancel)}
@@ -1129,8 +1159,10 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=64; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=66; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:66,date:"10月30日",items:["集計タブに「優待手数料率の見込み」を追加しました。3か月ごとの実績から、次の期間のシステム利用料率の見込みを出します。"]},
+  {n:65,date:"10月30日",items:["システム利用料の計算を、りらくるの売上精算と同じ方法（施術売上×率、オプション×50％、男女指名料×100％、10円未満切り上げ）にしました。","危機管理料（毎月）を引くようにしました。⚙設定で金額を変えられます。","集計タブに報酬調整額の入力と「入金予定額」を追加しました。りらくるの売上精算金額と見比べられます。"]},
   {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
   {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
   {n:55,date:"10月15日",items:["毎月1日〜3日にアプリを開くと、バックアップの案内が出るようにしました。バックアップをすると、その月はもう出ません。"]},
@@ -1203,17 +1235,24 @@ function rateFor(mk){
   for(const k of keys){if(k<=mk)r=settings.sysRates[k];else break}
   return r;
 }
+// オプション売上（プレミアムマットレスなど）
+function optSales(v){return (v.opts||[]).reduce((a,k)=>a+(k==="pm"?(settings.optPm||0):k==="cpm"?(settings.optCpm||0):0),0)}
+const ceil10=x=>Math.ceil(Math.round(x*100)/100/10)*10;
 function calcNet(list){
   const sales=list.reduce((a,v)=>a+total(v),0);
   const units=list.reduce((a,v)=>a+Math.ceil((vMin(v)||0)/15),0);
-  // 指名料は100%自分の収入なので、システム利用料は指名料を除いた施術分にだけかかる
   const fees=list.reduce((a,v)=>a+feeOf(v),0);
-  const byM={};list.forEach(v=>{const mk=v.date.slice(0,7);byM[mk]=(byM[mk]||0)+total(v)-feeOf(v)});
-  const sys=Object.entries(byM).reduce((a,[mk,base])=>a+Math.round(base*rateFor(mk)/100),0);
+  // りらくるの計算：施術売上×率、オプション売上×50％、男女指名料×100％（それぞれ10円未満切り上げ）。個人指名料にはかからない
+  const byM={};list.forEach(v=>{const mk=v.date.slice(0,7),m=byM[mk]=byM[mk]||{seju:0,opt:0,gm:0};
+    const o=optSales(v),g=v.type==="gm"||v.type==="gf"?feeOf(v):0;m.opt+=o;m.gm+=g;m.seju+=total(v)-feeOf(v)-o});
+  let seju=0,opt=0,gm=0;
+  const sys=Object.entries(byM).reduce((a,[mk,m])=>{seju+=m.seju;opt+=m.opt;gm+=m.gm;return a+ceil10(m.seju*rateFor(mk)/100)+ceil10(m.opt*0.5)+ceil10(m.gm)},0);
   const fac=units*(settings.facRate||0), mat=units*(settings.matRate||0);
   const cost=sys+fac+mat;
-  return {sales,fees,units,sys,fac,mat,cost,net:sales-cost};
+  return {sales,fees,units,sys,fac,mat,cost,net:sales-cost,seju,opt,gm};
 }
+// 危機管理料は月に1回（その月に施術があれば）
+function riskOf(list){return list.length?(settings.riskFee||0):0}
 function netText(list){const c=calcNet(list);return `収入 <b>${yen(c.net)}</b>（引かれる額 ${yen(c.cost)}）`}
 function renderHeader(){
   const tk=bizToday();
@@ -1235,7 +1274,7 @@ function renderHeader(){
   $("weekMeta").innerHTML=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(wk))+"）</span>"+(stayMinRange(wsK,weK)?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(wsK,weK))+"</span>":"");
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
-  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net)}</b>`:"";
+  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net-riskOf(mo))}</b>`:"";
   $("monthMeta").innerHTML=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(mo))+"）</span>"+(stayMinRange(mk+"-01",mk+"-31")?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(mk+"-01",mk+"-31"))+"</span>":"");
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
@@ -1828,6 +1867,65 @@ window.addEventListener("pointerup",paintEnd);window.addEventListener("pointerca
 document.querySelectorAll(".tmode button[data-m]").forEach(b=>b.addEventListener("click",()=>{timeMode=b.dataset.m;renderTime()}));
 
 /* ---------- stats ---------- */
+/* ---------- 優待手数料率の見込み ---------- */
+// りらくる：システム利用料率＝基本48％−優待手数料率（最大20％）。3か月ごとの実績で、次の3か月の率が決まる
+var _ytHol={};
+function ytHoliday(d){const y=Number(d.slice(0,4)),w=new Date(d+"T00:00").getDay();_ytHol[y]=_ytHol[y]||jpHolidays(y);return w===0||w===6||_ytHol[y].has(d)}
+function ytQuarter(mk){const y=Number(mk.slice(0,4)),q=Math.floor((Number(mk.slice(5,7))-1)/3);return {y,q,start:y+"-"+pad(q*3+1)+"-01",end:dateKey(new Date(y,q*3+3,0)),label:`${y}年${q*3+1}〜${q*3+3}月`,next:(q===3?`${y+1}年1〜3月`:`${y}年${q*3+4}〜${q*3+6}月`)}}
+function ytTier(v,t){let a=0;t.forEach(([th,p])=>{if(v>=th)a=p});return a}
+function ytNext(v,t){const n=t.find(([th])=>v<th);return n?n:null}
+function yutaiCard(mk){
+  const Q=ytQuarter(mk),yt=settings.yt||{},today=bizToday();
+  const qv=live(visits.filter(v=>v.date>=Q.start&&v.date<=Q.end));
+  const seju=v=>Math.max(0,total(v)-feeOf(v)-optSales(v));
+  const tax=x=>Math.floor(x/1.1);
+  const all=tax(qv.reduce((a,v)=>a+seju(v),0)),hol=tax(qv.filter(v=>ytHoliday(v.date)).reduce((a,v)=>a+seju(v),0));
+  const shH=qv.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)/60;
+  const sup=Object.keys(days).filter(dk=>dk>=Q.start&&dk<=Q.end).reduce((a,dk)=>{const d=dayOf(dk);return a+("open" in d?1:0)+("close" in d?1:0)},0);
+  const base=yt.cumDate||"",cum=(Number(yt.cumH)||0)+live(visits.filter(v=>base&&v.date>base)).reduce((a,v)=>a+(vMin(v)||0),0)/60;
+  const cert=yt.cert||"";
+  // 期間の途中なら、今のペースで期間の終わりまで続けた場合の見込み
+  const tot=(new Date(Q.end+"T00:00")-new Date(Q.start+"T00:00"))/864e5+1,el=today<Q.start?0:today>Q.end?tot:(new Date(today+"T00:00")-new Date(Q.start+"T00:00"))/864e5+1;
+  const pace=x=>el&&el<tot?x*tot/el:x;
+  const T1=[[800000,1],[1200000,3]],T2=[[400000,2],[800000,4]],T3=[[60,0.5],[120,1],[200,2]];
+  const c4=(cum>=250?6:0)+(cum>=10000&&cert==="1"?4:cum>=3000&&cert==="1"?2:cum>=1000&&(cert==="1"||cert==="2")?1:0);
+  const rows=[
+    {n:"① 総施術売上（税抜）",v:all,p:pace(all),t:T1,f:x=>yen(Math.round(x))},
+    {n:"② 休日施術売上（税抜・土日祝）",v:hol,p:pace(hol),t:T2,f:x=>yen(Math.round(x))},
+    {n:"③ 指名施術時間",v:shH,p:pace(shH),t:T3,f:x=>(Math.round(x*100)/100)+"時間"},
+  ].map(x=>({...x,a:ytTier(x.v,x.t),pa:ytTier(x.p,x.t),nx:ytNext(x.v,x.t)}));
+  const a6=sup>=40?1:0,p6=pace(sup)>=40?1:0;
+  const a5=Number(yt.slot)||0,a7=all>=450000||pace(all)>=450000?(Number(yt.store)||0):0;
+  const now=rows.reduce((s,x)=>s+x.a,0)+c4+a5+a6+a7,proj=rows.reduce((s,x)=>s+x.pa,0)+c4+a5+p6+a7;
+  const rate=x=>Math.round((48-Math.min(20,x))*10)/10;
+  const bar=(v,t)=>{const mx=t[t.length-1][0];return `<span class="ytbar"><i style="width:${Math.min(100,v/mx*100)}%"></i>${t.map(([th])=>`<em style="left:${th/mx*100}%"></em>`).join("")}</span>`};
+  const inProg=el&&el<tot;
+  return `<div class="card num yt">
+    <h3>優待手数料率の見込み</h3>
+    <p class="note" style="margin:0 0 8px">${Q.label}の実績で、${Q.next}のシステム利用料率が決まります。${inProg?`今のペースで続けた場合の見込みも出しています（${Math.round(el)}日目／${Math.round(tot)}日）。`:""}</p>
+    <div class="yt-sum"><div><span>今の実績なら</span><b>${rate(now)}％</b><small>優待 −${Math.min(20,now)}％</small></div>${inProg?`<div><span>このペースなら</span><b>${rate(proj)}％</b><small>優待 −${Math.min(20,proj)}％</small></div>`:""}</div>
+    ${rows.map(x=>`<div class="yt-row"><div class="yt-h"><span>${x.n}</span><b>+${x.a}％</b></div>
+      <div class="yt-v">${x.f(x.v)}${inProg?`<small>（見込み ${x.f(x.p)}${x.pa>x.a?` → +${x.pa}％`:""}）</small>`:""}</div>${bar(x.v,x.t)}
+      <div class="yt-n">${x.nx?`あと ${x.f(x.nx[0]-x.v)} で +${x.nx[1]}％`:"最高ランク達成"}</div></div>`).join("")}
+    <div class="yt-row"><div class="yt-h"><span>④ 累積施術時間</span><b>+${c4}％</b></div>
+      <div class="yt-v">${yt.cumH?(Math.round(cum*100)/100)+"時間":"未入力"}</div>
+      <div class="yt-in">りらくるの累計施術時間 <input class="fld num" data-yt="cumH" inputmode="decimal" value="${esc(yt.cumH||"")}" placeholder="798.25">時間（<input class="fld num" data-yt="cumDate" type="date" value="${esc(base)}">時点）<br>認定資格 <select class="fld" data-yt="cert"><option value="">なし</option><option value="2"${cert==="2"?" selected":""}>2級</option><option value="1"${cert==="1"?" selected":""}>1級</option></select></div></div>
+    <div class="yt-row"><div class="yt-h"><span>⑤ 時間枠加算（休日の入店枠）</span><b>+${a5}％</b></div>
+      <div class="yt-in"><select class="fld" data-yt="slot"><option value="0">なし</option><option value="2"${a5===2?" selected":""}>全指定日＋日祝6時間以上（+2％）</option><option value="3"${a5===3?" selected":""}>全指定日＋土日祝6時間以上（+3％）</option></select></div></div>
+    <div class="yt-row"><div class="yt-h"><span>⑥ 店舗運営支援（開店・閉店業務）</span><b>+${a6}％</b></div>
+      <div class="yt-v">${sup}回${inProg?`<small>（見込み ${Math.round(pace(sup))}回）</small>`:""}</div>${bar(sup,[[40,1]])}
+      <div class="yt-n">${sup>=40?"達成":`あと ${40-sup}回で +1％`}　<small>※りらくるは人数で割った回数で数えるため、アプリの回数は目安です</small></div></div>
+    <div class="yt-row"><div class="yt-h"><span>⑦ 店舗施術売上（お店全体）</span><b>+${a7}％</b></div>
+      <div class="yt-in"><select class="fld" data-yt="store"><option value="0">なし</option><option value="1"${Number(yt.store)===1?" selected":""}>800万円以上（+1％）</option><option value="2"${Number(yt.store)===2?" selected":""}>1,000万円以上（+2％）</option><option value="3"${Number(yt.store)===3?" selected":""}>1,200万円以上（+3％）</option></select>
+      <small>りらくるのマイページで確認して選んでください。個人の総施術売上（税抜）45万円以上が条件です。</small></div></div>
+    <p class="note" style="margin:8px 0 0">①〜③と⑥は予約ノートの記録から自動で集計します（税抜＝税込÷1.1）。②の休日は土日祝で数えています（りらくるの「指定日」は含みません）。正式な率は、りらくるのマイページで確認してください。</p>
+  </div>`}
+$("statsBody").addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.yt;if(!k)return;
+  settings.yt=Object.assign({},settings.yt||{},{[k]:e.target.value});await saveSettingsData();renderStats();toast("保存しました")});
+// 報酬調整額（月ごと）の入力
+$("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")return;const v=toInt(e.target.value);
+  settings.adj=Object.assign({},settings.adj||{});if(v)settings.adj[statsMonth]=v;else delete settings.adj[statsMonth];
+  await saveSettingsData();renderStats();toast("報酬調整額を保存しました")});
 function renderStats(){
   $("sMonth").textContent=monthLabel(statsMonth);
   const mAll=visits.filter(v=>v.date.startsWith(statsMonth)),mv=live(mAll),mcx=mAll.filter(v=>v.cancel);
@@ -1849,7 +1947,7 @@ function renderStats(){
     <div class="card num">
       <div class="big-row">
         <div><span class="lbl">月の合計</span><div class="big">${yen(sum)}</div></div>
-        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net)}</div></div>
+        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net-riskOf(mv))}</div></div>
       </div>
       <div class="kv">
         <div><span>件数</span><b>${mv.length}件</b></div>
@@ -1880,16 +1978,19 @@ function renderStats(){
         <tr><td>指名料を除いた施術分</td><td>${yen(sum-fees)}</td></tr>
       </table>
     </div>
+    ${yutaiCard(statsMonth)}
     ${(()=>{const c=calcNet(mv);return `<div class="card num">
       <h3>引かれる金額と収入</h3>
       <table class="brk">
         <tr><td>売上</td><td>${yen(c.sales)}</td></tr>
-        <tr><td>システム利用料（指名料を除く${yen(c.sales-c.fees)}の${rateFor(statsMonth)}％）</td><td>−${yen(c.sys)}</td></tr>
+        <tr><td>システム利用料<br><small style="color:var(--sub)">施術${yen(c.seju)}×${rateFor(statsMonth)}％${c.opt?`＋オプション${yen(c.opt)}×50％`:""}${c.gm?`＋男女指名料${yen(c.gm)}`:""}</small></td><td>−${yen(c.sys)}</td></tr>
         <tr><td>施設利用料（${settings.facRate}円×${c.units}）</td><td>−${yen(c.fac)}</td></tr>
         <tr><td>固定材料費（${settings.matRate}円×${c.units}）</td><td>−${yen(c.mat)}</td></tr>
-        <tr><td><b>収入（差し引き後）</b></td><td style="color:var(--ok)">${yen(c.net)}</td></tr>
+        <tr><td>危機管理料（毎月）</td><td>−${yen(riskOf(mv))}</td></tr>
+        <tr><td><b>収入（差し引き後）</b></td><td style="color:var(--ok)">${yen(c.net-riskOf(mv))}</td></tr>
         <tr><td>付随業務</td><td>＋${yen(sideSum)}</td></tr>
-        <tr><td><b>付随業務を含めた収入</b></td><td style="color:var(--ok)">${yen(c.net+sideSum)}</td></tr>
+        <tr><td>報酬調整額<br><small style="color:var(--sub)">キャンペーンの報奨金など（明細を見て入力）</small></td><td><input class="fld num adj-in" id="adjIn" inputmode="numeric" value="${(settings.adj||{})[statsMonth]||""}" placeholder="0"></td></tr>
+        <tr><td><b>入金予定額</b><br><small style="color:var(--sub)">りらくるの売上精算金額と同じ計算</small></td><td style="color:var(--ok)">${yen(c.net-riskOf(mv)+sideSum+toInt((settings.adj||{})[statsMonth]||0))}</td></tr>
       </table>
       ${rateFor(statsMonth)?"":`<p class="note">システム利用料が未設定です。⚙︎から入力してください。</p>`}
     </div>`})()}
@@ -1979,9 +2080,9 @@ $("addRate").addEventListener("click",()=>{
 });
 function renderSettings(){$("setFee").value=settings.shimeiFee;$("setGm").value=settings.gmFee||"";$("setGf").value=settings.gfFee||"";$("setOpen").value=settings.openAmt||"";$("setClose").value=settings.closeAmt||"";draftRates=Object.entries(settings.sysRates||{}).sort().map(([m,r])=>({m,r}));
   if(!draftRates.length)draftRates=[{m:bizToday().slice(0,7),r:settings.sysRate||""}];
-  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate;$("setIv").value=settings.interval}
+  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate;$("setIv").value=settings.interval;$("setOptPm").value=settings.optPm;$("setOptCpm").value=settings.optCpm;$("setRisk").value=settings.riskFee}
 $("saveSettings").addEventListener("click",async()=>{
-  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value),interval:Math.min(120,toInt($("setIv").value))};
+  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value),interval:Math.min(120,toInt($("setIv").value)),optPm:toInt($("setOptPm").value),optCpm:toInt($("setOptCpm").value),riskFee:toInt($("setRisk").value),adj:settings.adj||{},yt:settings.yt||{}};
   await saveSettingsData();toast("設定を保存しました（指名料 "+yen(settings.shimeiFee)+"）");show("input");
 });
 // ファイル保存：Claude上ではdownloads機能、単体アプリでは通常のダウンロード

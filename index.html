@@ -724,7 +724,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </ul>
   </details>
   <details class="card"><summary>収入の計算のしかた</summary>
-    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費＋危機管理料）（月の収入は報酬調整額も足した金額）<br>入金予定額＝収入＋付随業務＋報酬調整額（りらくるの売上精算金額と同じ計算）</p>
+    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費＋危機管理料）（月の収入は付随業務と報酬調整額も足した金額で、りらくるの入金額と同じになります）<br>入金予定額＝収入＋付随業務＋報酬調整額（りらくるの売上精算金額と同じ計算）</p>
     <ul>
       <li>システム利用料：施術売上×⚙設定の率（りらくるの「合計システム利用料率」）＋オプション売上×50％＋男女指名料×100％。それぞれ10円未満切り上げ。個人指名料にはかかりません。</li>
       <li>オプション売上は、予約で選んだプレミアムマットレス・Coolプレミアムの料金（⚙設定で変更可）から計算します。</li>
@@ -1181,8 +1181,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=69; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=70; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:70,date:"10月30日",items:["集計タブの「月の収入」と今月の欄の収入に、付随業務も足すようにしました。りらくるの明細の入金額と同じ金額になります。"]},
   {n:69,date:"10月30日",items:["りらくるの指定日を、カレンダーの日付を押して続けて選べるようにしました（集計タブ→優待手数料率の見込み→⑤）。","集計タブの「月の収入」と、今月の欄の収入に、報酬調整額を足して表示するようにしました。"]},
   {n:68,date:"10月30日",items:["優待手数料率の見込みの「④ 累積施術時間」の入力欄を、開く・閉じるで切り替えられるようにしました。一度入れたあとは閉じた状態で表示されます。"]},
   {n:67,date:"10月30日",items:["開店・閉店業務に、一緒に行った人数を入れられるようにしました。選ばないときは金額から自動で判断します（660円＝1人、330円＝2人、220円＝3人、165円＝4人）。","優待手数料率の見込みの「店舗運営支援」を、りらくると同じく人数で分けたカウント（3人＝0.67、4人＝0.5）で数えるようにしました。","「時間枠加算」に、りらくるの指定日を入れられるようにしました。指定日は休日施術売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。","報酬調整額にマイナスの金額（−30など）も入れられるようにしました。"]},
@@ -1299,7 +1300,8 @@ function renderHeader(){
   $("weekMeta").innerHTML=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(wk))+"）</span>"+(stayMinRange(wsK,weK)?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(wsK,weK))+"</span>":"");
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
-  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net-riskOf(mo)+sInt((settings.adj||{})[mk]||0))}</b>`:"";
+  {const mside=Object.keys(days).filter(dk=>dk.startsWith(mk)).reduce((a,dk)=>a+sideTotal(dk),0);
+  $("monthNet").innerHTML=mo.length||mside?`収入 <b>${yen(calcNet(mo).net-riskOf(mo)+mside+sInt((settings.adj||{})[mk]||0))}</b>`:"";}
   $("monthMeta").innerHTML=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(mo))+"）</span>"+(stayMinRange(mk+"-01",mk+"-31")?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(mk+"-01",mk+"-31"))+"</span>":"");
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
@@ -2004,7 +2006,7 @@ function renderStats(){
     <div class="card num">
       <div class="big-row">
         <div><span class="lbl">月の合計</span><div class="big">${yen(sum)}</div></div>
-        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net-riskOf(mv)+sInt((settings.adj||{})[statsMonth]||0))}</div></div>
+        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net-riskOf(mv)+sideSum+sInt((settings.adj||{})[statsMonth]||0))}</div></div>
       </div>
       <div class="kv">
         <div><span>件数</span><b>${mv.length}件</b></div>

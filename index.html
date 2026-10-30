@@ -126,7 +126,7 @@ textarea.fld{min-height:64px;resize:vertical}
 .yt-h{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700}
 .yt-h b{color:var(--ok);font-size:16px}
 .yt-v{font-size:18px;font-weight:800;margin-top:2px}.yt-v small{font-size:12px;font-weight:400;color:var(--sub);margin-left:4px}
-.yt-n{font-size:12px;color:var(--sub);margin-top:4px}
+.yt-n{font-size:12px;color:var(--sub);margin-top:4px}.yt-n small{display:block;margin-top:2px}
 .yt-in{font-size:13px;color:var(--sub);margin-top:4px;line-height:2}
 .yt-in .fld{display:inline-block;width:auto;padding:4px 6px;font-size:14px;margin:0 2px}
 .yt-in input[data-yt="cumH"]{width:84px}
@@ -272,7 +272,17 @@ h3{font-size:15px;margin:0 0 10px}
 .side-row .seg{grid-template-columns:1fr 1fr}
 .side-row .fld{margin-top:8px}
 .side-n{font-size:13px;color:var(--sub);margin-top:8px}.side-n .fld{margin-top:4px}
+.yt-det summary{list-style:none;cursor:pointer;display:inline-block;margin-top:6px;background:var(--field);color:var(--ink);border-radius:8px;padding:2px 10px;font-size:13px;font-weight:700}.yt-det summary::-webkit-details-marker{display:none}
+.yt-det summary::after{content:"入力を開く ▾"}.yt-det[open] summary::after{content:"閉じる ▴"}
 .yt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.yt-chips span{background:var(--field);border-radius:8px;padding:2px 4px 2px 8px;font-size:13px;color:var(--ink)}
+.dcs{display:grid;gap:10px;margin:6px 0 4px}
+.dc-t{font-weight:700;color:var(--ink);font-size:13px;margin-bottom:2px}
+.dc-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.dc-g i{font-style:normal;font-size:11px;color:var(--sub)}.dc-g i.su{color:#C0392B}.dc-g i.sa{color:#2563A8}
+.dc-g button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 0;font-size:14px;font-variant-numeric:tabular-nums}
+.dc-g button.su{color:#C0392B}.dc-g button.sa{color:#2563A8}
+.dc-g button.on{background:#B7791F;border-color:#B7791F;color:#fff;font-weight:700}
+.yt-det5 summary::after{content:"カレンダーで選ぶ ▾"}.yt-det5[open] summary::after{content:"閉じる ▴"}
 .yt-chips button{border:0;background:none;color:var(--sub);font-size:14px;padding:0 4px}
 .yt-chk{font-size:13px;color:var(--ink);margin-top:4px;line-height:1.6}.yt-chk .ng{color:#C0392B}
 .tsel{display:grid;grid-template-columns:1.4fr 1fr;gap:6px}
@@ -714,7 +724,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     </ul>
   </details>
   <details class="card"><summary>収入の計算のしかた</summary>
-    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費＋危機管理料）<br>入金予定額＝収入＋付随業務＋報酬調整額（りらくるの売上精算金額と同じ計算）</p>
+    <p>収入＝売上−（システム利用料＋施設利用料＋固定材料費＋危機管理料）（月の収入は報酬調整額も足した金額）<br>入金予定額＝収入＋付随業務＋報酬調整額（りらくるの売上精算金額と同じ計算）</p>
     <ul>
       <li>システム利用料：施術売上×⚙設定の率（りらくるの「合計システム利用料率」）＋オプション売上×50％＋男女指名料×100％。それぞれ10円未満切り上げ。個人指名料にはかかりません。</li>
       <li>オプション売上は、予約で選んだプレミアムマットレス・Coolプレミアムの料金（⚙設定で変更可）から計算します。</li>
@@ -1171,8 +1181,10 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=67; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=69; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:69,date:"10月30日",items:["りらくるの指定日を、カレンダーの日付を押して続けて選べるようにしました（集計タブ→優待手数料率の見込み→⑤）。","集計タブの「月の収入」と、今月の欄の収入に、報酬調整額を足して表示するようにしました。"]},
+  {n:68,date:"10月30日",items:["優待手数料率の見込みの「④ 累積施術時間」の入力欄を、開く・閉じるで切り替えられるようにしました。一度入れたあとは閉じた状態で表示されます。"]},
   {n:67,date:"10月30日",items:["開店・閉店業務に、一緒に行った人数を入れられるようにしました。選ばないときは金額から自動で判断します（660円＝1人、330円＝2人、220円＝3人、165円＝4人）。","優待手数料率の見込みの「店舗運営支援」を、りらくると同じく人数で分けたカウント（3人＝0.67、4人＝0.5）で数えるようにしました。","「時間枠加算」に、りらくるの指定日を入れられるようにしました。指定日は休日施術売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。","報酬調整額にマイナスの金額（−30など）も入れられるようにしました。"]},
   {n:66,date:"10月30日",items:["集計タブに「優待手数料率の見込み」を追加しました。3か月ごとの実績から、次の期間のシステム利用料率の見込みを出します。"]},
   {n:65,date:"10月30日",items:["システム利用料の計算を、りらくるの売上精算と同じ方法（施術売上×率、オプション×50％、男女指名料×100％、10円未満切り上げ）にしました。","危機管理料（毎月）を引くようにしました。⚙設定で金額を変えられます。","集計タブに報酬調整額の入力と「入金予定額」を追加しました。りらくるの売上精算金額と見比べられます。"]},
@@ -1287,7 +1299,7 @@ function renderHeader(){
   $("weekMeta").innerHTML=wk.length+"件・指名 "+wk.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(wk.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(wk))+"）</span>"+(stayMinRange(wsK,weK)?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(wsK,weK))+"</span>":"");
   $("monthLabel").textContent=`今月（${Number(mk.slice(5))}月）`;
   $("monthAmt").textContent=yen(mo.reduce((a,v)=>a+total(v),0));
-  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net-riskOf(mo))}</b>`:"";
+  $("monthNet").innerHTML=mo.length?`収入 <b>${yen(calcNet(mo).net-riskOf(mo)+sInt((settings.adj||{})[mk]||0))}</b>`:"";
   $("monthMeta").innerHTML=mo.length+"件・指名 "+mo.filter(v=>v.type==="shimei").length+"・施術 "+hoursText(mo.reduce((a,v)=>a+(vMin(v)||0),0))+"<span class=\"nw\">（指名 "+hoursText(shMin(mo))+"）</span>"+(stayMinRange(mk+"-01",mk+"-31")?"<span class=\"nw\">・入店 "+hoursText(stayMinRange(mk+"-01",mk+"-31"))+"</span>":"");
   $("todaySplit").innerHTML=today.length?["shimei","gm","gf","free"].map(t=>{const n=today.filter(v=>(TYPES[v.type]?v.type:"free")===t).length;return n?`<span style="width:${n/today.length*100}%;background:${TYPE_COLOR[t]}"></span>`:""}).join(""):"";
   applyMask();
@@ -1899,6 +1911,16 @@ function slotCheck(Q,desig,today){
   const grp=(name,list)=>{const ng=list.filter(d=>!ok(d));return `<div>${name}：${list.length-ng.length}／${list.length}日${ng.length?`<span class="ng">（6時間未満：${ng.slice(0,6).map(d=>Number(d.slice(5,7))+"/"+Number(d.slice(8))).join("・")}${ng.length>6?" ほか":""}）</span>`:""}</div>`};
   const pd=desig.filter(d=>d<=today);
   return `<div class="yt-chk"><small>入店時間の記録で6時間以上の日（今日まで）</small>${grp("指定日",pd)}${grp("日曜・祝日",past.filter(hol))}${grp("土曜",past.filter(sat))}</div>`}
+let ytOpen5=null; // ⑤の指定日カレンダーを開いているか
+let ytOpen4=null; // ④の入力欄を開いているか（null＝入力前は開く）
+// 指定日を選ぶカレンダー（3か月分。日付を押すたびに選択・解除）
+function desCal(Q,desig){const set=new Set(desig);let h="";
+  for(let k=0;k<3;k++){const first=new Date(Q.y,Q.q*3+k,1),y=first.getFullYear(),m=first.getMonth(),n=new Date(y,m+1,0).getDate();
+    h+=`<div class="dc"><div class="dc-t">${m+1}月</div><div class="dc-g">${["日","月","火","水","木","金","土"].map((w,i)=>`<i class="${i===0?"su":i===6?"sa":""}">${w}</i>`).join("")}${"<span></span>".repeat(first.getDay())}`;
+    for(let d=1;d<=n;d++){const dk=y+"-"+pad(m+1)+"-"+pad(d),w=new Date(y,m,d).getDay(),hol=ytHoliday(dk)&&w!==6;
+      h+=`<button type="button" data-desday="${dk}" class="${set.has(dk)?"on ":""}${w===6?"sa":hol?"su":""}" aria-pressed="${set.has(dk)}">${d}</button>`}
+    h+=`</div></div>`}
+  return `<div class="dcs">${h}</div><small>指定日の日付を押すと選択、もう一度押すと解除します。</small>`}
 function yutaiCard(mk){
   const Q=ytQuarter(mk),yt=settings.yt||{},today=bizToday();
   const qv=live(visits.filter(v=>v.date>=Q.start&&v.date<=Q.end));
@@ -1935,11 +1957,11 @@ function yutaiCard(mk){
       <div class="yt-n">${x.nx?`あと ${x.f(x.nx[0]-x.v)} で +${x.nx[1]}％`:"最高ランク達成"}</div></div>`).join("")}
     <div class="yt-row"><div class="yt-h"><span>④ 累積施術時間</span><b>+${c4}％</b></div>
       <div class="yt-v">${yt.cumH?(Math.round(cum*100)/100)+"時間":"未入力"}</div>
-      <div class="yt-in">りらくるの累計施術時間 <input class="fld num" data-yt="cumH" inputmode="decimal" value="${esc(yt.cumH||"")}" placeholder="798.25">時間（<input class="fld num" data-yt="cumDate" type="date" value="${esc(base)}">時点）<br>認定資格 <select class="fld" data-yt="cert"><option value="">なし</option><option value="2"${cert==="2"?" selected":""}>2級</option><option value="1"${cert==="1"?" selected":""}>1級</option></select></div></div>
+      <details class="yt-det" id="ytDet4"${ytOpen4??!yt.cumH?" open":""}><summary></summary>
+      <div class="yt-in">りらくるの累計施術時間 <input class="fld num" data-yt="cumH" inputmode="decimal" value="${esc(yt.cumH||"")}" placeholder="798.25">時間（<input class="fld num" data-yt="cumDate" type="date" value="${esc(base)}">時点）<br>認定資格 <select class="fld" data-yt="cert"><option value="">なし</option><option value="2"${cert==="2"?" selected":""}>2級</option><option value="1"${cert==="1"?" selected":""}>1級</option></select></div></details></div>
     <div class="yt-row"><div class="yt-h"><span>⑤ 時間枠加算（休日の入店枠）</span><b>+${a5}％</b></div>
-      <div class="yt-in">りらくるの指定日（${Q.label}）
-        <div class="yt-chips">${desig.length?desig.map(d=>`<span>${dayLabel(d)}<button type="button" data-desdel="${d}" aria-label="削除">×</button></span>`).join(""):`<small>まだありません</small>`}</div>
-        <input class="fld" type="date" id="ytDesIn" min="${Q.start}" max="${Q.end}"> <button type="button" class="side-link" id="ytDesAdd">指定日を追加</button>
+      <div class="yt-in">りらくるの指定日（${Q.label}）：${desig.length?`<b style="color:var(--ink)">${desig.length}日</b>`:"まだありません"}
+        <details class="yt-det yt-det5" id="ytDet5"${(ytOpen5??!desig.length)?" open":""}><summary></summary>${desCal(Q,desig)}</details>
         ${slotCheck(Q,desig,today)}
         判定（マイページで確認して選択）<select class="fld" data-yt="slot"><option value="0">なし</option><option value="2"${a5===2?" selected":""}>全指定日＋日祝6時間以上（+2％）</option><option value="3"${a5===3?" selected":""}>全指定日＋土日祝6時間以上（+3％）</option></select></div></div>
     <div class="yt-row"><div class="yt-h"><span>⑥ 店舗運営支援（開店・閉店業務）</span><b>+${a6}％</b></div>
@@ -1952,11 +1974,11 @@ function yutaiCard(mk){
   </div>`}
 $("statsBody").addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.yt;if(!k)return;
   settings.yt=Object.assign({},settings.yt||{},{[k]:e.target.value});await saveSettingsData();renderStats();toast("保存しました")});
+$("statsBody").addEventListener("toggle",e=>{if(e.target.id==="ytDet4")ytOpen4=e.target.open;if(e.target.id==="ytDet5")ytOpen5=e.target.open},true);
 // りらくるの指定日（時間枠加算・休日売上に使う）
-$("statsBody").addEventListener("click",async e=>{const del=e.target.closest&&e.target.closest("[data-desdel]"),add=e.target.id==="ytDesAdd";if(!del&&!add)return;
-  const list=new Set((settings.yt&&settings.yt.desig)||[]);
-  if(add){const v=$("ytDesIn").value;if(!v){toast("日付を選んでください");return}list.add(v)}else list.delete(del.dataset.desdel);
-  settings.yt=Object.assign({},settings.yt||{},{desig:[...list].sort()});await saveSettingsData();renderStats();toast(add?"指定日を追加しました":"指定日を削除しました")});
+$("statsBody").addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-desday]");if(!b)return;
+  const d=b.dataset.desday,list=new Set((settings.yt&&settings.yt.desig)||[]);const on=!list.has(d);if(on)list.add(d);else list.delete(d);
+  ytOpen5=true;settings.yt=Object.assign({},settings.yt||{},{desig:[...list].sort()});await saveSettingsData();renderStats()});
 // 報酬調整額（月ごと）の入力
 $("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")return;const v=sInt(e.target.value);
   settings.adj=Object.assign({},settings.adj||{});if(v)settings.adj[statsMonth]=v;else delete settings.adj[statsMonth];
@@ -1982,7 +2004,7 @@ function renderStats(){
     <div class="card num">
       <div class="big-row">
         <div><span class="lbl">月の合計</span><div class="big">${yen(sum)}</div></div>
-        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net-riskOf(mv))}</div></div>
+        <div class="r"><span class="lbl">月の収入</span><div class="big" style="color:var(--ok)">${yen(calcNet(mv).net-riskOf(mv)+sInt((settings.adj||{})[statsMonth]||0))}</div></div>
       </div>
       <div class="kv">
         <div><span>件数</span><b>${mv.length}件</b></div>

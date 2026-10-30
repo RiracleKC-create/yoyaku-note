@@ -316,8 +316,10 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .blk,.wk .wb{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .tl .blk .bc,.wk .wb .bc{display:block}
 .wk .wb .bc{letter-spacing:-.03em}
-/* 集計タブ：月を選ぶ行を上に固定して、その下だけスクロール */
-#v-stats .monthbar{position:sticky;top:calc(var(--hdrH,0px) + env(safe-area-inset-top,0px));z-index:4;background:var(--bg);padding:6px 0;margin-top:-6px}
+/* 一覧・時間・集計タブ：月（日）を選ぶ行を上に固定して、その下だけスクロール */
+#v-list .monthbar,#v-time .tsticky,#v-stats .monthbar{position:sticky;top:calc(var(--hdrH,0px) + env(safe-area-inset-top,0px));z-index:4;background:var(--bg);padding:6px 0;margin-top:-6px}
+/* 固定部分の左右のすき間からも、下の内容が見えないようにする */
+header.top,#v-list .monthbar,#v-time .tsticky,#v-stats .monthbar{box-shadow:-12px 0 0 var(--bg),12px 0 0 var(--bg)}
 /* 人型のマーク */
 .pi{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:#fff;vertical-align:-3px;margin-right:2px}
 .pi svg{width:13px;height:13px}
@@ -562,6 +564,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
 
   <!-- 時間 -->
   <section class="view" id="v-time">
+    <div class="tsticky">
     <div class="monthbar">
       <button id="tPrev" aria-label="前へ">‹</button>
       <h2 class="num" id="tDay"></h2>
@@ -574,6 +577,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <button type="button" data-m="month" aria-pressed="false">月</button>
       </div>
       <div class="tbar-r"><button type="button" class="stay-q" id="stayQ" aria-label="入店時間の入れ方">？</button><button type="button" class="stay-btn" id="stayBtn" aria-pressed="false">入店時間</button><button type="button" class="today-btn" id="tToday">今日</button></div>
+    </div>
     </div>
     <div class="card">
       <div class="legend"><span><i style="background:var(--c-shimei)"></i>指名</span><span><i style="background:var(--c-g)"></i>男性・女性指名</span><span><i style="background:var(--c-free)"></i>フリー</span><span><i style="background:#D9443A"></i>足つぼ</span><span><i style="background:#7FC8E8"></i>あたま</span><span><i style="background:#F08DB4"></i>ハンド</span><span id="tSum" class="num"></span></div>
@@ -650,7 +654,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>予約の左はしの細い帯は、メニューの色です（足つぼ＝赤、あたま＝水色、ハンド＝ピンク。ほぐし→足つぼ→あたま→ハンドの順に、時間の長さで表示）。</li>
       <li>予約のいちばん上には、人型のマークと会員番号が出ます（マークの色：水色＝男性、赤＝女性、グレー＝性別未入力）。週表示では会員番号の左に小さく出ます。</li>
       <li>週表示の各日の下には、件数・分・売上・収入・入店時間が出ます。曜日を押すとその日の表示に、月表示の日付を押すとその日の表示になります。</li>
-      <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。押したまま指をなぞると続けて選べます（色の付いた枠から始めると、まとめて消せます）。入力中に表を上下に動かすときは、左の時刻のところを触ってください。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。入れ方は「入店時間」の横の「？」でいつでも見られます。</li>
+      <li><b>入店時間</b>：日か週の表示で「入店時間」を押し、入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。押したまま指をなぞると続けて選べます（色の付いた枠から始めると、まとめて消せます。画面のはしまでなぞると自動でスクロールします）。入力中に表を上下に動かすときは、左の時刻のところを触ってください。終わったら「完了」。入店する予定の時間を先に入れておくこともできます。入れ方は「入店時間」の横の「？」でいつでも見られます。</li>
       <li>下の「混み具合」は、その月に施術が多かった曜日と時間帯です。</li>
     </ul>
   </details>
@@ -842,7 +846,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <h2 id="spTitle">入店時間の入れ方</h2>
     <ul>
       <li>入店時間の枠（1時間ごと）を押すと色が付きます。もう一度押すと消えます。</li>
-      <li>押したまま指をなぞると、続けて選べます。色の付いた枠から始めると、なぞった枠をまとめて消せます。</li>
+      <li>押したまま指をなぞると、続けて選べます。色の付いた枠から始めると、なぞった枠をまとめて消せます。画面の上下のはしまでなぞると、自動でスクロールしながら続けられます。</li>
       <li>入力中に表を上下に動かすときは、左の時刻のところを触って動かしてください。</li>
       <li>終わったら「完了」を押してください。</li>
     </ul>
@@ -1109,7 +1113,7 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=61; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=62; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
   {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
   {n:56,date:"10月15日",items:["りらくるの売上確定（第3銀行営業日14時頃〜第5銀行営業日17時）の期間に、確定を忘れないようお知らせを出すようにしました。⚙設定で今月の締め切りとお支払い予定日も確認できます。"]},
@@ -1778,9 +1782,13 @@ function paintCell(b){if(!b||!paint)return;const day=b.dataset.day,m=Number(b.da
   if(!paint.sets[day])paint.sets[day]=new Set(staySlots(day));
   if(paint.on){paint.sets[day].add(m);b.classList.add("on")}else{paint.sets[day].delete(m);b.classList.remove("on")}}
 $("tlBody").addEventListener("pointerdown",e=>{const b=e.target.closest("button.st");if(!b||!stayEdit)return;
-  e.preventDefault();paint={on:!b.classList.contains("on"),sets:{},done:new Set()};paintCell(b)});
-$("tlBody").addEventListener("pointermove",e=>{if(!paint)return;const el=document.elementFromPoint(e.clientX,e.clientY);paintCell(el&&el.closest&&el.closest("#tlBody button.st"))});
-const paintEnd=async()=>{if(!paint)return;const p=paint;paint=null;
+  e.preventDefault();paint={on:!b.classList.contains("on"),sets:{},done:new Set(),x:e.clientX,y:e.clientY};paintCell(b);
+  // 指が画面の上下のはしに来たら、自動でスクロールしながら選び続ける
+  paint.timer=setInterval(()=>{if(!paint)return;const top=document.querySelector("#v-time .tsticky").getBoundingClientRect().bottom,bot=window.innerHeight-(document.querySelector("nav.tabs")||{offsetHeight:0}).offsetHeight;
+    let dy=0;if(paint.y>bot-50)dy=10;else if(paint.y<top+40)dy=-10;
+    if(dy){window.scrollBy(0,dy);const el=document.elementFromPoint(paint.x,paint.y);paintCell(el&&el.closest&&el.closest("#tlBody button.st"))}},30)});
+$("tlBody").addEventListener("pointermove",e=>{if(!paint)return;paint.x=e.clientX;paint.y=e.clientY;const el=document.elementFromPoint(e.clientX,e.clientY);paintCell(el&&el.closest&&el.closest("#tlBody button.st"))});
+const paintEnd=async()=>{if(!paint)return;const p=paint;paint=null;clearInterval(p.timer);
   for(const day of Object.keys(p.sets)){const d=dayOf(day),arr=[...p.sets[day]].sort((a,b)=>a-b);if(arr.length)d.stay=arr;else delete d.stay;await saveDay(day,d)}};
 window.addEventListener("pointerup",paintEnd);window.addEventListener("pointercancel",paintEnd);
 /* 左右スワイプで前後の日・週・月へ */

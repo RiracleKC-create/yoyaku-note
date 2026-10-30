@@ -271,6 +271,10 @@ h3{font-size:15px;margin:0 0 10px}
 .side-row:first-child{border-top:0;padding-top:0}
 .side-row .seg{grid-template-columns:1fr 1fr}
 .side-row .fld{margin-top:8px}
+.side-n{font-size:13px;color:var(--sub);margin-top:8px}.side-n .fld{margin-top:4px}
+.yt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.yt-chips span{background:var(--field);border-radius:8px;padding:2px 4px 2px 8px;font-size:13px;color:var(--ink)}
+.yt-chips button{border:0;background:none;color:var(--sub);font-size:14px;padding:0 4px}
+.yt-chk{font-size:13px;color:var(--ink);margin-top:4px;line-height:1.6}.yt-chk .ng{color:#C0392B}
 .tsel{display:grid;grid-template-columns:1.4fr 1fr;gap:6px}
 .tsel .fld{padding:11px 6px}
 /* Course builder */
@@ -698,7 +702,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>月の合計と月の収入、件数・指名率・1件平均など。</li>
       <li>指名施術時間と指名時間率（施術時間のうち指名の割合）。</li>
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
-      <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。</li>
+      <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。りらくるの「指定日」は⑤で入れると、②の休日売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。開店・閉店業務は、入力タブで一緒に行った人数を選べます（選ばないときは金額から判断します）。</li>
       <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
     </ul>
   </details>
@@ -940,6 +944,8 @@ function monthLabel(mk){const [y,m]=mk.split("-");return y+"年"+Number(m)+"月"
 function dayLabel(dk){const d=new Date(dk+"T00:00");return (d.getMonth()+1)+"/"+d.getDate()+"（"+"日月火水木金土"[d.getDay()]+"）"}
 function yen(n){return "¥"+(Number(n)||0).toLocaleString("ja-JP")}
 function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isNaN(n)?0:n}
+// マイナスも使える整数（報酬調整額など）
+function sInt(v){const t=String(v??"").trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));return (/^[-−－ー‐]/.test(t)?-1:1)*toInt(t)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10,optPm:o.optPm!=null?toInt(o.optPm):330,optCpm:o.optCpm!=null?toInt(o.optCpm):550,yt:(o.yt&&typeof o.yt==="object")?o.yt:{},riskFee:o.riskFee!=null?toInt(o.riskFee):245,adj:(o.adj&&typeof o.adj==="object")?o.adj:{}};return r}
 settings=mergeSettings({});
@@ -1006,7 +1012,7 @@ const SIDES=[{k:"open",name:"開店業務",short:"開店"},{k:"close",name:"閉�
 // 旧形式 {side,sideAmt} は開店業務として扱う
 function dayOf(dk){const d=days[dk]||{};const r={};
   if(d.side&&!("open" in d)&&!("close" in d))r.open=d.sideAmt||0;
-  SIDES.forEach(x=>{if(typeof d[x.k]==="number")r[x.k]=d[x.k]});
+  SIDES.forEach(x=>{if(typeof d[x.k]==="number")r[x.k]=d[x.k];if(typeof d[x.k+"N"]==="number"&&typeof r[x.k]==="number")r[x.k+"N"]=d[x.k+"N"]});
   if(Array.isArray(d.stay)&&d.stay.length)r.stay=d.stay.slice();return r}
 // 入店時間（1時間の枠の開始「分」を並べたもの。例：18:00→1080、25:00→1500）
 // 以前の30分枠のデータは、その時間の1時間枠として扱う
@@ -1023,6 +1029,12 @@ async function toggleStay(dk,m){const d=dayOf(dk);const set=new Set(staySlots(dk
   if(set.size)d.stay=[...set].sort((a,b)=>a-b);else delete d.stay;
   await saveDay(dk,d)}
 let stayEdit=false;
+// 開店・閉店業務の人数（入力がなければ金額から判断：1回660円を人数で分ける）
+function sideAutoN(amt){if(!amt)return 2;if(amt<110)return 2;return Math.max(1,Math.min(6,Math.round(660/amt)))}
+function sideN(dk,k){const d=dayOf(dk);return d[k+"N"]||sideAutoN(d[k])}
+// 店舗運営支援のカウント：2人までは1回＝1、3人以上は2人分を人数で分ける（3人＝0.67、4人＝0.5）
+function sidePts(n){return n<=2?1:2/n}
+function supCount(a,b){return Object.keys(days).filter(dk=>dk>=a&&dk<=b).reduce((t,dk)=>{const d=dayOf(dk);return t+SIDES.reduce((u,x)=>u+(x.k in d?sidePts(sideN(dk,x.k)):0),0)},0)}
 function sideTotal(dk){const d=dayOf(dk);return SIDES.reduce((a,x)=>a+(d[x.k]||0),0)}
 function sideText(dk){const d=dayOf(dk);return SIDES.filter(x=>x.k in d).map(x=>x.short+" "+yen(d[x.k])).join("・")}
 // 以前は予約ごとに付けていた付随業務を、日付ごとの記録へ移す
@@ -1159,8 +1171,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=66; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=67; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:67,date:"10月30日",items:["開店・閉店業務に、一緒に行った人数を入れられるようにしました。選ばないときは金額から自動で判断します（660円＝1人、330円＝2人、220円＝3人、165円＝4人）。","優待手数料率の見込みの「店舗運営支援」を、りらくると同じく人数で分けたカウント（3人＝0.67、4人＝0.5）で数えるようにしました。","「時間枠加算」に、りらくるの指定日を入れられるようにしました。指定日は休日施術売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。","報酬調整額にマイナスの金額（−30など）も入れられるようにしました。"]},
   {n:66,date:"10月30日",items:["集計タブに「優待手数料率の見込み」を追加しました。3か月ごとの実績から、次の期間のシステム利用料率の見込みを出します。"]},
   {n:65,date:"10月30日",items:["システム利用料の計算を、りらくるの売上精算と同じ方法（施術売上×率、オプション×50％、男女指名料×100％、10円未満切り上げ）にしました。","危機管理料（毎月）を引くようにしました。⚙設定で金額を変えられます。","集計タブに報酬調整額の入力と「入金予定額」を追加しました。りらくるの売上精算金額と見比べられます。"]},
   {n:57,date:"10月21日",items:["時間タブの予約の左はしに、メニューの色の帯（足つぼ＝赤、あたま＝水色、ハンド＝ピンク）を表示するようにしました。","時間タブの予約に、お客様の性別を人型のマークで表示するようにしました（水色＝男性、赤＝女性、グレー＝未入力）。","入店時間は、押したまま指をなぞって続けて選べるようになりました。入れ方は「入店時間」の横の「？」で見られます。","集計タブに曜日別の集計を追加しました。","時間タブで、予約の中の時間の表示の高さがそろうようにしました。"]},
@@ -1424,11 +1437,11 @@ function renderSideCard(){
   $("sideTitle").textContent=(dk?dayLabel(dk):"この日")+"の付随業務";
   // 保存済みの状態（取消ボタンつき）
   const saved=SIDES.filter(x=>x.k in d);
-  $("sideSaved").innerHTML=`<span class="none">登録済み：</span>`+(saved.length?saved.map(x=>`<span class="item num">${x.short} ${yen(d[x.k])}<button type="button" data-cancel="${x.k}">${cancelArmed===x.k?"もう一度で取消":"取消"}</button></span>`).join(""):`<span class="none">なし</span>`);
+  $("sideSaved").innerHTML=`<span class="none">登録済み：</span>`+(saved.length?saved.map(x=>`<span class="item num">${x.short} ${yen(d[x.k])}（${sideN(dk,x.k)}人）<button type="button" data-cancel="${x.k}">${cancelArmed===x.k?"もう一度で取消":"取消"}</button></span>`).join(""):`<span class="none">なし</span>`);
   $("sideSaved").querySelectorAll("[data-cancel]").forEach(b=>b.addEventListener("click",async()=>{
     const k=b.dataset.cancel;
     if(cancelArmed!==k){cancelArmed=k;renderSideCard();setTimeout(()=>{if(cancelArmed===k){cancelArmed=null;renderSideCard()}},4000);return}
-    cancelArmed=null;const dd=dayOf(dk);delete dd[k];await saveDay(dk,dd);
+    cancelArmed=null;const dd=dayOf(dk);delete dd[k];delete dd[k+"N"];await saveDay(dk,dd);
     toast(dayLabel(dk)+"の"+SIDES.find(x=>x.k===k).name+"を取り消しました");
   }));
   if(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.side)return; // 金額入力中
@@ -1436,16 +1449,19 @@ function renderSideCard(){
   $("sideRows").innerHTML=SIDES.map(x=>{const on=x.k in sideDraft;return `<div class="side-row">
     <span class="lbl">${x.name}${x.k in d?"（登録済み・保存すると上書き）":""}</span>
     <div class="seg"><button type="button" data-k="${x.k}" data-v="1" aria-pressed="${on}">あり</button><button type="button" data-k="${x.k}" data-v="0" aria-pressed="${!on}">なし</button></div>
-    ${on?`<input class="fld num" data-side="${x.k}" inputmode="numeric" value="${sideDraft[x.k]||""}" placeholder="金額" aria-label="${x.name}の金額">`:""}
+    ${on?`<input class="fld num" data-side="${x.k}" inputmode="numeric" value="${sideDraft[x.k]||""}" placeholder="金額" aria-label="${x.name}の金額">
+    <div class="side-n">一緒に行った人数（自分を含む）<select class="fld" data-sn="${x.k}"><option value="">金額から自動（${sideAutoN(sideDraft[x.k])}人）</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}"${sideDraft[x.k+"N"]===n?" selected":""}>${n}人</option>`).join("")}</select></div>`:""}
   </div>`}).join("");
   $("sideRows").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
     if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
     const k=b.dataset.k,on=b.dataset.v==="1";
-    if(on&&!(k in sideDraft)){const cur=dayOf($("fDate").value);sideDraft[k]=k in cur?cur[k]:(k==="open"?(settings.openAmt||0):(settings.closeAmt||0))}
-    if(!on)delete sideDraft[k];
+    if(on&&!(k in sideDraft)){const cur=dayOf($("fDate").value);sideDraft[k]=k in cur?cur[k]:(k==="open"?(settings.openAmt||0):(settings.closeAmt||0));if(cur[k+"N"])sideDraft[k+"N"]=cur[k+"N"]}
+    if(!on){delete sideDraft[k];delete sideDraft[k+"N"]}
     renderSideCard();
   }));
-  $("sideRows").querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{sideDraft[inp.dataset.side]=toInt(inp.value)}));
+  $("sideRows").querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{sideDraft[inp.dataset.side]=toInt(inp.value);
+    const sel=$("sideRows").querySelector(`[data-sn="${inp.dataset.side}"]`);if(sel)sel.options[0].textContent=`金額から自動（${sideAutoN(sideDraft[inp.dataset.side])}人）`}));
+  $("sideRows").querySelectorAll("select[data-sn]").forEach(sel=>sel.addEventListener("change",()=>{const k=sel.dataset.sn;if(sel.value)sideDraft[k+"N"]=Number(sel.value);else delete sideDraft[k+"N"]}));
 }
 $("fDate").addEventListener("change",renderSideCard);
 function resetForm(){
@@ -1477,7 +1493,7 @@ $("saveBtn").addEventListener("click",async()=>{
   if(!hasVisit&&!hasSide){toast("予約か付随業務を入力してください");return}
   if(hasVisit&&memberNeedsOK()){renderMemberHint();$("memberHint").scrollIntoView({behavior:"smooth",block:"center"});toast("会員番号のお客様を確認してください");return}
   let sideMsg="";
-  if(hasSide){const d=dayOf(dk);Object.assign(d,draft);sideDraft={};await saveDay(dk,d);
+  if(hasSide){const d=dayOf(dk);SIDES.forEach(x=>{if(x.k in draft&&!(x.k+"N" in draft))delete d[x.k+"N"]});Object.assign(d,draft);sideDraft={};await saveDay(dk,d);
     sideMsg=SIDES.filter(x=>x.k in draft).map(x=>x.short).join("・")+"業務を保存";}
   // 予約の中身が何もなければ付随業務だけ保存（空のフリー予約は作らない）
   if(!hasVisit){resetForm();$("fDate").value=dk;renderSideCard();toast(dayLabel(dk)+"の"+sideMsg+"しました");return}
@@ -1874,14 +1890,24 @@ function ytHoliday(d){const y=Number(d.slice(0,4)),w=new Date(d+"T00:00").getDay
 function ytQuarter(mk){const y=Number(mk.slice(0,4)),q=Math.floor((Number(mk.slice(5,7))-1)/3);return {y,q,start:y+"-"+pad(q*3+1)+"-01",end:dateKey(new Date(y,q*3+3,0)),label:`${y}年${q*3+1}〜${q*3+3}月`,next:(q===3?`${y+1}年1〜3月`:`${y}年${q*3+4}〜${q*3+6}月`)}}
 function ytTier(v,t){let a=0;t.forEach(([th,p])=>{if(v>=th)a=p});return a}
 function ytNext(v,t){const n=t.find(([th])=>v<th);return n?n:null}
+// 時間枠加算の目安：指定日と日祝（＋3％は土曜も）に6時間以上入店しているか（入店時間の記録から）
+function slotCheck(Q,desig,today){
+  const days_=[];for(let d=new Date(Q.start+"T00:00");dateKey(d)<=Q.end;d.setDate(d.getDate()+1))days_.push(dateKey(d));
+  const past=days_.filter(d=>d<=today);if(!past.length)return "";
+  const sat=d=>new Date(d+"T00:00").getDay()===6,hol=d=>ytHoliday(d)&&!sat(d);
+  const ok=d=>stayMinDay(d)>=360;
+  const grp=(name,list)=>{const ng=list.filter(d=>!ok(d));return `<div>${name}：${list.length-ng.length}／${list.length}日${ng.length?`<span class="ng">（6時間未満：${ng.slice(0,6).map(d=>Number(d.slice(5,7))+"/"+Number(d.slice(8))).join("・")}${ng.length>6?" ほか":""}）</span>`:""}</div>`};
+  const pd=desig.filter(d=>d<=today);
+  return `<div class="yt-chk"><small>入店時間の記録で6時間以上の日（今日まで）</small>${grp("指定日",pd)}${grp("日曜・祝日",past.filter(hol))}${grp("土曜",past.filter(sat))}</div>`}
 function yutaiCard(mk){
   const Q=ytQuarter(mk),yt=settings.yt||{},today=bizToday();
   const qv=live(visits.filter(v=>v.date>=Q.start&&v.date<=Q.end));
   const seju=v=>Math.max(0,total(v)-feeOf(v)-optSales(v));
   const tax=x=>Math.floor(x/1.1);
-  const all=tax(qv.reduce((a,v)=>a+seju(v),0)),hol=tax(qv.filter(v=>ytHoliday(v.date)).reduce((a,v)=>a+seju(v),0));
+  const desig=(yt.desig||[]).filter(d=>d>=Q.start&&d<=Q.end).sort(),isDes=d=>desig.includes(d);
+  const all=tax(qv.reduce((a,v)=>a+seju(v),0)),hol=tax(qv.filter(v=>ytHoliday(v.date)||isDes(v.date)).reduce((a,v)=>a+seju(v),0));
   const shH=qv.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)/60;
-  const sup=Object.keys(days).filter(dk=>dk>=Q.start&&dk<=Q.end).reduce((a,dk)=>{const d=dayOf(dk);return a+("open" in d?1:0)+("close" in d?1:0)},0);
+  const sup=Math.round(supCount(Q.start,Q.end)*100)/100;
   const base=yt.cumDate||"",cum=(Number(yt.cumH)||0)+live(visits.filter(v=>base&&v.date>base)).reduce((a,v)=>a+(vMin(v)||0),0)/60;
   const cert=yt.cert||"";
   // 期間の途中なら、今のペースで期間の終わりまで続けた場合の見込み
@@ -1891,7 +1917,7 @@ function yutaiCard(mk){
   const c4=(cum>=250?6:0)+(cum>=10000&&cert==="1"?4:cum>=3000&&cert==="1"?2:cum>=1000&&(cert==="1"||cert==="2")?1:0);
   const rows=[
     {n:"① 総施術売上（税抜）",v:all,p:pace(all),t:T1,f:x=>yen(Math.round(x))},
-    {n:"② 休日施術売上（税抜・土日祝）",v:hol,p:pace(hol),t:T2,f:x=>yen(Math.round(x))},
+    {n:"② 休日施術売上（税抜・土日祝と指定日）",v:hol,p:pace(hol),t:T2,f:x=>yen(Math.round(x))},
     {n:"③ 指名施術時間",v:shH,p:pace(shH),t:T3,f:x=>(Math.round(x*100)/100)+"時間"},
   ].map(x=>({...x,a:ytTier(x.v,x.t),pa:ytTier(x.p,x.t),nx:ytNext(x.v,x.t)}));
   const a6=sup>=40?1:0,p6=pace(sup)>=40?1:0;
@@ -1911,19 +1937,28 @@ function yutaiCard(mk){
       <div class="yt-v">${yt.cumH?(Math.round(cum*100)/100)+"時間":"未入力"}</div>
       <div class="yt-in">りらくるの累計施術時間 <input class="fld num" data-yt="cumH" inputmode="decimal" value="${esc(yt.cumH||"")}" placeholder="798.25">時間（<input class="fld num" data-yt="cumDate" type="date" value="${esc(base)}">時点）<br>認定資格 <select class="fld" data-yt="cert"><option value="">なし</option><option value="2"${cert==="2"?" selected":""}>2級</option><option value="1"${cert==="1"?" selected":""}>1級</option></select></div></div>
     <div class="yt-row"><div class="yt-h"><span>⑤ 時間枠加算（休日の入店枠）</span><b>+${a5}％</b></div>
-      <div class="yt-in"><select class="fld" data-yt="slot"><option value="0">なし</option><option value="2"${a5===2?" selected":""}>全指定日＋日祝6時間以上（+2％）</option><option value="3"${a5===3?" selected":""}>全指定日＋土日祝6時間以上（+3％）</option></select></div></div>
+      <div class="yt-in">りらくるの指定日（${Q.label}）
+        <div class="yt-chips">${desig.length?desig.map(d=>`<span>${dayLabel(d)}<button type="button" data-desdel="${d}" aria-label="削除">×</button></span>`).join(""):`<small>まだありません</small>`}</div>
+        <input class="fld" type="date" id="ytDesIn" min="${Q.start}" max="${Q.end}"> <button type="button" class="side-link" id="ytDesAdd">指定日を追加</button>
+        ${slotCheck(Q,desig,today)}
+        判定（マイページで確認して選択）<select class="fld" data-yt="slot"><option value="0">なし</option><option value="2"${a5===2?" selected":""}>全指定日＋日祝6時間以上（+2％）</option><option value="3"${a5===3?" selected":""}>全指定日＋土日祝6時間以上（+3％）</option></select></div></div>
     <div class="yt-row"><div class="yt-h"><span>⑥ 店舗運営支援（開店・閉店業務）</span><b>+${a6}％</b></div>
-      <div class="yt-v">${sup}回${inProg?`<small>（見込み ${Math.round(pace(sup))}回）</small>`:""}</div>${bar(sup,[[40,1]])}
-      <div class="yt-n">${sup>=40?"達成":`あと ${40-sup}回で +1％`}　<small>※りらくるは人数で割った回数で数えるため、アプリの回数は目安です</small></div></div>
+      <div class="yt-v">${sup.toFixed(2)}カウント${inProg?`<small>（見込み ${pace(sup).toFixed(2)}カウント）</small>`:""}</div>${bar(sup,[[40,1]])}
+      <div class="yt-n">${sup>=40?"達成":`あと ${(Math.ceil((40-sup)*100)/100).toFixed(2)}カウントで +1％`}<small>2人までは1回＝1カウント、3人以上は人数で分けて数えます（3人＝0.67、4人＝0.5）。人数は金額から自動で判断し、入力タブの付随業務で変えられます。</small></div></div>
     <div class="yt-row"><div class="yt-h"><span>⑦ 店舗施術売上（お店全体）</span><b>+${a7}％</b></div>
       <div class="yt-in"><select class="fld" data-yt="store"><option value="0">なし</option><option value="1"${Number(yt.store)===1?" selected":""}>800万円以上（+1％）</option><option value="2"${Number(yt.store)===2?" selected":""}>1,000万円以上（+2％）</option><option value="3"${Number(yt.store)===3?" selected":""}>1,200万円以上（+3％）</option></select>
       <small>りらくるのマイページで確認して選んでください。個人の総施術売上（税抜）45万円以上が条件です。</small></div></div>
-    <p class="note" style="margin:8px 0 0">①〜③と⑥は予約ノートの記録から自動で集計します（税抜＝税込÷1.1）。②の休日は土日祝で数えています（りらくるの「指定日」は含みません）。正式な率は、りらくるのマイページで確認してください。</p>
+    <p class="note" style="margin:8px 0 0">①〜③と⑥は予約ノートの記録から自動で集計します（税抜＝税込÷1.1）。②の休日は土日祝と、⑤で入れたりらくるの指定日で数えています。正式な率は、りらくるのマイページで確認してください。</p>
   </div>`}
 $("statsBody").addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.yt;if(!k)return;
   settings.yt=Object.assign({},settings.yt||{},{[k]:e.target.value});await saveSettingsData();renderStats();toast("保存しました")});
+// りらくるの指定日（時間枠加算・休日売上に使う）
+$("statsBody").addEventListener("click",async e=>{const del=e.target.closest&&e.target.closest("[data-desdel]"),add=e.target.id==="ytDesAdd";if(!del&&!add)return;
+  const list=new Set((settings.yt&&settings.yt.desig)||[]);
+  if(add){const v=$("ytDesIn").value;if(!v){toast("日付を選んでください");return}list.add(v)}else list.delete(del.dataset.desdel);
+  settings.yt=Object.assign({},settings.yt||{},{desig:[...list].sort()});await saveSettingsData();renderStats();toast(add?"指定日を追加しました":"指定日を削除しました")});
 // 報酬調整額（月ごと）の入力
-$("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")return;const v=toInt(e.target.value);
+$("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")return;const v=sInt(e.target.value);
   settings.adj=Object.assign({},settings.adj||{});if(v)settings.adj[statsMonth]=v;else delete settings.adj[statsMonth];
   await saveSettingsData();renderStats();toast("報酬調整額を保存しました")});
 function renderStats(){
@@ -1989,8 +2024,8 @@ function renderStats(){
         <tr><td>危機管理料（毎月）</td><td>−${yen(riskOf(mv))}</td></tr>
         <tr><td><b>収入（差し引き後）</b></td><td style="color:var(--ok)">${yen(c.net-riskOf(mv))}</td></tr>
         <tr><td>付随業務</td><td>＋${yen(sideSum)}</td></tr>
-        <tr><td>報酬調整額<br><small style="color:var(--sub)">キャンペーンの報奨金など（明細を見て入力）</small></td><td><input class="fld num adj-in" id="adjIn" inputmode="numeric" value="${(settings.adj||{})[statsMonth]||""}" placeholder="0"></td></tr>
-        <tr><td><b>入金予定額</b><br><small style="color:var(--sub)">りらくるの売上精算金額と同じ計算</small></td><td style="color:var(--ok)">${yen(c.net-riskOf(mv)+sideSum+toInt((settings.adj||{})[statsMonth]||0))}</td></tr>
+        <tr><td>報酬調整額<br><small style="color:var(--sub)">キャンペーンの報奨金など（明細を見て入力）</small></td><td><input class="fld num adj-in" id="adjIn" inputmode="tel" value="${(settings.adj||{})[statsMonth]||""}" placeholder="0"></td></tr>
+        <tr><td><b>入金予定額</b><br><small style="color:var(--sub)">りらくるの売上精算金額と同じ計算</small></td><td style="color:var(--ok)">${yen(c.net-riskOf(mv)+sideSum+sInt((settings.adj||{})[statsMonth]||0))}</td></tr>
       </table>
       ${rateFor(statsMonth)?"":`<p class="note">システム利用料が未設定です。⚙︎から入力してください。</p>`}
     </div>`})()}
@@ -2192,6 +2227,10 @@ $("bkRestore").addEventListener("click",async()=>{
   if(o.days&&typeof o.days==="object")Object.assign(days,o.days);
   if(o.members&&typeof o.members==="object")Object.assign(members,o.members);
   if(o.settings)settings=mergeSettings(o.settings);
+  // 一部の設定だけを足すデータ（月ごとの率・報酬調整額など）
+  const sm=o.settingsMerge;
+  if(sm&&typeof sm==="object"){const mo=k=>Object.assign({},settings[k]||{},sm[k]||{});
+    settings=mergeSettings(Object.assign({},settings,sm,{sysRates:mo("sysRates"),adj:mo("adj"),yt:mo("yt")}))}
   writeCache();renderAll();
   if(col){
     toast("復元中…");
@@ -2199,7 +2238,7 @@ $("bkRestore").addEventListener("click",async()=>{
       for(const v of o.visits){if(!v||!v.id)continue;const {id,...body}=v;await col.doc(id).set(body)}
       for(const [dk,d] of Object.entries(o.days||{}))await col.doc("d_"+dk).set(d);
       for(const [no,m] of Object.entries(o.members||{}))await col.doc("m_"+no).set(m);
-      await col.doc("settings").set(settings);
+      if(o.settings||o.settingsMerge)await col.doc("settings").set(settings);
     }catch(e){toast("一部の記録をクラウドに保存できませんでした");return}
   }
   $("bkIn").value="";$("bkFileIn").value="";

@@ -1043,7 +1043,7 @@ let stayEdit=false;
 function sideAutoN(amt){if(!amt)return 2;if(amt<110)return 2;return Math.max(1,Math.min(6,Math.round(660/amt)))}
 function sideN(dk,k){const d=dayOf(dk);return d[k+"N"]||sideAutoN(d[k])}
 // 店舗運営支援のカウント：2人までは1回＝1、3人以上は2人分を人数で分ける（3人＝0.67、4人＝0.5）
-function sidePts(n){return n<=2?1:2/n}
+function sidePts(n){return n<=2?1:Math.round(200/n)/100} // りらくると同じく1回ごとに小数第2位で四捨五入（3人＝0.67）
 function supCount(a,b){return Object.keys(days).filter(dk=>dk>=a&&dk<=b).reduce((t,dk)=>{const d=dayOf(dk);return t+SIDES.reduce((u,x)=>u+(x.k in d?sidePts(sideN(dk,x.k)):0),0)},0)}
 function sideTotal(dk){const d=dayOf(dk);return SIDES.reduce((a,x)=>a+(d[x.k]||0),0)}
 function sideText(dk){const d=dayOf(dk);return SIDES.filter(x=>x.k in d).map(x=>x.short+" "+yen(d[x.k])).join("・")}

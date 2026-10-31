@@ -1929,7 +1929,8 @@ function yutaiCard(mk){
   const seju=v=>Math.max(0,total(v)-feeOf(v)-optSales(v));
   const tax=x=>Math.floor(x/1.1);
   const desig=(yt.desig||[]).filter(d=>d>=Q.start&&d<=Q.end).sort(),isDes=d=>desig.includes(d);
-  const all=tax(qv.reduce((a,v)=>a+seju(v),0)),hol=tax(qv.filter(v=>ytHoliday(v.date)||isDes(v.date)).reduce((a,v)=>a+seju(v),0));
+  // りらくると同じく、1件ごとに税抜にして端数を切り捨ててから合計する
+  const all=qv.reduce((a,v)=>a+tax(seju(v)),0),hol=qv.filter(v=>ytHoliday(v.date)||isDes(v.date)).reduce((a,v)=>a+tax(seju(v)),0);
   const shH=qv.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)/60;
   const sup=Math.round(supCount(Q.start,Q.end)*100)/100;
   const base=yt.cumDate||"",cum=(Number(yt.cumH)||0)+live(visits.filter(v=>base&&v.date>base)).reduce((a,v)=>a+(vMin(v)||0),0)/60;
@@ -1972,7 +1973,7 @@ function yutaiCard(mk){
     <div class="yt-row"><div class="yt-h"><span>⑦ 店舗施術売上（お店全体）</span><b>+${a7}％</b></div>
       <div class="yt-in"><select class="fld" data-yt="store"><option value="0">なし</option><option value="1"${Number(yt.store)===1?" selected":""}>800万円以上（+1％）</option><option value="2"${Number(yt.store)===2?" selected":""}>1,000万円以上（+2％）</option><option value="3"${Number(yt.store)===3?" selected":""}>1,200万円以上（+3％）</option></select>
       <small>りらくるのマイページで確認して選んでください。個人の総施術売上（税抜）45万円以上が条件です。</small></div></div>
-    <p class="note" style="margin:8px 0 0">①〜③と⑥は予約ノートの記録から自動で集計します（税抜＝税込÷1.1）。②の休日は土日祝と、⑤で入れたりらくるの指定日で数えています。正式な率は、りらくるのマイページで確認してください。</p>
+    <p class="note" style="margin:8px 0 0">①〜③と⑥は予約ノートの記録から自動で集計します（税抜＝1件ごとに税込÷1.1、1円未満切り捨て）。②の休日は土日祝と、⑤で入れたりらくるの指定日で数えています。りらくるは延長や追加メニューごとに端数を切り捨てるため、①②はマイページと数円ちがうことがあります。正式な率は、りらくるのマイページで確認してください。</p>
   </div>`}
 $("statsBody").addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.yt;if(!k)return;
   settings.yt=Object.assign({},settings.yt||{},{[k]:e.target.value});await saveSettingsData();renderStats();toast("保存しました")});

@@ -114,6 +114,11 @@ textarea.fld{min-height:64px;resize:vertical}
 .seg button{border:1.5px solid var(--line);background:var(--field);border-radius:12px;padding:12px 0;font-size:17px;font-weight:700;color:var(--sub)}
 .seg button[aria-pressed="true"][data-v="shimei"]{background:var(--shimei);border-color:var(--shimei);color:#fff}
 .seg button[aria-pressed="true"][data-v="free"]{background:var(--free);border-color:var(--free);color:#fff}
+.etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
+.seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
+.tag.etc{background:#ECEDEF;color:#4B5563}
+.tl .blk.etc,.wk .wb.etc{background:repeating-linear-gradient(135deg,#EEF0F2 0 6px,#E2E5E9 6px 12px)!important;color:#374151;border:1.5px dashed #9CA3AF}
+.rec.etc .a{color:var(--sub)}
 .seg button[aria-pressed="true"][data-v="gm"],.seg button[aria-pressed="true"][data-v="gf"]{background:#2E7D5B;border-color:#2E7D5B;color:#fff}
 .tag.gm,.tag.gf{background:#DDF0E6;color:#2E7D5B}
 .yt h3{margin-bottom:4px}
@@ -553,7 +558,9 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <button type="button" data-v="free" aria-pressed="true">フリー</button>
         <button type="button" data-v="gm" aria-pressed="false">男性指名</button>
         <button type="button" data-v="gf" aria-pressed="false">女性指名</button>
+        <button type="button" data-v="etc" aria-pressed="false" class="etc-btn">その他（練習など）</button>
       </div>
+      <p class="note etc-note" id="etcNote" hidden>売上・件数・施術時間には入りません。時間タブと一覧に記録として残ります。内容は「メモ」に書いてください（1行目が表示されます）。</p>
       <div class="gap"></div>
       <span class="lbl">性別</span>
       <div class="seg" id="fSex">
@@ -960,7 +967,7 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10,optPm:o.optPm!=null?toInt(o.optPm):330,optCpm:o.optCpm!=null?toInt(o.optCpm):550,yt:(o.yt&&typeof o.yt==="object")?o.yt:{},riskFee:o.riskFee!=null?toInt(o.riskFee):245,adj:(o.adj&&typeof o.adj==="object")?o.adj:{}};return r}
 settings=mergeSettings({});
 // キャンセルした予約は売上・件数・施術時間・収入に含めない
-function live(list){return list.filter(v=>!v.cancel)}
+function live(list){return list.filter(v=>!v.cancel&&!isEtc(v))}
 function total(v){return v.incl?(v.price||0):(v.price||0)+(v.fee||0)+(v.extra||0)}
 const DAY_START=3; // 日付の切り替わり（翌3:00）
 const OPEN_H=9, CLOSE_H=27; // 営業時間 9:00〜27:00
@@ -1181,8 +1188,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=70; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=74; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:74,date:"10月31日",items:["予約の種類に「その他（練習など）」を追加しました。店内での練習など、売上に入れない記録を残せます。時間タブにはグレーの斜線の枠で、一覧には「その他」として表示され、売上・件数・施術時間・収入には入りません。内容はメモに書くと、1行目が表示されます。"]},
   {n:70,date:"10月30日",items:["集計タブの「月の収入」と今月の欄の収入に、付随業務も足すようにしました。りらくるの明細の入金額と同じ金額になります。"]},
   {n:69,date:"10月30日",items:["りらくるの指定日を、カレンダーの日付を押して続けて選べるようにしました（集計タブ→優待手数料率の見込み→⑤）。","集計タブの「月の収入」と、今月の欄の収入に、報酬調整額を足して表示するようにしました。"]},
   {n:68,date:"10月30日",items:["優待手数料率の見込みの「④ 累積施術時間」の入力欄を、開く・閉じるで切り替えられるようにしました。一度入れたあとは閉じた状態で表示されます。"]},
@@ -1249,7 +1257,7 @@ function workText(list){return hmText(list.reduce((a,v)=>a+(vMin(v)||0),0))}
 // 予約の中を、メニューの時間の長さで色分けする帯（px＝1時間あたりの高さ）
 // 施術の順番：ほぐし→足つぼ→あたま→ハンド
 const SEG_ORDER={H:0,F:1,A:2,T:3};
-function segHtml(v,px){if(v.cancel||!v.parts||!v.parts.length)return "";let y=0,h="";
+function segHtml(v,px){if(v.cancel||isEtc(v)||!v.parts||!v.parts.length)return "";let y=0,h="";
   v.parts.slice().sort((a,b)=>(SEG_ORDER[a.k]??9)-(SEG_ORDER[b.k]??9)).forEach(p=>{const ht=p.m/60*px;if(p.k!=="H")h+=`<span class="seg ${p.k}" style="top:${y}px;height:${ht}px"></span>`;y+=ht});return h}
 function shMin(list){return list.filter(v=>v.type==="shimei").reduce((a,v)=>a+(vMin(v)||0),0)}
 // 売上から引かれる金額と収入
@@ -1282,7 +1290,7 @@ function riskOf(list){return list.length?(settings.riskFee||0):0}
 function netText(list){const c=calcNet(list);return `収入 <b>${yen(c.net)}</b>（引かれる額 ${yen(c.cost)}）`}
 function renderHeader(){
   const tk=bizToday();
-  const todayAll=visits.filter(v=>v.date===tk),today=live(todayAll),cxToday=todayAll.length-today.length;
+  const todayAll=visits.filter(v=>v.date===tk),today=live(todayAll),cxToday=todayAll.filter(v=>v.cancel).length;
   const sum=today.reduce((a,v)=>a+total(v),0);
   const s=today.filter(v=>v.type==="shimei").length, g=today.filter(v=>v.type==="gm"||v.type==="gf").length, f=today.length-s-g;
   $("todayAmt").textContent=yen(sum);
@@ -1308,7 +1316,9 @@ function renderHeader(){
 }
 
 /* ---------- input form ---------- */
-const TYPES={shimei:"指名",gm:"男性指名",gf:"女性指名",free:"フリー"};
+const TYPES={shimei:"指名",gm:"男性指名",gf:"女性指名",free:"フリー",etc:"その他"};
+function isEtc(v){return v.type==="etc"}
+function etcTitle(v){return (v.memo||"").split("\n")[0].trim()||"その他の記録"}
 const TYPE_COLOR={shimei:"var(--c-shimei)",gm:"var(--c-g)",gf:"var(--c-g)",free:"var(--c-free)"};
 function typeLabel(t){return TYPES[t]||"フリー"}
 function typeTag(v){return `<span class="tag ${TYPES[v.type]?v.type:"free"}">${typeLabel(v.type)}</span>`}
@@ -1353,6 +1363,7 @@ function setType(t,autoFee){
   fType=t;
   document.querySelectorAll("#fType button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===t?"true":"false"));
   if(autoFee)editFee=null;
+  $("etcNote").hidden=t!=="etc";
   updateTotal();
 }
 document.querySelectorAll("#fType button").forEach(b=>b.addEventListener("click",()=>setType(b.dataset.v,true)));
@@ -1385,7 +1396,7 @@ function updateTotal(){
   $("fTotal").textContent=yen(p);
   $("feeLine").textContent=f?`合計（うち指名料 ${yen(f)}・施術分 ${yen(Math.max(0,p-f))}）`:"合計";
 }
-function currentFee(){return fType==="free"?0:(editFee!==null?editFee:feeFor(fType))}
+function currentFee(){return fType==="free"||fType==="etc"?0:(editFee!==null?editFee:feeFor(fType))}
 ["fPrice"].forEach(id=>$(id).addEventListener("input",updateTotal));
 ["fTimeH","fTimeM"].forEach(id=>$(id).addEventListener("change",renderChips));
 
@@ -1516,6 +1527,7 @@ $("saveBtn").addEventListener("click",async()=>{
     parts:PARTS.filter(p=>parts[p.k]).map(p=>({k:p.k,m:parts[p.k]})),
     price:toInt($("fPrice").value),fee:currentFee(),extra:0,incl:true,
     opts:[...fOpts],memo:$("fMemo").value.trim(),updatedAt:Date.now()};
+  if(v.type==="etc"){v.price=0;v.fee=0;v.opts=[]}
   if(editingId&&editCancel)v.cancel=true;
   const wasEdit=!!editingId,nf=newFeatDraft.trim();
   resetForm();
@@ -1627,6 +1639,11 @@ $("pasteBox").addEventListener("input",()=>{clearTimeout(pasteTimer);pasteTimer=
 
 /* ---------- list ---------- */
 function recRow(v){
+  if(isEtc(v))return `<button class="rec etc${v.cancel?" cx":""}" data-id="${esc(v.id)}">
+    <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
+    <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${esc(etcTitle(v))}</span>
+      <span class="c">売上に入れない記録${vMin(v)?"（"+vMin(v)+"分）":""}</span></span>
+    <span class="a num">−</span></button>`;
   return `<button class="rec${v.cancel?" cx":""}" data-id="${esc(v.id)}">
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
     <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${v.member?esc(keyLabel(ck(v))):"会員番号なし"}</span>
@@ -1645,7 +1662,7 @@ function showDetail(v){
   sheetId=v.id;
   const prev=v.member&&!v.cancel?live(visits).filter(x=>ck(x)===ck(v)&&(x.date+x.time)<=(v.date+v.time)).length:0;
   const fee=feeOf(v);
-  const rows=[
+  const rows=isEtc(v)?[["種類","その他（売上に入れない記録）"],["時間",vMin(v)?`${vMin(v)}分`:"未入力"],["メモ",v.memo?`<span class="memo">${esc(v.memo)}</span>`:"なし"]]:[
     ["会員番号",v.member?esc(keyLabel(ck(v)))+(prev?`（${prev}回目のご来店）`:""):"未入力"],
     ...(v.member?[["前回来店",(pv=>pv?`${dayLabel(pv.date)} ${esc(timeLabel(pv.time))}<br><small style="color:var(--sub)">${agoText(pv.date,v.date)}・${esc(pv.course||"コース未入力")}・${typeLabel(pv.type)}</small>`:"初めてのご来店")(prevVisit(v))]]:[]),
     ["指名の種類",typeLabel(v.type)],
@@ -1695,9 +1712,9 @@ function renderList(){
   $("listBody").innerHTML=Object.keys(byD).sort().reverse().map(dk=>{
     const arr=byD[dk].slice().sort((a,b)=>a.time.localeCompare(b.time));
     const st=sideText(dk);
-    const la=live(arr),cxn=arr.length-la.length;
+    const la=live(arr),cxn=arr.filter(v=>v.cancel).length,etn=arr.filter(v=>isEtc(v)&&!v.cancel).length;
     const sum=la.reduce((a,v)=>a+total(v),0);
-    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la)+"（指名 "+hmText(shMin(la))+"）":""}${cxn?"・キャンセル "+cxn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
+    return `<div class="day${dk===bizToday()?" today":""}"><div class="day-head num"><span>${dayLabel(dk)}　${la.length}件${la.length?"・施術 "+workText(la)+"（指名 "+hmText(shMin(la))+"）":""}${cxn?"・キャンセル "+cxn:""}${etn?"・その他 "+etn:""}${st?`　<button class="side-link" data-day="${dk}">${st} ›</button>`:""}</span><b>${yen(sum)}${la.length?`<br><small style="color:var(--ok);font-weight:700">収入 ${yen(calcNet(la).net)}</small>`:""}</b></div>${arr.map(recRow).join("")}</div>`;
   }).join("");
   bindRecs($("listBody"));
   $("listBody").querySelectorAll(".side-link").forEach(b=>b.addEventListener("click",()=>openSideDay(b.dataset.day)));
@@ -1712,7 +1729,7 @@ $("lNext").addEventListener("click",()=>{listMonth=shiftMonth(listMonth,1);rende
 
 /* ---------- time ---------- */
 const PX=56;
-function ivMin(v){return v.cancel?0:(settings.interval||0)}
+function ivMin(v){return v.cancel||isEtc(v)?0:(settings.interval||0)}
 function hm(m){return Math.floor(m/60)+":"+pad(m%60)}
 function startMin(v){if(!v.time)return null;const [h,m]=v.time.split(":").map(Number);return h*60+m}
 function weekStart(dk){const d=new Date(dk+"T00:00");d.setDate(d.getDate()-((d.getDay()+6)%7));return dateKey(d)}
@@ -1734,11 +1751,11 @@ function renderTime(){
   if(timeMode==="month"){renderMonthCal();renderHeat();return}
   $("tDay").textContent=dayLabel(timeDay);
   const dv=visits.filter(v=>v.date===timeDay&&startMin(v)!==null).map(v=>({v,s:startMin(v),e:startMin(v)+(vMin(v)||60)})).sort((a,b)=>a.s-b.s);
-  const dl=dv.filter(x=>!x.v.cancel),cxDay=dv.length-dl.length;
+  const dl=dv.filter(x=>!x.v.cancel&&!isEtc(x.v)),cxDay=dv.filter(x=>x.v.cancel).length,etcDay=dv.filter(x=>isEtc(x.v)&&!x.v.cancel).length;
   const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
   const sl=staySlots(timeDay);
-  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(st?"　"+st:""));
+  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(etcDay?"　その他 "+etcDay+"件":"")+(st?"　"+st:""));
   let h0=OPEN_H,h1=CLOSE_H;
   sl.forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))});
   dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
@@ -1753,7 +1770,7 @@ function renderTime(){
   dv.forEach(x=>{
     const iv=x.ie-x.e, top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.ie-x.s)/60*PX-2), ivh=iv/60*PX;
     html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
-      ${segHtml(x.v,PX)}${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}<span class="bc">${x.v.cancel?"<small>キャンセル</small> ":""}${`<span class="who">${personIcon(x.v.sex)}${x.v.member?`<b class="num">${esc(keyLabel(ck(x.v)))}</b>`:""}</span>`}<span class="num tm">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</span><br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}</span></button>`;
+      ${segHtml(x.v,PX)}${iv?`<span class="iv" style="height:${ivh}px"></span>`:""}${isEtc(x.v)?`<span class="bc">${x.v.cancel?"<small>キャンセル</small> ":""}<b>${esc(etcTitle(x.v))}</b> <span class="num tm">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</span><br><small>その他（売上に入れない）${vMin(x.v)?"・"+vMin(x.v)+"分":""}</small>`:`<span class="bc">${x.v.cancel?"<small>キャンセル</small> ":""}${`<span class="who">${personIcon(x.v.sex)}${x.v.member?`<b class="num">${esc(keyLabel(ck(x.v)))}</b>`:""}</span>`}<span class="num tm">${esc(timeLabel(x.v.time))}-${hm(x.ie)}</span><br>${esc(x.v.course||"")} ${vMin(x.v)?vMin(x.v)+"分":""}　<b class="num">${yen(total(x.v))}</b>${optNames(x.v,true).length?"<br>"+optNames(x.v,true).map(esc).join("・"):""}`}</span></button>`;
   });
   html+="</div>";
   if(!dv.length&&!sl.length&&!stayEdit)html=`<div class="empty">この日の記録はありません。<br><small>「入店時間」を押すと、入店した時間を入れられます。</small></div>`;
@@ -1809,7 +1826,7 @@ function renderWeek(){
         :`<div class="st" style="top:${(m-h0*60)/60*WPX}px;height:${SLOT/60*WPX}px"></div>`}}
     all.filter(v=>v.date===dk).sort((a,b)=>startMin(a)-startMin(b)).forEach(v=>{
       const s=startMin(v),m=vMin(v)||60,iv=ivMin(v),top=(s-h0*60)/60*WPX,ht=Math.max(14,(m+iv)/60*WPX-1);
-      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${segHtml(v,WPX)}${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="bc"><span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span><br><span class="wpi">${v.cancel?"":personIcon(v.sex)}${v.member?esc(v.member)+(v.who>1?"-"+v.who:""):""}</span></span></button>`;
+      html+=`<button class="wb ${TYPES[v.type]?v.type:"free"}${v.cancel?" cx":""}" data-id="${esc(v.id)}" style="top:${top}px;height:${ht}px" aria-label="${esc(timeLabel(v.time))} ${typeLabel(v.type)}">${segHtml(v,WPX)}${iv?`<span class="iv" style="height:${iv/60*WPX}px"></span>`:""}<span class="bc"><span class="num">${esc(timeLabel(v.time))}<br>-${hm(s+m+iv)}</span><br><span class="wpi">${isEtc(v)?esc(etcTitle(v).slice(0,4)):(v.cancel?"":personIcon(v.sex))+(v.member?esc(v.member)+(v.who>1?"-"+v.who:""):"")}</span></span></button>`;
     });
     html+=`</div>`;
   });
@@ -1988,7 +2005,7 @@ $("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")retu
   await saveSettingsData();renderStats();toast("報酬調整額を保存しました")});
 function renderStats(){
   $("sMonth").textContent=monthLabel(statsMonth);
-  const mAll=visits.filter(v=>v.date.startsWith(statsMonth)),mv=live(mAll),mcx=mAll.filter(v=>v.cancel);
+  const mAll=visits.filter(v=>v.date.startsWith(statsMonth)&&!isEtc(v)),mv=live(mAll),mcx=mAll.filter(v=>v.cancel);
   const sideDays=Object.keys(days).filter(dk=>dk.startsWith(statsMonth)&&sideText(dk));
   const sideSum=sideDays.reduce((a,dk)=>a+sideTotal(dk),0);
   const sideCard=`<div class="card num"><h3>付随業務</h3><table class="brk">${SIDES.map(x=>{const ds=sideDays.filter(dk=>x.k in dayOf(dk));return `<tr><td>${x.name}　${ds.length}日</td><td>${yen(ds.reduce((a,dk)=>a+(dayOf(dk)[x.k]||0),0))}</td></tr>`}).join("")}<tr><td>付随業務の合計</td><td>${yen(sideSum)}</td></tr></table></div>`;

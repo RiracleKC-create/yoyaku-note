@@ -114,6 +114,22 @@ textarea.fld{min-height:64px;resize:vertical}
 .seg button{border:1.5px solid var(--line);background:var(--field);border-radius:12px;padding:12px 0;font-size:17px;font-weight:700;color:var(--sub)}
 .seg button[aria-pressed="true"][data-v="shimei"]{background:var(--shimei);border-color:var(--shimei);color:#fff}
 .seg button[aria-pressed="true"][data-v="free"]{background:var(--free);border-color:var(--free);color:#fff}
+.smode{margin:0 0 8px}.smode button{padding:8px 0;font-size:14px}
+.seg.smode button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.yr .sub{color:var(--sub);font-weight:400}
+table.ytab{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+table.ytab th{font-weight:400;color:var(--sub);text-align:right;padding:4px 0;border-bottom:1px solid var(--line)}table.ytab th:first-child{text-align:left}
+table.ytab td{text-align:right;padding:6px 0;border-bottom:1px solid var(--line)}table.ytab td:first-child{text-align:left;color:var(--sub)}
+table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{color:var(--sub);font-weight:400;text-align:left}table.ytab tr.none td:last-child{text-align:center}
+.pct{display:flex;align-items:center;gap:6px}.pct .fld{flex:1}
+.big2{font-size:20px;font-weight:700;color:var(--ok);padding:10px 0}
+.exl{display:grid;gap:6px;margin-top:10px}
+.exi{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;text-align:left;border:0;background:var(--field);border-radius:10px;padding:8px 10px;color:var(--ink);font-size:14px}
+.exi .d{color:var(--sub);font-variant-numeric:tabular-nums}.exi small{display:block;color:var(--sub);font-size:12px}.exi .a{text-align:right;font-weight:700}
+.catrow{display:grid;grid-template-columns:1fr 60px auto auto;gap:6px;align-items:center;margin:6px 0}.catrow .fld{padding:6px 8px;font-size:14px}
+.yt-det.yr-det summary::after{content:"種類と割合を変える ▾"}.yt-det.yr-det[open] summary::after{content:"閉じる ▴"}
+.yt-det.yr-det2 summary::after{content:"車などを追加する ▾"}.yt-det.yr-det2[open] summary::after{content:"閉じる ▴"}
+.btn.danger{color:#C0392B}
 .etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
 .seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
 .tag.etc{background:#ECEDEF;color:#4B5563}
@@ -650,6 +666,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
 
   <!-- 集計 -->
   <section class="view" id="v-stats">
+    <div class="seg smode" id="sMode" hidden><button type="button" data-sm="m" aria-pressed="true">月の集計</button><button type="button" data-sm="y" aria-pressed="false">年間まとめ・経費</button></div>
     <div class="monthbar">
       <button id="sPrev" aria-label="前の月">‹</button>
       <h2 class="num" id="sMonth"></h2>
@@ -804,6 +821,11 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <div><label class="lbl" for="setOptCpm">Coolプレミアムの料金</label><input class="fld num" id="setOptCpm" inputmode="numeric" placeholder="550"></div>
       </div>
       <div class="gap"></div>
+      <div class="row2">
+        <div><label class="lbl" for="setOptPf">プレミアム顔まくらの料金</label><input class="fld num" id="setOptPf" inputmode="numeric" placeholder="220"></div>
+        <div><label class="lbl" for="setOptPs">パチスパの料金</label><input class="fld num" id="setOptPs" inputmode="numeric" placeholder="220"></div>
+      </div>
+      <div class="gap"></div>
       <label class="lbl" for="setRisk">危機管理料（毎月）</label><input class="fld num" id="setRisk" inputmode="numeric" placeholder="245">
       <p class="note">システム利用料は、りらくると同じく「施術売上×率」「オプション売上×50％」「男女指名料×100％」をそれぞれ10円未満切り上げで計算します。指名料にはかかりません。</p>
       <p class="note">施設利用料・固定材料費は、施術時間15分ごとにかかる金額です。指名料にはシステム利用料はかかりません。収入＝売上−（システム利用料＋施設利用料＋固定材料費）で計算します。</p>
@@ -937,6 +959,7 @@ const DEFAULT_SETTINGS = {
 
 let visits = [];
 let members = {}; // 会員番号 → {note:お客様の特徴}
+let expenses = {}; // 経費 id → {date,cat,amt,ratio,memo}
 let days = {}; // 営業日 → {open:金額, close:金額}（行った業務だけキーを持つ）
 let settings = null; // 下の mergeSettings で初期値をそろえる
 let col = null;           // db collection when available
@@ -964,7 +987,7 @@ function toInt(v){const n=parseInt(String(v).replace(/[^\d]/g,""),10);return isN
 // マイナスも使える整数（報酬調整額など）
 function sInt(v){const t=String(v??"").trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));return (/^[-−－ー‐]/.test(t)?-1:1)*toInt(t)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10,optPm:o.optPm!=null?toInt(o.optPm):330,optCpm:o.optCpm!=null?toInt(o.optCpm):550,yt:(o.yt&&typeof o.yt==="object")?o.yt:{},riskFee:o.riskFee!=null?toInt(o.riskFee):245,adj:(o.adj&&typeof o.adj==="object")?o.adj:{}};return r}
+function mergeSettings(o){o=o||{};const r={shimeiFee:o.feeSet?toInt(o.shimeiFee):DEFAULT_SETTINGS.shimeiFee,feeSet:!!o.feeSet,gmFee:toInt(o.gmFee||0),gfFee:toInt(o.gfFee||0),openAmt:toInt(o.openAmt??o.sideAmt??0),closeAmt:toInt(o.closeAmt??o.sideAmt??0),sysRate:o.sysRate!=null&&o.sysRate!==""&&parseFloat(o.sysRate)>0?parseFloat(o.sysRate):48,sysRates:(o.sysRates&&typeof o.sysRates==="object")?o.sysRates:{},facRate:o.facRate!=null?toInt(o.facRate):53,matRate:o.matRate!=null?toInt(o.matRate):27,interval:o.interval!=null&&o.interval!==""?toInt(o.interval):10,optPm:o.optPm!=null?toInt(o.optPm):330,optCpm:o.optCpm!=null?toInt(o.optCpm):550,optPf:o.optPf!=null?toInt(o.optPf):220,optPs:o.optPs!=null?toInt(o.optPs):220,yt:(o.yt&&typeof o.yt==="object")?o.yt:{},riskFee:o.riskFee!=null?toInt(o.riskFee):245,adj:(o.adj&&typeof o.adj==="object")?o.adj:{},expCats:Array.isArray(o.expCats)?o.expCats:null,assets:Array.isArray(o.assets)?o.assets:[]};return r}
 settings=mergeSettings({});
 // キャンセルした予約は売上・件数・施術時間・収入に含めない
 function live(list){return list.filter(v=>!v.cancel&&!isEtc(v))}
@@ -989,9 +1012,9 @@ function newId(){return "v_"+Date.now().toString(36)+Math.random().toString(36).
 /* ---------- storage ---------- */
 function readCache(){
   try{const raw=localStorage.getItem(CACHE_KEY);if(!raw)return;const o=JSON.parse(raw);
-    if(Array.isArray(o.visits)){visits=o.visits;visits.forEach(normalize)}if(o.settings)settings=mergeSettings(o.settings);if(o.days)days=o.days;if(o.members)members=o.members;liftSide();}catch(e){}
+    if(Array.isArray(o.visits)){visits=o.visits;visits.forEach(normalize)}if(o.settings)settings=mergeSettings(o.settings);if(o.days)days=o.days;if(o.members)members=o.members;if(o.expenses)expenses=o.expenses;liftSide();}catch(e){}
 }
-function writeCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({visits,settings,days,members}))}catch(e){}}
+function writeCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({visits,settings,days,members,expenses}))}catch(e){}}
 
 async function connect(){
   if(!window.claude||typeof window.claude.use!=="function"){updateStoreNote();return}
@@ -1003,10 +1026,10 @@ async function connect(){
       col=db.collection("data/users/"+uid);
       let first=true;
       col.onSnapshot(snap=>{
-        const vs=[];let st=null;const ds={};const ms={};
-        snap.docs.forEach(d=>{if(d.id==="settings")st=d.data();else if(d.id.startsWith("v_"))vs.push(Object.assign({id:d.id},d.data()));else if(d.id.startsWith("d_"))ds[d.id.slice(2)]=d.data();else if(d.id.startsWith("m_"))ms[d.id.slice(2)]=d.data()});
+        const vs=[];let st=null;const ds={};const ms={};const es={};
+        snap.docs.forEach(d=>{if(d.id==="settings")st=d.data();else if(d.id.startsWith("v_"))vs.push(Object.assign({id:d.id},d.data()));else if(d.id.startsWith("d_"))ds[d.id.slice(2)]=d.data();else if(d.id.startsWith("m_"))ms[d.id.slice(2)]=d.data();else if(d.id.startsWith("e_"))es[d.id]=d.data()});
         if(first){first=false;migrateLocal(vs,st,ds)}
-        days=ds;members=ms;
+        days=ds;members=ms;expenses=es;
         const fixed=vs.filter(normalize);
         visits=sortVisits(vs);
         fixed.forEach(v=>{const {id,...body}=v;col.doc(id).set(body).catch(()=>{})});
@@ -1188,8 +1211,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=74; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=75; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:75,date:"11月3日",items:["入力タブのオプションに「プレミアム顔まくら」と「パチスパ」を追加しました。料金（どちらも220円）は⚙設定で変えられます。オプションは、りらくると同じく料金の50％をシステム利用料として計算します。"]},
   {n:74,date:"10月31日",items:["予約の種類に「その他（練習など）」を追加しました。店内での練習など、売上に入れない記録を残せます。時間タブにはグレーの斜線の枠で、一覧には「その他」として表示され、売上・件数・施術時間・収入には入りません。内容はメモに書くと、1行目が表示されます。"]},
   {n:70,date:"10月30日",items:["集計タブの「月の収入」と今月の欄の収入に、付随業務も足すようにしました。りらくるの明細の入金額と同じ金額になります。"]},
   {n:69,date:"10月30日",items:["りらくるの指定日を、カレンダーの日付を押して続けて選べるようにしました（集計タブ→優待手数料率の見込み→⑤）。","集計タブの「月の収入」と、今月の欄の収入に、報酬調整額を足して表示するようにしました。"]},
@@ -1270,7 +1294,7 @@ function rateFor(mk){
   return r;
 }
 // オプション売上（プレミアムマットレスなど）
-function optSales(v){return (v.opts||[]).reduce((a,k)=>a+(k==="pm"?(settings.optPm||0):k==="cpm"?(settings.optCpm||0):0),0)}
+function optSales(v){return (v.opts||[]).reduce((a,k)=>a+(k==="pm"?(settings.optPm||0):k==="cpm"?(settings.optCpm||0):k==="pf"?(settings.optPf||0):k==="ps"?(settings.optPs||0):0),0)}
 const ceil10=x=>Math.ceil(Math.round(x*100)/100/10)*10;
 function calcNet(list){
   const sales=list.reduce((a,v)=>a+total(v),0);
@@ -1328,6 +1352,8 @@ let fType="free";
 const OPTS=[
   {k:"pm",name:"プレミアムマットレス",short:"プレミアム"},
   {k:"cpm",name:"Coolプレミアムマットレス",short:"Coolプレミアム"},
+  {k:"pf",name:"プレミアム顔まくら",short:"顔まくら"},
+  {k:"ps",name:"パチスパ",short:"パチスパ"},
   {k:"kk",name:"首肩集中コース",short:"首肩集中"},
   {k:"sn",name:"背中集中コース",short:"背中集中"},
   {k:"kc",name:"腰集中コース",short:"腰集中"}
@@ -1346,6 +1372,8 @@ function findOpts(t){
   const r=[];const s=z2h(String(t));
   if(/cool|ｃｏｏｌ|クール/i.test(s)&&/マットレス/.test(s))r.push("cpm");
   else if(/プレミアム\s*マットレス/.test(s))r.push("pm");
+  if(/顔\s*(まくら|枕)/.test(s))r.push("pf");
+  if(/パチ\s*スパ/.test(s))r.push("ps");
   if(/首\s*肩/.test(s))r.push("kk");
   if(/背中\s*集中/.test(s))r.push("sn");
   if(/腰\s*集中/.test(s))r.push("kc");
@@ -2003,7 +2031,165 @@ $("statsBody").addEventListener("click",async e=>{const b=e.target.closest&&e.ta
 $("statsBody").addEventListener("change",async e=>{if(e.target.id!=="adjIn")return;const v=sInt(e.target.value);
   settings.adj=Object.assign({},settings.adj||{});if(v)settings.adj[statsMonth]=v;else delete settings.adj[statsMonth];
   await saveSettingsData();renderStats();toast("報酬調整額を保存しました")});
+/* ---------- 年間まとめ・経費（確定申告用） ---------- */
+let statsMode="m",statsYear=new Date().getFullYear(),expEditId=null,expDelArmed=null,asEditId=null;
+const DEFAULT_EXPCATS=[{n:"旅費交通費（電車・バス・駐車場・高速代）",r:100},{n:"車両費（ガソリン・車検・修理）",r:30},{n:"損害保険料（自動車保険など）",r:30},{n:"租税公課（自動車税など）",r:30},{n:"消耗品費（施術用品・サポーター・10万円未満の物）",r:100},{n:"図書研究費（本・セミナー・教材）",r:100},{n:"通信費（スマホ・Wi-Fi）",r:30},{n:"水道光熱費",r:10},{n:"支払家賃",r:10},{n:"交際費",r:100},{n:"雑費（クリーニング・振込手数料など）",r:100}];
+function expCats(){return Array.isArray(settings.expCats)&&settings.expCats.length?settings.expCats:DEFAULT_EXPCATS}
+function catRatio(n){const c=expCats().find(x=>x.n===n);return c?c.r:100}
+function expBiz(e){return Math.floor((e.amt||0)*(e.ratio??100)/100)}
+async function saveExpense(id,o){if(o)expenses[id]=o;else delete expenses[id];writeCache();renderAll();
+  if(col){try{if(o)await col.doc(id).set(o);else await col.doc(id).delete()}catch(e){}}}
+// 減価償却（定額法・月割り）：その年に経費にできる額（仕事で使う割合をかける前）
+function deprYear(a,Y){const price=Number(a.price)||0,yrs=Number(a.years)||6;if(!price||!a.date)return 0;
+  const y0=Number(a.date.slice(0,4)),m0=Number(a.date.slice(5,7));const per=price/yrs/12;
+  let before=0;for(let y=y0;y<Y;y++){const ms=y===y0?13-m0:12;before+=Math.floor(per*ms)}
+  if(Y<y0)return 0;const ms=Y===y0?13-m0:12;const cap=Math.max(0,price-1-before);return Math.min(cap,Math.floor(per*ms))}
+function yearData(Y){
+  const months=[];let T={sales:0,side:0,adj:0,sys:0,fac:0,mat:0,risk:0,pay:0};
+  for(let m=1;m<=12;m++){const mk=Y+"-"+pad(m);const mv=live(visits.filter(v=>v.date.startsWith(mk)));
+    const side=Object.keys(days).filter(dk=>dk.startsWith(mk)).reduce((a,dk)=>a+sideTotal(dk),0);
+    const adj=sInt((settings.adj||{})[mk]||0);if(!mv.length&&!side&&!adj){months.push(null);continue}
+    const c=calcNet(mv),risk=riskOf(mv);const r={m,sales:c.sales,side,adj,sys:c.sys,fac:c.fac,mat:c.mat,risk};r.cut=r.sys+r.fac+r.mat+r.risk;r.pay=r.sales-r.cut+side+adj;
+    months.push(r);Object.keys(T).forEach(k=>T[k]+=r[k]||0)}
+  T.cut=T.sys+T.fac+T.mat+T.risk;
+  const ex=Object.entries(expenses).map(([id,e])=>({id,...e})).filter(e=>(e.date||"").startsWith(Y+"-")).sort((a,b)=>a.date<b.date?1:-1);
+  const byCat={};ex.forEach(e=>{byCat[e.cat]=(byCat[e.cat]||0)+expBiz(e)});
+  const assets=(settings.assets||[]).map(a=>{const d=deprYear(a,Y);return {...a,depr:d,biz:Math.floor(d*(a.ratio??100)/100)}});
+  const expSum=ex.reduce((a,e)=>a+expBiz(e),0)+assets.reduce((a,x)=>a+x.biz,0);
+  return {months,T,ex,byCat,assets,expSum,income:T.pay-expSum};
+}
+function renderYear(){
+  const Y=statsYear,D=yearData(Y),T=D.T;$("sMonth").textContent=Y+"年（1〜12月）";
+  const has=D.months.some(Boolean);
+  const cats=expCats(),eEdit=expEditId&&expenses[expEditId]?expenses[expEditId]:null;
+  const aEdit=asEditId?(settings.assets||[]).find(a=>a.id===asEditId):null;
+  const today=bizToday();
+  $("statsBody").innerHTML=`
+  <div class="card num yr">
+    <h3>りらくるの収入（${Y}年）</h3>
+    ${has?`<table class="brk">
+      <tr><td>売上（お客様の支払い）</td><td>${yen(T.sales)}</td></tr>
+      <tr><td>付随業務</td><td>＋${yen(T.side)}</td></tr>
+      ${T.adj?`<tr><td>報酬調整額</td><td>${T.adj<0?"−"+yen(-T.adj):"＋"+yen(T.adj)}</td></tr>`:""}
+      <tr><td>りらくるへの支払い<br><small class="sub">システム利用料 ${yen(T.sys)}・施設利用料 ${yen(T.fac)}・固定材料費 ${yen(T.mat)}・危機管理料 ${yen(T.risk)}</small></td><td>−${yen(T.cut)}</td></tr>
+      <tr><td><b>入金額の合計</b></td><td style="color:var(--ok)">${yen(T.pay)}</td></tr>
+    </table>
+    <table class="ytab"><tr><th>月</th><th>売上</th><th>差し引き</th><th>入金額</th></tr>
+      ${D.months.map((r,i)=>r?`<tr><td>${i+1}月</td><td>${yen(r.sales)}</td><td>−${yen(r.cut)}</td><td>${yen(r.pay)}</td></tr>`:`<tr class="none"><td>${i+1}月</td><td colspan="3">記録なし</td></tr>`).join("")}
+    </table>`:`<p class="note">この年の記録はまだありません。</p>`}
+  </div>
+  <div class="card num yr">
+    <h3>経費（${Y}年）</h3>
+    <p class="note" style="margin:0 0 8px">仕事に使ったお金を記録します。種類は確定申告の勘定科目に合わせています。車やスマホのように仕事以外にも使う物は、仕事で使う割合（％）の分だけ経費になります。割合の根拠（使った日数・距離など）は控えておきましょう。</p>
+    <div class="exf" id="expForm">
+      <div class="row2"><div><label class="lbl">日付</label><input class="fld num" type="date" id="exDate" value="${esc(eEdit?eEdit.date:(today.startsWith(Y+"-")?today:Y+"-12-31"))}"></div>
+        <div><label class="lbl">金額</label><input class="fld num" id="exAmt" inputmode="numeric" placeholder="0" value="${eEdit?eEdit.amt:""}"></div></div>
+      <label class="lbl">種類</label><select class="fld" id="exCat">${cats.map(c=>`<option${eEdit&&eEdit.cat===c.n?" selected":""}>${esc(c.n)}</option>`).join("")}${eEdit&&!cats.some(c=>c.n===eEdit.cat)?`<option selected>${esc(eEdit.cat)}</option>`:""}</select>
+      <div class="row2"><div><label class="lbl">仕事で使う割合</label><div class="pct"><input class="fld num" id="exRatio" inputmode="numeric" value="${eEdit?(eEdit.ratio??100):catRatio(cats[0].n)}">％</div></div>
+        <div><label class="lbl">経費になる額</label><div class="big2" id="exBiz">${yen(eEdit?expBiz(eEdit):0)}</div></div></div>
+      <label class="lbl">メモ（店名・内容など）</label><input class="fld" id="exMemo" value="${esc(eEdit?eEdit.memo||"":"")}" placeholder="例：ガソリン代、オイル">
+      <div class="gap"></div>
+      <button class="btn" id="exSave">${eEdit?"変更を保存":"経費を追加"}</button>
+      ${eEdit?`<div class="gap"></div><div class="row2"><button class="btn ghost" id="exCancel">やめる</button><button class="btn ghost danger" id="exDel">${expDelArmed?"もう一度で削除":"この経費を削除"}</button></div>`:""}
+    </div>
+    ${Object.keys(D.byCat).length?`<table class="brk" style="margin-top:12px">${cats.map(c=>c.n).concat(Object.keys(D.byCat).filter(n=>!cats.some(c=>c.n===n))).filter(n=>D.byCat[n]).map(n=>`<tr><td>${esc(n)}</td><td>${yen(D.byCat[n])}</td></tr>`).join("")}</table>`:""}
+    ${D.ex.length?`<div class="exl">${D.ex.map(e=>`<button type="button" class="exi" data-exid="${esc(e.id)}"><span class="d">${Number(e.date.slice(5,7))}/${Number(e.date.slice(8))}</span><span class="c">${esc(e.cat)}${e.memo?`<small>${esc(e.memo)}</small>`:""}</span><span class="a">${yen(expBiz(e))}${(e.ratio??100)<100?`<small>${yen(e.amt)}×${e.ratio}％</small>`:""}</span></button>`).join("")}</div>`:`<p class="note">まだ経費はありません。</p>`}
+    <details class="yt-det yr-det"><summary></summary>
+      <p class="note">種類と、最初に入る「仕事で使う割合」を変えられます。</p>
+      ${cats.map((c,i)=>`<div class="catrow"><input class="fld" data-catn="${i}" value="${esc(c.n)}"><input class="fld num" data-catr="${i}" inputmode="numeric" value="${c.r}"><span>％</span><button type="button" class="side-link" data-catdel="${i}">削除</button></div>`).join("")}
+      <div class="catrow"><input class="fld" id="catNewN" placeholder="新しい種類"><input class="fld num" id="catNewR" inputmode="numeric" value="100"><span>％</span><button type="button" class="side-link" id="catAdd">追加</button></div>
+    </details>
+  </div>
+  <div class="card num yr">
+    <h3>減価償却（車など高い物）</h3>
+    <p class="note" style="margin:0 0 8px">10万円以上の物（車・バイク・自転車など）は、買った年に全部ではなく、使える年数に分けて経費にします（定額法）。新車の普通車は6年、軽自動車は4年で、中古はもっと短くなります。青色申告なら30万円未満の物は買った年に全額経費にできます（年300万円まで）。</p>
+    ${D.assets.length?`<table class="brk">${D.assets.map(a=>`<tr><td><button type="button" class="side-link" data-asid="${esc(a.id)}">${esc(a.name||"名前なし")} ›</button><br><small class="sub">${yen(a.price)}・${a.date?Number(a.date.slice(0,4))+"年"+Number(a.date.slice(5,7))+"月":""}・${a.years}年・仕事${a.ratio??100}％　${Y}年の償却 ${yen(a.depr)}</small></td><td>${yen(a.biz)}</td></tr>`).join("")}</table>`:""}
+    <details class="yt-det yr-det2"${aEdit?" open":""}><summary></summary>
+      <div class="row2"><div><label class="lbl">名前</label><input class="fld" id="asName" value="${esc(aEdit?aEdit.name:"")}" placeholder="例：車"></div><div><label class="lbl">買った金額</label><input class="fld num" id="asPrice" inputmode="numeric" value="${aEdit?aEdit.price:""}"></div></div>
+      <div class="row2"><div><label class="lbl">買った月</label><input class="fld num" type="month" id="asDate" value="${esc(aEdit?aEdit.date:"")}"></div><div><label class="lbl">使える年数</label><select class="fld num" id="asYears">${[2,3,4,5,6,7,8,10].map(n=>`<option value="${n}"${(aEdit?Number(aEdit.years):6)===n?" selected":""}>${n}年</option>`).join("")}</select></div></div>
+      <label class="lbl">仕事で使う割合</label><div class="pct"><input class="fld num" id="asRatio" inputmode="numeric" value="${aEdit?(aEdit.ratio??100):30}">％</div>
+      <div class="gap"></div><button class="btn" id="asSave">${aEdit?"変更を保存":"追加"}</button>
+      ${aEdit?`<div class="gap"></div><div class="row2"><button class="btn ghost" id="asCancel">やめる</button><button class="btn ghost danger" id="asDel">削除</button></div>`:""}
+    </details>
+  </div>
+  <div class="card num yr">
+    <h3>所得の目安（${Y}年）</h3>
+    <table class="brk">
+      <tr><td>入金額の合計</td><td>${yen(T.pay)}</td></tr>
+      <tr><td>経費の合計（減価償却を含む）</td><td>−${yen(D.expSum)}</td></tr>
+      <tr><td><b>所得の目安</b></td><td style="color:var(--ok)">${D.income<0?"−"+yen(-D.income):yen(D.income)}</td></tr>
+    </table>
+    <p class="note">会社員などの給料がある人は、この所得が年20万円を超えると確定申告が必要です。青色申告の控除などはここには入っていません。確定申告の期間は翌年2/16〜3/15です。確定申告では「売上」と「りらくるへの支払い」を分けて書く方法もあります。正式な金額は、りらくるの明細と領収書で確認し、分からないところは税務署や税理士に相談してください。</p>
+    <button class="btn ghost" id="yrCsv">${Y}年のまとめをCSVで保存</button>
+    <div class="gap"></div>
+    <button class="btn ghost" id="yrYayoi">弥生に取り込むCSVを保存</button>
+    <p class="note">やよいの白色申告・青色申告 オンラインの「スマート取引取込」→「CSVファイル取込」で読み込めます。りらくるの月ごとの売上・手数料と、記録した経費（仕事の割合の分）が1行ずつ入ります。減価償却は入らないので、弥生の固定資産に登録してください。同じファイルを2回取り込むと二重になるので注意してください。</p>
+  </div>`;
+  const upBiz=()=>{$("exBiz").textContent=yen(Math.floor(toInt($("exAmt").value)*Math.min(100,toInt($("exRatio").value))/100))};
+  $("exAmt").addEventListener("input",upBiz);$("exRatio").addEventListener("input",upBiz);upBiz();
+  $("exCat").addEventListener("change",()=>{$("exRatio").value=catRatio($("exCat").value);upBiz()});
+}
+// 弥生「スマート取引取込」用（日付・入金・出金・摘要、Shift-JIS）
+function yayoiRows(Y){const D=yearData(Y),R=[["日付","入金","出金","摘要"]];
+  D.months.forEach((r,i)=>{if(!r)return;const m=i+1,d=Y+"/"+pad(m)+"/"+pad(new Date(Y,m,0).getDate()),t=`りらくる ${m}月分`;
+    if(r.sales)R.push([d,r.sales,0,`売上高 ${t} 施術売上`]);
+    if(r.side)R.push([d,r.side,0,`売上高 ${t} 付随業務`]);
+    if(r.adj>0)R.push([d,r.adj,0,`雑収入 ${t} 報酬調整額`]);if(r.adj<0)R.push([d,0,-r.adj,`支払手数料 ${t} 報酬調整額`]);
+    [["sys","システム利用料"],["fac","施設利用料"],["mat","固定材料費"],["risk","危機管理料"]].forEach(([k,n])=>{if(r[k])R.push([d,0,r[k],`支払手数料 ${t} ${n}`])})});
+  D.ex.slice().reverse().forEach(e=>{const b=expBiz(e);if(!b)return;const ac=(e.cat||"雑費").split("（")[0];
+    R.push([e.date.replace(/-/g,"/"),0,b,`${ac} ${e.memo||e.cat}${(e.ratio??100)<100?`（${e.amt}円の${e.ratio}%）`:""}`.slice(0,80)])});
+  return R}
+function loadEncoding(){return new Promise((ok,ng)=>{if(window.Encoding)return ok(window.Encoding);const sc=document.createElement("script");
+  sc.src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.2.0/encoding.min.js";sc.onload=()=>window.Encoding?ok(window.Encoding):ng();sc.onerror=ng;document.head.appendChild(sc)})}
+async function saveYayoi(Y){const R=yayoiRows(Y);if(R.length<2){toast("この年の記録はまだありません");return}
+  const text=R.map(r=>r.map(x=>{x=String(x);return /[",\n]/.test(x)?`"${x.replace(/"/g,'""')}"`:x}).join(",")).join("\r\n")+"\r\n";
+  let Enc;try{Enc=await loadEncoding()}catch(e){toast("ネットにつながっているときに保存してください");return}
+  const sj=new Uint8Array(Enc.convert(Enc.stringToCode(text),{to:"SJIS",from:"UNICODE"}));
+  await saveFile("弥生取込_"+Y+".csv",sj,"text/csv")}
+function yearCsv(Y){const D=yearData(Y),q=x=>`"${String(x??"").replace(/"/g,'""')}"`;const L=[];
+  L.push([Y+"年 りらくるの収入"].map(q).join(","));L.push(["月","売上","付随業務","報酬調整額","システム利用料","施設利用料","固定材料費","危機管理料","入金額"].map(q).join(","));
+  D.months.forEach((r,i)=>{if(r)L.push([(i+1)+"月",r.sales,r.side,r.adj,r.sys,r.fac,r.mat,r.risk,r.pay].map(q).join(","))});
+  const T=D.T;L.push(["合計",T.sales,T.side,T.adj,T.sys,T.fac,T.mat,T.risk,T.pay].map(q).join(","));L.push("");
+  L.push(["経費"].map(q).join(","));L.push(["日付","種類","支払った金額","仕事で使う割合(%)","経費になる額","メモ"].map(q).join(","));
+  D.ex.slice().reverse().forEach(e=>L.push([e.date,e.cat,e.amt,e.ratio??100,expBiz(e),e.memo||""].map(q).join(",")));
+  D.assets.forEach(a=>L.push([a.date,"減価償却："+(a.name||""),a.depr,a.ratio??100,a.biz,`${a.price}円・${a.years}年`].map(q).join(",")));
+  L.push(["","","","","経費の合計",D.expSum].map(q).join(","));L.push("");
+  L.push(["所得の目安",D.income].map(q).join(","));
+  return "﻿"+L.join("\n")}
+$("statsBody").addEventListener("click",async e=>{if(statsMode!=="y")return;const t=e.target.closest?e.target.closest("button"):null;if(!t)return;
+  if(t.id==="exSave"){const amt=toInt($("exAmt").value),date=$("exDate").value;if(!date){toast("日付を入れてください");return}if(!amt){toast("金額を入れてください");return}
+    const o={date,cat:$("exCat").value,amt,ratio:Math.min(100,toInt($("exRatio").value)),memo:$("exMemo").value.trim(),updatedAt:Date.now()};
+    const id=expEditId||("e_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));const was=!!expEditId;expEditId=null;expDelArmed=null;
+    if(date.slice(0,4)!==String(statsYear))statsYear=Number(date.slice(0,4));
+    await saveExpense(id,o);toast(was?"変更を保存しました":"経費を追加しました（"+yen(expBiz(o))+"）");return}
+  if(t.dataset.exid){expEditId=t.dataset.exid;expDelArmed=null;renderStats();$("expForm").scrollIntoView({behavior:"smooth",block:"center"});return}
+  if(t.id==="exCancel"){expEditId=null;expDelArmed=null;renderStats();return}
+  if(t.id==="exDel"){if(!expDelArmed){expDelArmed=setTimeout(()=>{expDelArmed=null;if($("exDel"))$("exDel").textContent="この経費を削除"},4000);t.textContent="もう一度で削除";return}
+    clearTimeout(expDelArmed);expDelArmed=null;const id=expEditId;expEditId=null;await saveExpense(id,null);toast("経費を削除しました");return}
+  if(t.id==="catAdd"){const n=$("catNewN").value.trim();if(!n){toast("種類の名前を入れてください");return}const c=expCats().slice();if(c.some(x=>x.n===n)){toast("同じ名前の種類があります");return}
+    c.push({n,r:Math.min(100,toInt($("catNewR").value))});settings.expCats=c;await saveSettingsData();toast("種類を追加しました");return}
+  if(t.dataset.catdel!=null){const c=expCats().slice();c.splice(Number(t.dataset.catdel),1);if(!c.length){toast("種類は1つ以上必要です");return}settings.expCats=c;await saveSettingsData();toast("種類を削除しました（記録した経費は消えません）");return}
+  if(t.dataset.asid){asEditId=t.dataset.asid;renderStats();return}
+  if(t.id==="asCancel"){asEditId=null;renderStats();return}
+  if(t.id==="asDel"){settings.assets=(settings.assets||[]).filter(a=>a.id!==asEditId);asEditId=null;await saveSettingsData();toast("削除しました");return}
+  if(t.id==="asSave"){const price=toInt($("asPrice").value),date=$("asDate").value;if(!price||!date){toast("金額と買った月を入れてください");return}
+    const a={id:asEditId||("a_"+Date.now().toString(36)),name:$("asName").value.trim(),price,date,years:Number($("asYears").value),ratio:Math.min(100,toInt($("asRatio").value))};
+    const list=(settings.assets||[]).filter(x=>x.id!==a.id);list.push(a);settings.assets=list;const was=!!asEditId;asEditId=null;await saveSettingsData();toast(was?"変更を保存しました":"追加しました");return}
+  if(t.id==="yrYayoi"){await saveYayoi(statsYear);return}
+  if(t.id==="yrCsv"){await saveFile("年間まとめ_"+statsYear+".csv",yearCsv(statsYear),"text/csv");return}
+});
+$("statsBody").addEventListener("change",async e=>{if(statsMode!=="y")return;const i=e.target.dataset.catn??e.target.dataset.catr;if(i==null)return;
+  const c=expCats().map(x=>({...x}));const k=Number(i);
+  if(e.target.dataset.catn!=null){const n=e.target.value.trim();if(!n){renderStats();return}const old=c[k].n;c[k].n=n;
+    Object.values(expenses).forEach(x=>{if(x.cat===old)x.cat=n});writeCache();
+    if(col)for(const [id,x] of Object.entries(expenses))if(x.cat===n){try{await col.doc(id).set(x)}catch(err){}}}
+  else c[k].r=Math.min(100,toInt(e.target.value));
+  settings.expCats=c;await saveSettingsData();toast("保存しました")});
+document.querySelectorAll("#sMode button").forEach(b=>b.addEventListener("click",()=>{statsMode=b.dataset.sm;
+  document.querySelectorAll("#sMode button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  if(statsMode==="y")statsYear=Number(statsMonth.slice(0,4));expEditId=null;asEditId=null;renderStats();window.scrollTo(0,0)}));
 function renderStats(){
+  if(statsMode==="y"){renderYear();return}
   $("sMonth").textContent=monthLabel(statsMonth);
   const mAll=visits.filter(v=>v.date.startsWith(statsMonth)&&!isEtc(v)),mv=live(mAll),mcx=mAll.filter(v=>v.cancel);
   const sideDays=Object.keys(days).filter(dk=>dk.startsWith(statsMonth)&&sideText(dk));
@@ -2100,8 +2286,8 @@ function renderStats(){
       ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日<small class="dw ${["sun","","","","","","sat"][new Date(dk+"T00:00").getDay()]}">（${"日月火水木金土"[new Date(dk+"T00:00").getDay()]}）</small></span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
     </div>`;
 }
-$("sPrev").addEventListener("click",()=>{statsMonth=shiftMonth(statsMonth,-1);renderStats()});
-$("sNext").addEventListener("click",()=>{statsMonth=shiftMonth(statsMonth,1);renderStats()});
+$("sPrev").addEventListener("click",()=>{if(statsMode==="y"){statsYear--;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,-1);renderStats()});
+$("sNext").addEventListener("click",()=>{if(statsMode==="y"){statsYear++;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,1);renderStats()});
 
 /* ---------- members ---------- */
 let memberQuery="";
@@ -2157,9 +2343,9 @@ $("addRate").addEventListener("click",()=>{
 });
 function renderSettings(){$("setFee").value=settings.shimeiFee;$("setGm").value=settings.gmFee||"";$("setGf").value=settings.gfFee||"";$("setOpen").value=settings.openAmt||"";$("setClose").value=settings.closeAmt||"";draftRates=Object.entries(settings.sysRates||{}).sort().map(([m,r])=>({m,r}));
   if(!draftRates.length)draftRates=[{m:bizToday().slice(0,7),r:settings.sysRate||""}];
-  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate;$("setIv").value=settings.interval;$("setOptPm").value=settings.optPm;$("setOptCpm").value=settings.optCpm;$("setRisk").value=settings.riskFee}
+  drawRates();$("setFac").value=settings.facRate;$("setMat").value=settings.matRate;$("setIv").value=settings.interval;$("setOptPm").value=settings.optPm;$("setOptCpm").value=settings.optCpm;$("setOptPf").value=settings.optPf;$("setOptPs").value=settings.optPs;$("setRisk").value=settings.riskFee}
 $("saveSettings").addEventListener("click",async()=>{
-  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value),interval:Math.min(120,toInt($("setIv").value)),optPm:toInt($("setOptPm").value),optCpm:toInt($("setOptCpm").value),riskFee:toInt($("setRisk").value),adj:settings.adj||{},yt:settings.yt||{}};
+  settings={shimeiFee:toInt($("setFee").value),feeSet:true,gmFee:toInt($("setGm").value),gfFee:toInt($("setGf").value),openAmt:toInt($("setOpen").value),closeAmt:toInt($("setClose").value),sysRate:48,sysRates:Object.fromEntries(draftRates.filter(x=>/^\d{4}-\d{2}$/.test(x.m)&&x.r!==""&&!isNaN(parseFloat(x.r))).map(x=>[x.m,Math.max(0,parseFloat(x.r))])),facRate:toInt($("setFac").value),matRate:toInt($("setMat").value),interval:Math.min(120,toInt($("setIv").value)),optPm:toInt($("setOptPm").value),optCpm:toInt($("setOptCpm").value),optPf:toInt($("setOptPf").value),optPs:toInt($("setOptPs").value),riskFee:toInt($("setRisk").value),adj:settings.adj||{},yt:settings.yt||{},expCats:settings.expCats||null,assets:settings.assets||[]};
   await saveSettingsData();toast("設定を保存しました（指名料 "+yen(settings.shimeiFee)+"）");show("input");
 });
 // ファイル保存：Claude上ではdownloads機能、単体アプリでは通常のダウンロード
@@ -2180,7 +2366,7 @@ async function saveFile(filename,text,mime){
     toast("「ダウンロード」フォルダに保存しました："+filename);return true}catch(e){}
   toast("保存できませんでした。「文字でコピー」を使ってください");return false;
 }
-function backupJSON(){return JSON.stringify({app:"yoyaku-note",version:1,exportedAt:new Date().toISOString(),visits,days,settings,members})}
+function backupJSON(){return JSON.stringify({app:"yoyaku-note",version:1,exportedAt:new Date().toISOString(),visits,days,settings,members,expenses})}
 /* ---------- 月初のバックアップ案内 ---------- */
 // 毎月1日〜3日に案内を出す。バックアップをする（または「済み」を押す）とその月はもう出ない。「あとで」はその日だけ出さない
 const BK_DONE="rirakuLog.bkDoneMonth",BK_LAST="rirakuLog.bkLast",BK_SNOOZE="rirakuLog.bkSnooze";
@@ -2268,6 +2454,7 @@ $("bkRestore").addEventListener("click",async()=>{
   visits=sortVisits([...byId.values()]);
   if(o.days&&typeof o.days==="object")Object.assign(days,o.days);
   if(o.members&&typeof o.members==="object")Object.assign(members,o.members);
+  if(o.expenses&&typeof o.expenses==="object")Object.assign(expenses,o.expenses);
   if(o.settings)settings=mergeSettings(o.settings);
   // 一部の設定だけを足すデータ（月ごとの率・報酬調整額など）
   const sm=o.settingsMerge;
@@ -2280,6 +2467,7 @@ $("bkRestore").addEventListener("click",async()=>{
       for(const v of o.visits){if(!v||!v.id)continue;const {id,...body}=v;await col.doc(id).set(body)}
       for(const [dk,d] of Object.entries(o.days||{}))await col.doc("d_"+dk).set(d);
       for(const [no,m] of Object.entries(o.members||{}))await col.doc("m_"+no).set(m);
+      for(const [id,x] of Object.entries(o.expenses||{}))await col.doc(id).set(x);
       if(o.settings||o.settingsMerge)await col.doc("settings").set(settings);
     }catch(e){toast("一部の記録をクラウドに保存できませんでした");return}
   }

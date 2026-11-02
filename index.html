@@ -130,6 +130,19 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .yt-det.yr-det summary::after{content:"種類と割合を変える ▾"}.yt-det.yr-det[open] summary::after{content:"閉じる ▴"}
 .yt-det.yr-det2 summary::after{content:"車などを追加する ▾"}.yt-det.yr-det2[open] summary::after{content:"閉じる ▴"}
 .btn.danger{color:#C0392B}
+.paste-btn{font-size:18px;padding:16px 0}
+.paste-det{margin-top:8px}.paste-det summary{font-size:13px;color:var(--sub);cursor:pointer}.paste-det textarea{margin-top:6px}
+#pasteSum{margin-top:10px;border:2px solid var(--ok);border-radius:14px;padding:8px 12px 10px;scroll-margin-bottom:84px}
+#pasteSum h4{margin:0 0 4px;font-size:13px;color:var(--ok)}
+#pasteSum table{width:100%;border-collapse:collapse;font-size:14px}
+#pasteSum td{padding:3px 0;border-bottom:1px solid var(--line);vertical-align:top}
+#pasteSum td:first-child{color:var(--sub);width:5em;font-size:12px;padding-top:5px}
+#pasteSum .miss{color:var(--danger)}
+#pasteSum .dchips{display:flex;gap:6px;flex-wrap:wrap}
+#pasteSum .dchips .chip{padding:2px 12px;font-size:13px}
+#pasteSum .memo-s{white-space:pre-wrap;font-size:12px;color:var(--sub)}
+#pasteSum .ps-btns{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px}
+#pasteSum .ps-btns .btn{padding:12px 0}
 .etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
 .seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
 .tag.etc{background:#ECEDEF;color:#4B5563}
@@ -558,9 +571,13 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <!-- 入力 -->
   <section class="view on" id="v-input">
     <div class="card">
-      <label class="lbl" for="pasteBox">予約内容を貼り付け</label>
-      <textarea class="fld" id="pasteBox" placeholder="予約通知の文章をここに貼り付けると、下の項目に自動で入力されます"></textarea>
+      <button type="button" class="btn paste-btn" id="pasteBtn">📋 予約通知を貼り付け</button>
+      <p class="note" style="margin:6px 0 0">りらくるアプリで予約通知をコピーしてから押してください。</p>
       <div class="warn" id="pasteMsg"></div>
+      <div id="pasteSum" hidden></div>
+      <details class="paste-det" id="pasteDet"><summary>うまく貼り付けられないとき</summary>
+        <textarea class="fld" id="pasteBox" placeholder="予約通知の文章をここに長押しで貼り付けると、自動で入力されます"></textarea>
+      </details>
     </div>
     <div class="card">
       <div class="row2">
@@ -701,7 +718,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   </details>
   <details class="card"><summary>入力タブ（予約を記録する）</summary>
     <ul>
-      <li><b>予約内容を貼り付け</b>：予約通知の文章を貼り付けると、時間・会員番号・コースなどを自動で読み取ります。</li>
+      <li><b>予約通知を貼り付け</b>：りらくるアプリで予約通知をコピーしてから、入力タブの一番上の「📋 予約通知を貼り付け」を押すと、時間・会員番号・コースなどを自動で読み取ります。読み取った内容がボタンのすぐ下に出るので、確認して「この内容で保存」を押すだけで保存できます（日付は「今日」「明日」から選べます）。初めて押したときは、貼り付けの許可を聞かれるので「許可」を選んでください。うまくいかないときは「うまく貼り付けられないとき」を開いて、欄に長押しで貼り付けてください。</li>
       <li><b>日付・予約時間</b>：24時〜26時も選べます（前の日の営業として記録）。</li>
       <li><b>指名の種類</b>：指名・フリー・男性指名・女性指名。指名料は⚙設定の金額が自動で入ります。</li>
       <li><b>会員番号</b>：入れると下に前回の来店やお客様の特徴が出ます。登録済みの番号は「この会員番号はすでに登録があります」と出るので、今回のお客様の「このお客様を選ぶ」を押してから保存します。同じ番号で別の人なら「同じ番号の別のお客様（新しく登録）」を押し、見分けられるように特徴を入れてください。</li>
@@ -1211,8 +1228,10 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=75; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=77; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:77,date:"11月3日",items:["予約通知に性別がないときは、同じ会員番号の前回の記録から性別を入れます。初めてのお客様は、読み取った内容の「性別」で男性・女性を選べます。"]},
+  {n:76,date:"11月3日",items:["入力タブの一番上に「📋 予約通知を貼り付け」ボタンを付けました。予約通知をコピーしてから押すだけで読み取ります。","読み取った内容をボタンのすぐ下にまとめて表示し、そこから「この内容で保存」を押せるようにしました。下までスクロールしなくても保存できます。日付は「今日」「明日」から選べます。"]},
   {n:75,date:"11月3日",items:["入力タブのオプションに「プレミアム顔まくら」と「パチスパ」を追加しました。料金（どちらも220円）は⚙設定で変えられます。オプションは、りらくると同じく料金の50％をシステム利用料として計算します。"]},
   {n:74,date:"10月31日",items:["予約の種類に「その他（練習など）」を追加しました。店内での練習など、売上に入れない記録を残せます。時間タブにはグレーの斜線の枠で、一覧には「その他」として表示され、売上・件数・施術時間・収入には入りません。内容はメモに書くと、1行目が表示されます。"]},
   {n:70,date:"10月30日",items:["集計タブの「月の収入」と今月の欄の収入に、付随業務も足すようにしました。りらくるの明細の入金額と同じ金額になります。"]},
@@ -1359,6 +1378,7 @@ const OPTS=[
   {k:"kc",name:"腰集中コース",short:"腰集中"}
 ];
 let fOpts=[];
+let pasteShown=false; // 貼り付けた内容の確認を表示中か
 function renderOpts(){
   $("optChips").innerHTML=OPTS.map(o=>`<button type="button" class="chip" data-k="${o.k}" aria-pressed="${fOpts.includes(o.k)}">${o.name}</button>`).join("");
   $("optChips").querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{
@@ -1399,6 +1419,7 @@ document.querySelectorAll("#fType button").forEach(b=>b.addEventListener("click"
 function partsMin(){return PARTS.reduce((a,p)=>a+(parts[p.k]||0),0)}
 function partsLabel(){return PARTS.filter(p=>parts[p.k]).map(p=>p.k+parts[p.k]).join("+")}
 function renderChips(){
+  if(pasteShown)setTimeout(renderPasteSum,0);
   $("parts").innerHTML=PARTS.map(p=>`<button type="button" class="part" data-k="${p.k}" aria-pressed="${!!parts[p.k]}"><b>${p.k}</b><small>${p.name}</small></button>`).join("");
   $("parts").querySelectorAll(".part").forEach(b=>b.addEventListener("click",()=>{
     const p=PARTS.find(x=>x.k===b.dataset.k);parts[p.k]=parts[p.k]?0:p.def;legacyCourse="";onPartsChange();
@@ -1420,6 +1441,7 @@ function onPartsChange(){
   renderChips();updateTotal();
 }
 function updateTotal(){
+  if(pasteShown)renderPasteSum();
   const p=toInt($("fPrice").value), f=currentFee();
   $("fTotal").textContent=yen(p);
   $("feeLine").textContent=f?`合計（うち指名料 ${yen(f)}・施術分 ${yen(Math.max(0,p-f))}）`:"合計";
@@ -1518,6 +1540,7 @@ function renderSideCard(){
 }
 $("fDate").addEventListener("change",renderSideCard);
 function resetForm(){
+  pasteShown=false;if($("pasteSum"))renderPasteSum();
   editingId=null;memberOK="";fWho=1;newFeatDraft="";
   $("fDate").value=bizToday();setTime(roundedNow());
   sideDraft={};cancelArmed=null;
@@ -1651,6 +1674,7 @@ function applyReservation(){
   if(r.time)setTime(r.time);
   if(r.type)setType(r.type,true);
   if(r.sex)setSex(r.sex);
+  else if(r.member){const past=live(visits).filter(v=>v.member===r.member&&v.sex);const sx=[...new Set(past.map(v=>v.sex))];setSex(sx.length===1?sx[0]:"")}
   
   if(r.parts&&Object.keys(r.parts).length){parts={H:0,A:0,F:0,T:0};Object.assign(parts,r.parts);legacyCourse=""}
   else if(r.span){parts={H:0,A:0,F:0,T:0};legacyCourse=r.span+"分"}
@@ -1659,9 +1683,41 @@ function applyReservation(){
   if(r.memo)$("fMemo").value=r.memo;
   $("pasteBox").value="";$("pasteMsg").textContent="";
   renderChips();renderMemberHint();updateTotal();
-  $("fDate").scrollIntoView({behavior:"smooth",block:"center"});
-  toast("読み取りました。日付を確認して保存してください");
+  $("pasteDet").open=false;pasteShown=true;renderPasteSum();
+  $("pasteSum").scrollIntoView({behavior:"smooth",block:"end"});
 }
+// 貼り付けた内容の確認（ここから保存できる。スクロールしなくてよいように）
+function renderPasteSum(){
+  const el=$("pasteSum");if(!pasteShown){el.hidden=true;el.innerHTML="";return}
+  const dk=$("fDate").value,t0=bizToday(),t1=(d=>{d.setDate(d.getDate()+1);return dateKey(d)})(new Date(t0+"T00:00"));
+  const min=partsMin()||guessMin({course:legacyCourse}),st=getTime(),[h,mi]=st.split(":").map(Number),en=h*60+mi+(min||0);
+  const price=toInt($("fPrice").value),no=$("fMember").value.trim(),note=no?memberNote(ckOf(no,fWho)):"";
+  const opts=optNames({opts:fOpts});const memo=$("fMemo").value.trim();
+  el.hidden=false;
+  el.innerHTML=`<h4>読み取った内容</h4><table>
+    <tr><td>日付</td><td><div class="dchips"><button type="button" class="chip" data-psd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-psd="${t1}" aria-pressed="${dk===t1}">明日</button>${dk!==t0&&dk!==t1?`<span class="chip" aria-pressed="true">${dayLabel(dk)}</span>`:""}</div></td></tr>
+    <tr><td>時間</td><td class="num">${esc(st)}${min?`〜${hm(en)}（${min}分）`:""}</td></tr>
+    <tr><td>種類</td><td>${typeLabel(fType)}</td></tr>
+    <tr><td>性別</td><td><div class="dchips"><button type="button" class="chip" data-pss="m" aria-pressed="${fSex==="m"}">男性</button><button type="button" class="chip" data-pss="f" aria-pressed="${fSex==="f"}">女性</button>${fSex?"":`<span class="miss" style="font-size:12px;align-self:center">選んでください</span>`}</div></td></tr>
+    <tr><td>会員番号</td><td class="num">${no?esc(no)+(note?`<br><small>📌 ${esc(note)}</small>`:""):`<span class="miss">なし</span>`}${memberNeedsOK()?`<br><span class="miss">同じ番号のお客様がいます。保存を押すと選ぶ画面に移ります</span>`:""}</td></tr>
+    <tr><td>コース</td><td>${partsMin()?esc(partsLabel()):esc(legacyCourse)||`<span class="miss">未入力</span>`}</td></tr>
+    ${opts.length?`<tr><td>オプション</td><td>${opts.map(esc).join("・")}</td></tr>`:""}
+    <tr><td>料金</td><td class="num">${price?yen(price):`<span class="miss">未入力</span>`}</td></tr>
+    ${memo?`<tr><td>メモ</td><td class="memo-s">${esc(memo)}</td></tr>`:""}
+  </table>
+  <div class="ps-btns"><button type="button" class="btn" id="psSave">この内容で保存</button><button type="button" class="btn ghost" id="psEdit">下で直す</button></div>`;
+}
+$("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.pss){setSex(fSex===b.dataset.pss?"":b.dataset.pss);renderPasteSum();return}
+  if(b.dataset.psd){$("fDate").value=b.dataset.psd;$("fDate").dispatchEvent(new Event("change"));renderChips();renderPasteSum();return}
+  if(b.id==="psSave"){$("saveBtn").click();return}
+  if(b.id==="psEdit"){$("fDate").scrollIntoView({behavior:"smooth",block:"center"})}});
+$("pasteBtn").addEventListener("click",async()=>{
+  let t="";
+  try{if(navigator.clipboard&&navigator.clipboard.readText)t=await navigator.clipboard.readText()}catch(e){t=""}
+  if(!t||!t.trim()){$("pasteDet").open=true;$("pasteBox").focus();toast("コピーした文章を読めませんでした。下の欄に長押しで貼り付けてください");return}
+  $("pasteBox").value=t;applyReservation();
+});
 let pasteTimer=null;
 $("pasteBox").addEventListener("input",()=>{clearTimeout(pasteTimer);pasteTimer=setTimeout(applyReservation,400)});
 

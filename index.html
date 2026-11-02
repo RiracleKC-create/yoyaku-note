@@ -143,6 +143,10 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 #pasteSum .memo-s{white-space:pre-wrap;font-size:12px;color:var(--sub)}
 #pasteSum .ps-btns{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px}
 #pasteSum .ps-btns .btn{padding:12px 0}
+.ps-who{display:grid;gap:6px;margin-top:6px}
+.ps-who button{text-align:left;border:1.5px solid var(--line);background:var(--field);border-radius:10px;padding:8px 10px;font-size:14px;color:var(--ink)}
+.ps-who button small{display:block;color:var(--sub);font-size:12px}
+.ps-who button.nw{color:var(--sub);font-size:13px}
 .etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
 .seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
 .tag.etc{background:#ECEDEF;color:#4B5563}
@@ -1228,8 +1232,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=77; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=78; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:78,date:"11月3日",items:["予約通知を貼り付けたとき、同じ会員番号のお客様が複数いる場合は、読み取った内容の画面でそのままお客様を選べるようにしました。選んだあと、続けて「この内容で保存」を押せます。"]},
   {n:77,date:"11月3日",items:["予約通知に性別がないときは、同じ会員番号の前回の記録から性別を入れます。初めてのお客様は、読み取った内容の「性別」で男性・女性を選べます。"]},
   {n:76,date:"11月3日",items:["入力タブの一番上に「📋 予約通知を貼り付け」ボタンを付けました。予約通知をコピーしてから押すだけで読み取ります。","読み取った内容をボタンのすぐ下にまとめて表示し、そこから「この内容で保存」を押せるようにしました。下までスクロールしなくても保存できます。日付は「今日」「明日」から選べます。"]},
   {n:75,date:"11月3日",items:["入力タブのオプションに「プレミアム顔まくら」と「パチスパ」を追加しました。料金（どちらも220円）は⚙設定で変えられます。オプションは、りらくると同じく料金の50％をシステム利用料として計算します。"]},
@@ -1379,6 +1384,16 @@ const OPTS=[
 ];
 let fOpts=[];
 let pasteShown=false; // 貼り付けた内容の確認を表示中か
+// 確認画面の会員番号：同じ番号のお客様がいれば、ここで選べるようにする
+function psMemberHtml(no,note){
+  if(!no)return `<span class="miss">なし</span>`;
+  const whos=whosFor(no,editingId);
+  if(memberNeedsOK())return `${esc(no)}<br><span class="miss" style="font-size:12px">同じ番号のお客様がいます。今回のお客様を選んでください</span>
+    <div class="ps-who">${whos.map(w=>{const k=ckOf(no,w),n=memberNote(k),last=live(visits).filter(v=>ck(v)===k).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];
+      return `<button type="button" data-psw="${w}"><b>${esc(keyLabel(k))}</b>${n?` 📌 ${esc(n)}`:""}${last?`<small>前回 ${dayLabel(last.date)}・${esc(last.course||"")}${last.sex?"・"+SEX[last.sex]:""}</small>`:""}</button>`}).join("")}
+    <button type="button" data-psw="new" class="nw">同じ番号の別のお客様（新しく登録）</button></div>`;
+  const isNew=whos.length>0&&!whos.includes(fWho);
+  return `${esc(whos.length||fWho>1?keyLabel(ckOf(no,fWho)):no)}${isNew?`<br><small>別のお客様として新しく登録します</small><input class="fld" id="psFeat" placeholder="特徴（例：30代・眼鏡）※あとからでもOK" value="${esc(newFeatDraft)}" style="margin-top:4px;padding:6px 8px;font-size:13px">`:(note?`<br><small>📌 ${esc(note)}</small>`:"")}${whos.length&&memberOK?` <button type="button" class="chip" data-psw="redo" style="padding:1px 10px;font-size:12px">選び直す</button>`:""}`}
 function renderOpts(){
   $("optChips").innerHTML=OPTS.map(o=>`<button type="button" class="chip" data-k="${o.k}" aria-pressed="${fOpts.includes(o.k)}">${o.name}</button>`).join("");
   $("optChips").querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{
@@ -1486,13 +1501,15 @@ function renderMemberHint(){
   </div>`;
 }
 $("memberHint").addEventListener("input",e=>{if(e.target.id==="fNewFeat")newFeatDraft=e.target.value});
+$("pasteSum").addEventListener("input",e=>{if(e.target.id==="psFeat"){newFeatDraft=e.target.value;const f=$("fNewFeat");if(f)f.value=newFeatDraft}});
 $("memberHint").addEventListener("click",e=>{const b=e.target.closest("[data-mh]");if(!b)return;
   const no=$("fMember").value.trim(),act=b.dataset.mh;
   if(act==="pick"){fWho=Number(b.dataset.who)||1;memberOK=ckOf(no,fWho);
     if(!fSex){const prev=visits.find(v=>ck(v)===memberOK&&v.sex&&v.id!==editingId);if(prev)setSex(prev.sex)}}
   else if(act==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
   else if(act==="redo"){memberOK="";fWho=1}
-  renderMemberHint()});
+  renderMemberHint();
+  if(pasteShown&&act!=="redo"){renderPasteSum();$("pasteSum").scrollIntoView({behavior:"smooth",block:"end"})}});
 function memberNeedsOK(){const no=$("fMember").value.trim();return !!no&&memberOK!==ckOf(no,fWho)&&(whosFor(no,editingId).length>0||fWho>1)}
 $("fMember").addEventListener("input",()=>{memberOK="";fWho=1;renderMemberHint()});
 
@@ -1699,7 +1716,7 @@ function renderPasteSum(){
     <tr><td>時間</td><td class="num">${esc(st)}${min?`〜${hm(en)}（${min}分）`:""}</td></tr>
     <tr><td>種類</td><td>${typeLabel(fType)}</td></tr>
     <tr><td>性別</td><td><div class="dchips"><button type="button" class="chip" data-pss="m" aria-pressed="${fSex==="m"}">男性</button><button type="button" class="chip" data-pss="f" aria-pressed="${fSex==="f"}">女性</button>${fSex?"":`<span class="miss" style="font-size:12px;align-self:center">選んでください</span>`}</div></td></tr>
-    <tr><td>会員番号</td><td class="num">${no?esc(no)+(note?`<br><small>📌 ${esc(note)}</small>`:""):`<span class="miss">なし</span>`}${memberNeedsOK()?`<br><span class="miss">同じ番号のお客様がいます。保存を押すと選ぶ画面に移ります</span>`:""}</td></tr>
+    <tr><td>会員番号</td><td class="num">${psMemberHtml(no,note)}</td></tr>
     <tr><td>コース</td><td>${partsMin()?esc(partsLabel()):esc(legacyCourse)||`<span class="miss">未入力</span>`}</td></tr>
     ${opts.length?`<tr><td>オプション</td><td>${opts.map(esc).join("・")}</td></tr>`:""}
     <tr><td>料金</td><td class="num">${price?yen(price):`<span class="miss">未入力</span>`}</td></tr>
@@ -1708,9 +1725,14 @@ function renderPasteSum(){
   <div class="ps-btns"><button type="button" class="btn" id="psSave">この内容で保存</button><button type="button" class="btn ghost" id="psEdit">下で直す</button></div>`;
 }
 $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.psw){const no=$("fMember").value.trim(),a=b.dataset.psw;
+    if(a==="redo"){memberOK="";fWho=1}
+    else if(a==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
+    else{fWho=Number(a)||1;memberOK=ckOf(no,fWho);if(!fSex){const prev=visits.find(v=>ck(v)===memberOK&&v.sex&&v.id!==editingId);if(prev)setSex(prev.sex)}}
+    renderMemberHint();renderPasteSum();return}
   if(b.dataset.pss){setSex(fSex===b.dataset.pss?"":b.dataset.pss);renderPasteSum();return}
   if(b.dataset.psd){$("fDate").value=b.dataset.psd;$("fDate").dispatchEvent(new Event("change"));renderChips();renderPasteSum();return}
-  if(b.id==="psSave"){$("saveBtn").click();return}
+  if(b.id==="psSave"){if(memberNeedsOK()){toast("今回のお客様を選んでください");return}$("saveBtn").click();return}
   if(b.id==="psEdit"){$("fDate").scrollIntoView({behavior:"smooth",block:"center"})}});
 $("pasteBtn").addEventListener("click",async()=>{
   let t="";

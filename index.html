@@ -1232,8 +1232,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=78; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=79; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:79,date:"11月3日",items:["保存を押したあとに同じ会員番号のお客様を選んだときは、選んだらそのまま記録を保存するようにしました（新しいお客様として登録するときは、特徴を入れてから保存を押してください）。"]},
   {n:78,date:"11月3日",items:["予約通知を貼り付けたとき、同じ会員番号のお客様が複数いる場合は、読み取った内容の画面でそのままお客様を選べるようにしました。選んだあと、続けて「この内容で保存」を押せます。"]},
   {n:77,date:"11月3日",items:["予約通知に性別がないときは、同じ会員番号の前回の記録から性別を入れます。初めてのお客様は、読み取った内容の「性別」で男性・女性を選べます。"]},
   {n:76,date:"11月3日",items:["入力タブの一番上に「📋 予約通知を貼り付け」ボタンを付けました。予約通知をコピーしてから押すだけで読み取ります。","読み取った内容をボタンのすぐ下にまとめて表示し、そこから「この内容で保存」を押せるようにしました。下までスクロールしなくても保存できます。日付は「今日」「明日」から選べます。"]},
@@ -1384,6 +1385,12 @@ const OPTS=[
 ];
 let fOpts=[];
 let pasteShown=false; // 貼り付けた内容の確認を表示中か
+let pendingSave=false; // 保存を押したが、同じ会員番号のお客様を選ぶ必要があったとき（選んだらそのまま保存する）
+// お客様を選んだあと：保存を押していればそのまま保存、そうでなければ保存ボタンの所へ
+function afterPick(isNew){
+  if(pendingSave&&!isNew){pendingSave=false;setTimeout(()=>$("saveBtn").click(),150);return}
+  setTimeout(()=>{if(pasteShown){renderPasteSum();$("pasteSum").scrollIntoView({behavior:"smooth",block:"end"})}
+    else $("saveBtn").scrollIntoView({behavior:"smooth",block:"center"})},50)}
 // 確認画面の会員番号：同じ番号のお客様がいれば、ここで選べるようにする
 function psMemberHtml(no,note){
   if(!no)return `<span class="miss">なし</span>`;
@@ -1509,9 +1516,9 @@ $("memberHint").addEventListener("click",e=>{const b=e.target.closest("[data-mh]
   else if(act==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
   else if(act==="redo"){memberOK="";fWho=1}
   renderMemberHint();
-  if(pasteShown&&act!=="redo"){renderPasteSum();$("pasteSum").scrollIntoView({behavior:"smooth",block:"end"})}});
+  if(act!=="redo")afterPick(act==="new");});
 function memberNeedsOK(){const no=$("fMember").value.trim();return !!no&&memberOK!==ckOf(no,fWho)&&(whosFor(no,editingId).length>0||fWho>1)}
-$("fMember").addEventListener("input",()=>{memberOK="";fWho=1;renderMemberHint()});
+$("fMember").addEventListener("input",()=>{memberOK="";fWho=1;pendingSave=false;renderMemberHint()});
 
 function roundedNow(){let m=Math.ceil(bizNow().min/5)*5;m=Math.max(OPEN_H*60,Math.min(m,CLOSE_H*60-5));return pad(Math.floor(m/60))+":"+pad(m%60)}
 (function(){
@@ -1557,7 +1564,7 @@ function renderSideCard(){
 }
 $("fDate").addEventListener("change",renderSideCard);
 function resetForm(){
-  pasteShown=false;if($("pasteSum"))renderPasteSum();
+  pasteShown=false;pendingSave=false;if($("pasteSum"))renderPasteSum();
   editingId=null;memberOK="";fWho=1;newFeatDraft="";
   $("fDate").value=bizToday();setTime(roundedNow());
   sideDraft={};cancelArmed=null;
@@ -1584,7 +1591,7 @@ $("saveBtn").addEventListener("click",async()=>{
   const hasVisit=!!(toInt($("fPrice").value)||partsMin()||legacyCourse||$("fMember").value.trim()||$("fMemo").value.trim()||fOpts.length);
   const draft={...sideDraft};const hasSide=Object.keys(draft).length>0;
   if(!hasVisit&&!hasSide){toast("予約か付随業務を入力してください");return}
-  if(hasVisit&&memberNeedsOK()){renderMemberHint();$("memberHint").scrollIntoView({behavior:"smooth",block:"center"});toast("会員番号のお客様を確認してください");return}
+  if(hasVisit&&memberNeedsOK()){pendingSave=true;renderMemberHint();$("memberHint").scrollIntoView({behavior:"smooth",block:"center"});toast("会員番号のお客様を確認してください");return}
   let sideMsg="";
   if(hasSide){const d=dayOf(dk);SIDES.forEach(x=>{if(x.k in draft&&!(x.k+"N" in draft))delete d[x.k+"N"]});Object.assign(d,draft);sideDraft={};await saveDay(dk,d);
     sideMsg=SIDES.filter(x=>x.k in draft).map(x=>x.short).join("・")+"業務を保存";}
@@ -1729,10 +1736,10 @@ $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if
     if(a==="redo"){memberOK="";fWho=1}
     else if(a==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
     else{fWho=Number(a)||1;memberOK=ckOf(no,fWho);if(!fSex){const prev=visits.find(v=>ck(v)===memberOK&&v.sex&&v.id!==editingId);if(prev)setSex(prev.sex)}}
-    renderMemberHint();renderPasteSum();return}
+    renderMemberHint();renderPasteSum();if(a!=="redo"&&pendingSave&&a!=="new"){pendingSave=false;setTimeout(()=>$("saveBtn").click(),150)}return}
   if(b.dataset.pss){setSex(fSex===b.dataset.pss?"":b.dataset.pss);renderPasteSum();return}
   if(b.dataset.psd){$("fDate").value=b.dataset.psd;$("fDate").dispatchEvent(new Event("change"));renderChips();renderPasteSum();return}
-  if(b.id==="psSave"){if(memberNeedsOK()){toast("今回のお客様を選んでください");return}$("saveBtn").click();return}
+  if(b.id==="psSave"){if(memberNeedsOK()){pendingSave=true;toast("今回のお客様を選ぶと、そのまま保存します");return}$("saveBtn").click();return}
   if(b.id==="psEdit"){$("fDate").scrollIntoView({behavior:"smooth",block:"center"})}});
 $("pasteBtn").addEventListener("click",async()=>{
   let t="";

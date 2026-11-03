@@ -1388,13 +1388,17 @@ const OPTS=[
 ];
 let fOpts=[];
 let pasteShown=false; // 貼り付けた内容の確認を表示中か
+// 読み取った内容の一番上（日付）が、上の売上の欄のすぐ下に来るように止める
+function scrollToSum(){const el=$("pasteSum"),h=document.querySelector("header.top");
+  const hh=h&&getComputedStyle(h).position!=="static"?h.offsetHeight:0;
+  window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-hh-8),behavior:"smooth"})}
 let editReturn=null; // 時間タブなどから編集したとき、終わったら戻る画面 {tab,y}
 function goBack(){const r=editReturn;editReturn=null;if(!r)return;show(r.tab);requestAnimationFrame(()=>window.scrollTo(0,r.y))}
 let pendingSave=false; // 保存を押したが、同じ会員番号のお客様を選ぶ必要があったとき（選んだらそのまま保存する）
 // お客様を選んだあと：保存を押していればそのまま保存、そうでなければ保存ボタンの所へ
 function afterPick(isNew){
   if(pendingSave&&!isNew){pendingSave=false;setTimeout(()=>$("saveBtn").click(),150);return}
-  setTimeout(()=>{if(pasteShown){renderPasteSum();$("pasteSum").scrollIntoView({behavior:"smooth",block:"end"})}
+  setTimeout(()=>{if(pasteShown){renderPasteSum();scrollToSum()}
     else $("saveBtn").scrollIntoView({behavior:"smooth",block:"center"})},50)}
 // 確認画面の会員番号：同じ番号のお客様がいれば、ここで選べるようにする
 function psMemberHtml(no,note){
@@ -1711,7 +1715,7 @@ function applyReservation(){
   $("pasteBox").value="";$("pasteMsg").textContent="";
   renderChips();renderMemberHint();updateTotal();
   $("pasteDet").open=false;pasteShown=true;renderPasteSum();
-  $("pasteSum").scrollIntoView({behavior:"smooth",block:"end"});
+  scrollToSum();
 }
 // 貼り付けた内容の確認（ここから保存できる。スクロールしなくてよいように）
 function renderPasteSum(){

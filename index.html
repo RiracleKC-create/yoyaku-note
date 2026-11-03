@@ -2043,7 +2043,7 @@ function slotCheck(Q,desig,today){
   const grp=(name,list)=>{const ng=list.filter(d=>!ok(d));return `<div>${name}：${list.length-ng.length}／${list.length}日${ng.length?`<span class="ng">（6時間未満：${ng.slice(0,6).map(d=>Number(d.slice(5,7))+"/"+Number(d.slice(8))).join("・")}${ng.length>6?" ほか":""}）</span>`:""}</div>`};
   const pd=desig.filter(d=>d<=today);
   return `<div class="yt-chk"><small>入店時間の記録で6時間以上の日（今日まで）</small>${grp("指定日",pd)}${grp("日曜・祝日",past.filter(hol))}${grp("土曜",past.filter(sat))}</div>`}
-let ytOpen5=null; // ⑤の指定日カレンダーを開いているか
+let ytOpen5=(v=>v==="1"?true:v==="0"?false:null)(lsGet("rirakuLog.ytCal5")); // ⑤の指定日カレンダーを開いているか（閉じたら、押すまで開かない）
 let ytOpen4=null; // ④の入力欄を開いているか（null＝入力前は開く）
 // 指定日を選ぶカレンダー（3か月分。日付を押すたびに選択・解除）
 function desCal(Q,desig){const set=new Set(desig);let h="";
@@ -2107,7 +2107,7 @@ function yutaiCard(mk){
   </div>`}
 $("statsBody").addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.yt;if(!k)return;
   settings.yt=Object.assign({},settings.yt||{},{[k]:e.target.value});await saveSettingsData();renderStats();toast("保存しました")});
-$("statsBody").addEventListener("toggle",e=>{if(e.target.id==="ytDet4")ytOpen4=e.target.open;if(e.target.id==="ytDet5")ytOpen5=e.target.open},true);
+$("statsBody").addEventListener("toggle",e=>{if(e.target.id==="ytDet4")ytOpen4=e.target.open;if(e.target.id==="ytDet5"){ytOpen5=e.target.open;lsSet("rirakuLog.ytCal5",ytOpen5?"1":"0")}},true);
 // りらくるの指定日（時間枠加算・休日売上に使う）
 $("statsBody").addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-desday]");if(!b)return;
   const d=b.dataset.desday,list=new Set((settings.yt&&settings.yt.desig)||[]);const on=!list.has(d);if(on)list.add(d);else list.delete(d);

@@ -141,8 +141,10 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 #pasteSum .dchips{display:flex;gap:6px;flex-wrap:wrap}
 #pasteSum .dchips .chip{padding:2px 12px;font-size:13px}
 #pasteSum .memo-s{white-space:pre-wrap;font-size:12px;color:var(--sub)}
-#pasteSum .ps-btns{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px}
+#pasteSum .ps-btns{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+#pasteSum .ps-sub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #pasteSum .ps-btns .btn{padding:12px 0}
+#pasteSum .ps-mh{margin:8px 0 0}#pasteSum .ps-kl{font-weight:700;margin:8px 0 -4px!important;color:var(--ink)}
 .ps-who{display:grid;gap:6px;margin-top:6px}
 .ps-who button{text-align:left;border:1.5px solid var(--line);background:var(--field);border-radius:10px;padding:8px 10px;font-size:14px;color:var(--ink)}
 .ps-who button small{display:block;color:var(--sub);font-size:12px}
@@ -1178,7 +1180,7 @@ function show(tab){
   if(tab==="settings"){renderSettings();renderSettleCard()}
   window.scrollTo(0,0);
 }
-document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="members")memberOpen=null;renderMembers();show(b.dataset.tab)}));
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{editReturn=null;if(b.dataset.tab==="members")memberOpen=null;renderMembers();show(b.dataset.tab)}));
 $("gearBtn").addEventListener("click",()=>show("settings"));
 /* ---------- 電卓 ---------- */
 (()=>{let ex="",last="";
@@ -1232,8 +1234,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=79; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=81; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:81,date:"11月3日",items:["予約通知を貼り付けたあとの確認画面に「やめる」を付けました。貼り付けた内容を取り消せます。","確認画面で同じ会員番号のお客様を選ぶところを、入力欄と同じ「このお客様を選ぶ」の形にしました。","時間タブや一覧から記録を開いて編集したときは、保存・やめる・削除のあと、元の画面（日・週・月など）に戻るようにしました。"]},
   {n:79,date:"11月3日",items:["保存を押したあとに同じ会員番号のお客様を選んだときは、選んだらそのまま記録を保存するようにしました（新しいお客様として登録するときは、特徴を入れてから保存を押してください）。"]},
   {n:78,date:"11月3日",items:["予約通知を貼り付けたとき、同じ会員番号のお客様が複数いる場合は、読み取った内容の画面でそのままお客様を選べるようにしました。選んだあと、続けて「この内容で保存」を押せます。"]},
   {n:77,date:"11月3日",items:["予約通知に性別がないときは、同じ会員番号の前回の記録から性別を入れます。初めてのお客様は、読み取った内容の「性別」で男性・女性を選べます。"]},
@@ -1385,6 +1388,8 @@ const OPTS=[
 ];
 let fOpts=[];
 let pasteShown=false; // 貼り付けた内容の確認を表示中か
+let editReturn=null; // 時間タブなどから編集したとき、終わったら戻る画面 {tab,y}
+function goBack(){const r=editReturn;editReturn=null;if(!r)return;show(r.tab);requestAnimationFrame(()=>window.scrollTo(0,r.y))}
 let pendingSave=false; // 保存を押したが、同じ会員番号のお客様を選ぶ必要があったとき（選んだらそのまま保存する）
 // お客様を選んだあと：保存を押していればそのまま保存、そうでなければ保存ボタンの所へ
 function afterPick(isNew){
@@ -1395,10 +1400,7 @@ function afterPick(isNew){
 function psMemberHtml(no,note){
   if(!no)return `<span class="miss">なし</span>`;
   const whos=whosFor(no,editingId);
-  if(memberNeedsOK())return `${esc(no)}<br><span class="miss" style="font-size:12px">同じ番号のお客様がいます。今回のお客様を選んでください</span>
-    <div class="ps-who">${whos.map(w=>{const k=ckOf(no,w),n=memberNote(k),last=live(visits).filter(v=>ck(v)===k).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];
-      return `<button type="button" data-psw="${w}"><b>${esc(keyLabel(k))}</b>${n?` 📌 ${esc(n)}`:""}${last?`<small>前回 ${dayLabel(last.date)}・${esc(last.course||"")}${last.sex?"・"+SEX[last.sex]:""}</small>`:""}</button>`}).join("")}
-    <button type="button" data-psw="new" class="nw">同じ番号の別のお客様（新しく登録）</button></div>`;
+  if(memberNeedsOK())return `${esc(no)}<br><span class="miss" style="font-size:12px">同じ番号のお客様がいます。下で選んでください</span>`;
   const isNew=whos.length>0&&!whos.includes(fWho);
   return `${esc(whos.length||fWho>1?keyLabel(ckOf(no,fWho)):no)}${isNew?`<br><small>別のお客様として新しく登録します</small><input class="fld" id="psFeat" placeholder="特徴（例：30代・眼鏡）※あとからでもOK" value="${esc(newFeatDraft)}" style="margin-top:4px;padding:6px 8px;font-size:13px">`:(note?`<br><small>📌 ${esc(note)}</small>`:"")}${whos.length&&memberOK?` <button type="button" class="chip" data-psw="redo" style="padding:1px 10px;font-size:12px">選び直す</button>`:""}`}
 function renderOpts(){
@@ -1609,8 +1611,9 @@ $("saveBtn").addEventListener("click",async()=>{
   {const k=ck(v);if(nf&&k&&!memberNote(k))await saveMemberNote(k,nf)}
   await saveVisit(v);
   toast((wasEdit?"変更を保存しました":"記録を保存しました（"+yen(total(v))+"）")+(sideMsg?"・"+sideMsg:""));
+  if(wasEdit)goBack();
 });
-$("cancelEdit").addEventListener("click",resetForm);
+$("cancelEdit").addEventListener("click",()=>{resetForm();goBack()});
 // 確認ダイアログは公開ページ内で使えないため、2回タップで削除
 let delArmed=null;
 function disarmDelete(){clearTimeout(delArmed);delArmed=null;$("deleteBtn").textContent="この記録を削除";$("deleteBtn").classList.remove("armed")}
@@ -1621,7 +1624,7 @@ $("deleteBtn").addEventListener("click",async()=>{
     delArmed=setTimeout(disarmDelete,4000);return;
   }
   disarmDelete();
-  const id=editingId;resetForm();await removeVisit(id);toast("削除しました");
+  const id=editingId;resetForm();await removeVisit(id);toast("削除しました");goBack();
 });
 
 /* ---------- paste import ---------- */
@@ -1729,9 +1732,14 @@ function renderPasteSum(){
     <tr><td>料金</td><td class="num">${price?yen(price):`<span class="miss">未入力</span>`}</td></tr>
     ${memo?`<tr><td>メモ</td><td class="memo-s">${esc(memo)}</td></tr>`:""}
   </table>
-  <div class="ps-btns"><button type="button" class="btn" id="psSave">この内容で保存</button><button type="button" class="btn ghost" id="psEdit">下で直す</button></div>`;
+  ${memberNeedsOK()?`<div class="member-hint num ask ps-mh"><p class="q">この会員番号（No.${esc(no)}）はすでに${whosFor(no,editingId).length>1?whosFor(no,editingId).length+"名の":""}登録があります。</p><p class="q2">今回のお客様を選んでください。</p>
+    ${whosFor(no,editingId).map(w=>`<p class="ps-kl">${esc(keyLabel(ckOf(no,w)))}</p>`+custCard(ckOf(no,w),true)).join("")}
+    <div class="mh-btns"><button type="button" class="no" data-mh="new">同じ番号の別のお客様（新しく登録）</button></div></div>`:""}
+  <div class="ps-btns"><button type="button" class="btn" id="psSave">この内容で保存</button><div class="ps-sub"><button type="button" class="btn ghost" id="psEdit">下で直す</button><button type="button" class="btn ghost" id="psCancel">やめる</button></div></div>`;
 }
 $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);toast("貼り付けた内容を取り消しました");return}
+  if(b.dataset.mh){b.dataset.psw=b.dataset.mh==="pick"?(b.dataset.who||"1"):b.dataset.mh}
   if(b.dataset.psw){const no=$("fMember").value.trim(),a=b.dataset.psw;
     if(a==="redo"){memberOK="";fWho=1}
     else if(a==="new"){newFeatDraft="";const w=whosFor(no,editingId);fWho=(w.length?Math.max(...w):0)+1;memberOK=ckOf(no,fWho)}
@@ -1813,7 +1821,9 @@ $("sheetCancel").addEventListener("click",async()=>{
 });
 $("sheetBg").addEventListener("click",closeDetail);
 $("sheetClose").addEventListener("click",closeDetail);
-$("sheetEdit").addEventListener("click",()=>{const v=visits.find(x=>x.id===sheetId);closeDetail();if(v)loadForm(v)});
+$("sheetEdit").addEventListener("click",()=>{const v=visits.find(x=>x.id===sheetId);
+  const cur=(document.querySelector("section.view.on")||{}).id||"";editReturn=cur&&cur!=="v-input"?{tab:cur.slice(2),y:window.scrollY}:null;
+  closeDetail();if(v)loadForm(v)});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeDetail()});
 function renderList(){
   $("lMonth").textContent=monthLabel(listMonth);

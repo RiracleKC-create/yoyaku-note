@@ -1388,10 +1388,10 @@ const OPTS=[
 ];
 let fOpts=[];
 let pasteShown=false; // 貼り付けた内容の確認を表示中か
-// 読み取った内容の一番上（日付）が、上の売上の欄のすぐ下に来るように止める
+// 読み取った内容の「日付」の行が、上の売上の欄のすぐ下に来るように止める
 function scrollToSum(){const el=$("pasteSum"),h=document.querySelector("header.top");
   const hh=h&&getComputedStyle(h).position!=="static"?h.offsetHeight:0;
-  window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-hh-8),behavior:"smooth"})}
+  window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-hh+28),behavior:"smooth"})}
 let editReturn=null; // 時間タブなどから編集したとき、終わったら戻る画面 {tab,y}
 function goBack(){const r=editReturn;editReturn=null;if(!r)return;show(r.tab);requestAnimationFrame(()=>window.scrollTo(0,r.y))}
 let pendingSave=false; // 保存を押したが、同じ会員番号のお客様を選ぶ必要があったとき（選んだらそのまま保存する）

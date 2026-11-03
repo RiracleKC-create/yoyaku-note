@@ -1234,8 +1234,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=81; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=84; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:84,date:"11月3日",items:["予約通知を読み取った確認画面の日付に「日付を選択」を付けました。押すと日付の欄へ移動してカレンダーが開き、日付を選ぶと確認画面に戻ります。","読み取ったあとは、確認画面の日付の行が見える位置で止まるようにしました。"]},
   {n:81,date:"11月3日",items:["予約通知を貼り付けたあとの確認画面に「やめる」を付けました。貼り付けた内容を取り消せます。","確認画面で同じ会員番号のお客様を選ぶところを、入力欄と同じ「このお客様を選ぶ」の形にしました。","時間タブや一覧から記録を開いて編集したときは、保存・やめる・削除のあと、元の画面（日・週・月など）に戻るようにしました。"]},
   {n:79,date:"11月3日",items:["保存を押したあとに同じ会員番号のお客様を選んだときは、選んだらそのまま記録を保存するようにしました（新しいお客様として登録するときは、特徴を入れてから保存を押してください）。"]},
   {n:78,date:"11月3日",items:["予約通知を貼り付けたとき、同じ会員番号のお客様が複数いる場合は、読み取った内容の画面でそのままお客様を選べるようにしました。選んだあと、続けて「この内容で保存」を押せます。"]},
@@ -1392,6 +1393,7 @@ let pasteShown=false; // 貼り付けた内容の確認を表示中か
 function scrollToSum(){const el=$("pasteSum"),h=document.querySelector("header.top");
   const hh=h&&getComputedStyle(h).position!=="static"?h.offsetHeight:0;
   window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-hh+28),behavior:"smooth"})}
+let dateJump=false; // 確認画面の「日付を選択」から来たとき、日付を選んだら確認画面に戻る
 let editReturn=null; // 時間タブなどから編集したとき、終わったら戻る画面 {tab,y}
 function goBack(){const r=editReturn;editReturn=null;if(!r)return;show(r.tab);requestAnimationFrame(()=>window.scrollTo(0,r.y))}
 let pendingSave=false; // 保存を押したが、同じ会員番号のお客様を選ぶ必要があったとき（選んだらそのまま保存する）
@@ -1569,8 +1571,9 @@ function renderSideCard(){
   $("sideRows").querySelectorAll("select[data-sn]").forEach(sel=>sel.addEventListener("change",()=>{const k=sel.dataset.sn;if(sel.value)sideDraft[k+"N"]=Number(sel.value);else delete sideDraft[k+"N"]}));
 }
 $("fDate").addEventListener("change",renderSideCard);
+$("fDate").addEventListener("change",()=>{if(!pasteShown)return;renderPasteSum();if(dateJump){dateJump=false;setTimeout(scrollToSum,200)}});
 function resetForm(){
-  pasteShown=false;pendingSave=false;if($("pasteSum"))renderPasteSum();
+  pasteShown=false;pendingSave=false;dateJump=false;if($("pasteSum"))renderPasteSum();
   editingId=null;memberOK="";fWho=1;newFeatDraft="";
   $("fDate").value=bizToday();setTime(roundedNow());
   sideDraft={};cancelArmed=null;
@@ -1726,7 +1729,7 @@ function renderPasteSum(){
   const opts=optNames({opts:fOpts});const memo=$("fMemo").value.trim();
   el.hidden=false;
   el.innerHTML=`<h4>読み取った内容</h4><table>
-    <tr><td>日付</td><td><div class="dchips"><button type="button" class="chip" data-psd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-psd="${t1}" aria-pressed="${dk===t1}">明日</button>${dk!==t0&&dk!==t1?`<span class="chip" aria-pressed="true">${dayLabel(dk)}</span>`:""}</div></td></tr>
+    <tr><td>日付</td><td><div class="dchips"><button type="button" class="chip" data-psd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-psd="${t1}" aria-pressed="${dk===t1}">明日</button>${dk!==t0&&dk!==t1?`<span class="chip" aria-pressed="true">${dayLabel(dk)}</span>`:""}<button type="button" class="chip" id="psPickDate">日付を選択</button></div></td></tr>
     <tr><td>時間</td><td class="num">${esc(st)}${min?`〜${hm(en)}（${min}分）`:""}</td></tr>
     <tr><td>種類</td><td>${typeLabel(fType)}</td></tr>
     <tr><td>性別</td><td><div class="dchips"><button type="button" class="chip" data-pss="m" aria-pressed="${fSex==="m"}">男性</button><button type="button" class="chip" data-pss="f" aria-pressed="${fSex==="f"}">女性</button>${fSex?"":`<span class="miss" style="font-size:12px;align-self:center">選んでください</span>`}</div></td></tr>
@@ -1742,6 +1745,9 @@ function renderPasteSum(){
   <div class="ps-btns"><button type="button" class="btn" id="psSave">この内容で保存</button><div class="ps-sub"><button type="button" class="btn ghost" id="psEdit">下で直す</button><button type="button" class="btn ghost" id="psCancel">やめる</button></div></div>`;
 }
 $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.id==="psPickDate"){dateJump=true;const f=$("fDate"),h=document.querySelector("header.top");
+    window.scrollTo({top:Math.max(0,f.getBoundingClientRect().top+window.scrollY-(h?h.offsetHeight:0)-40),behavior:"smooth"});
+    setTimeout(()=>{try{f.focus({preventScroll:true});if(f.showPicker)f.showPicker()}catch(e){}},350);return}
   if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);toast("貼り付けた内容を取り消しました");return}
   if(b.dataset.mh){b.dataset.psw=b.dataset.mh==="pick"?(b.dataset.who||"1"):b.dataset.mh}
   if(b.dataset.psw){const no=$("fMember").value.trim(),a=b.dataset.psw;

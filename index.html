@@ -151,6 +151,11 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .ps-who button.nw{color:var(--sub);font-size:13px}
 .tl .gapl{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;line-height:16px;color:var(--sub);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:0 8px;z-index:3;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
 .tl .gapl.ov{color:#C0392B;border-color:#C0392B}
+.tl .blk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tl .blk.dragging{z-index:6;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:.92;transition:none}
+.tl .dragtag{position:absolute;right:6px;z-index:7;background:var(--ink);color:var(--panel);font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px;pointer-events:none;font-variant-numeric:tabular-nums}
+.undobar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--panel);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.undobar[hidden]{display:none}.undobar span{flex:1}.undobar button{border:0;background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px}
 .etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
 .seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
 .tag.etc{background:#ECEDEF;color:#4B5563}
@@ -968,6 +973,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
+<div class="undobar" id="undoBar" hidden></div>
 
 <script>
 (function(){
@@ -1236,8 +1242,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=85; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=86; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:86,date:"11月4日",items:["時間タブの「日」で、予約を長押ししてから上下に動かすと、時間をずらせるようにしました（5分きざみ）。動かしたあとに出る「元に戻す」で取り消せます。"]},
   {n:85,date:"11月4日",items:["時間タブの「日」で、インターバルの終わりから次の予約までの空き時間（例：空き 25分）を表示するようにしました。入店時間を入れている日は、最初の予約の前と最後のインターバルのあとの空きも出ます。予約が重なっているときは「⚠ 10分重なり」と出ます。"]},
   {n:84,date:"11月3日",items:["予約通知を読み取った確認画面の日付に「日付を選択」を付けました。押すと日付の欄へ移動してカレンダーが開き、日付を選ぶと確認画面に戻ります。","読み取ったあとは、確認画面の日付の行が見える位置で止まるようにしました。"]},
   {n:81,date:"11月3日",items:["予約通知を貼り付けたあとの確認画面に「やめる」を付けました。貼り付けた内容を取り消せます。","確認画面で同じ会員番号のお客様を選ぶところを、入力欄と同じ「このお客様を選ぶ」の形にしました。","時間タブや一覧から記録を開いて編集したときは、保存・やめる・削除のあと、元の画面（日・週・月など）に戻るようにしました。"]},
@@ -1912,7 +1919,8 @@ function renderTime(){
   html+="</div>";
   if(!dv.length&&!sl.length&&!stayEdit)html=`<div class="empty">この日の記録はありません。<br><small>「入店時間」を押すと、入店した時間を入れられます。</small></div>`;
   $("tlBody").innerHTML=html;
-  $("tlBody").querySelectorAll(".blk").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}));
+  $("tlBody").querySelectorAll(".blk").forEach(b=>{b.addEventListener("click",e=>{if(dragEndAt&&Date.now()-dragEndAt<400){e.preventDefault();return}const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)});
+    if(!stayEdit)attachDrag(b,h0)});
   renderHeat();
 }
 // 空き時間：インターバルの終わり〜次の予約、入店時間の始まり〜最初の予約、最後のインターバル〜入店時間の終わり
@@ -1931,6 +1939,33 @@ function gapHtml(dv,sl,h0){
       const f=Math.min(...inn.map(x=>x.s)),l=Math.max(...inn.map(x=>x.e));
       if(f>a)lab(a,f);if(l<b)lab(l,b)})}
   return out.join("")}
+// 予約の長押しドラッグで時間をずらす（日の表示）。5分きざみ
+let dragEndAt=0,undoMove=null,undoTimer=null;
+function toHHMM(m){m=Math.max(0,Math.min(29*60+55,m));return pad(Math.floor(m/60))+":"+pad(m%60)}
+function attachDrag(b,h0){
+  const v0=visits.find(x=>x.id===b.dataset.id);if(!v0||startMin(v0)===null)return;
+  let timer=null,active=false,y0=0,x0=0,dm=0,tag=null;const s0=startMin(v0),len=(vMin(v0)||60);
+  const start=(x,y)=>{x0=x;y0=y;dm=0;timer=setTimeout(()=>{active=true;b.classList.add("dragging");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}
+    tag=document.createElement("div");tag.className="dragtag";b.parentNode.appendChild(tag);upd()},380)};
+  const upd=()=>{b.style.transform=`translateY(${dm/60*PX}px)`;if(tag){const ns=s0+dm;tag.style.top=(parseFloat(b.style.top)+dm/60*PX-22)+"px";tag.textContent=`${hm(ns)}-${hm(ns+len)}${dm?`（${dm>0?"+":""}${dm}分）`:""}`}};
+  const move=(x,y,e)=>{if(!active){if(Math.abs(y-y0)>8||Math.abs(x-x0)>8){clearTimeout(timer);timer=null}return}
+    if(e&&e.cancelable)e.preventDefault();const raw=(y-y0)/PX*60;dm=Math.round(raw/5)*5;dm=Math.max(-s0,Math.min(29*60+55-s0,dm));upd()};
+  const end=async()=>{clearTimeout(timer);timer=null;if(!active)return;active=false;dragEndAt=Date.now();b.classList.remove("dragging");if(tag)tag.remove();tag=null;
+    if(!dm){b.style.transform="";return}
+    const v=visits.find(x=>x.id===b.dataset.id);if(!v)return;const from=v.time,to=toHHMM(s0+dm);
+    await saveVisit({...v,time:to,updatedAt:Date.now()});showUndo(v.id,from,to)};
+  b.addEventListener("touchstart",e=>{if(e.touches.length===1)start(e.touches[0].clientX,e.touches[0].clientY)},{passive:true});
+  b.addEventListener("touchmove",e=>move(e.touches[0].clientX,e.touches[0].clientY,e),{passive:false});
+  b.addEventListener("touchend",end);b.addEventListener("touchcancel",()=>{clearTimeout(timer);if(active){active=false;b.classList.remove("dragging");b.style.transform="";if(tag)tag.remove()}});
+  b.addEventListener("mousedown",e=>{if(e.button!==0)return;start(e.clientX,e.clientY);
+    const mm=ev=>move(ev.clientX,ev.clientY,ev),mu=()=>{document.removeEventListener("mousemove",mm);document.removeEventListener("mouseup",mu);end()};
+    document.addEventListener("mousemove",mm);document.addEventListener("mouseup",mu)});
+  b.addEventListener("contextmenu",e=>e.preventDefault());
+}
+function showUndo(id,from,to){clearTimeout(undoTimer);undoMove={id,from};
+  const u=$("undoBar");u.innerHTML=`<span>${esc(timeLabel(from))} → ${esc(timeLabel(to))} に移動しました</span><button type="button" id="undoBtn">元に戻す</button>`;u.hidden=false;
+  $("undoBtn").onclick=async()=>{const m=undoMove;undoMove=null;u.hidden=true;const v=m&&visits.find(x=>x.id===m.id);if(v){await saveVisit({...v,time:m.from,updatedAt:Date.now()});toast("元に戻しました")}};
+  undoTimer=setTimeout(()=>{u.hidden=true;undoMove=null},7000)}
 function renderHeat(){
   const mk=timeDay.slice(0,7);
   $("heatTitle").textContent=monthLabel(mk)+"の混み具合（曜日×時間）";

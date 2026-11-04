@@ -149,6 +149,8 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .ps-who button{text-align:left;border:1.5px solid var(--line);background:var(--field);border-radius:10px;padding:8px 10px;font-size:14px;color:var(--ink)}
 .ps-who button small{display:block;color:var(--sub);font-size:12px}
 .ps-who button.nw{color:var(--sub);font-size:13px}
+.tl .gapl{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;line-height:16px;color:var(--sub);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:0 8px;z-index:3;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tl .gapl.ov{color:#C0392B;border-color:#C0392B}
 .etc-btn{grid-column:1/-1}.etc-note{margin:6px 0 0}
 .seg button[aria-pressed="true"][data-v="etc"]{background:#6B7280;border-color:#6B7280;color:#fff}
 .tag.etc{background:#ECEDEF;color:#4B5563}
@@ -1234,8 +1236,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=84; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=85; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:85,date:"11月4日",items:["時間タブの「日」で、インターバルの終わりから次の予約までの空き時間（例：空き 25分）を表示するようにしました。入店時間を入れている日は、最初の予約の前と最後のインターバルのあとの空きも出ます。予約が重なっているときは「⚠ 10分重なり」と出ます。"]},
   {n:84,date:"11月3日",items:["予約通知を読み取った確認画面の日付に「日付を選択」を付けました。押すと日付の欄へ移動してカレンダーが開き、日付を選ぶと確認画面に戻ります。","読み取ったあとは、確認画面の日付の行が見える位置で止まるようにしました。"]},
   {n:81,date:"11月3日",items:["予約通知を貼り付けたあとの確認画面に「やめる」を付けました。貼り付けた内容を取り消せます。","確認画面で同じ会員番号のお客様を選ぶところを、入力欄と同じ「このお客様を選ぶ」の形にしました。","時間タブや一覧から記録を開いて編集したときは、保存・やめる・削除のあと、元の画面（日・週・月など）に戻るようにしました。"]},
   {n:79,date:"11月3日",items:["保存を押したあとに同じ会員番号のお客様を選んだときは、選んだらそのまま記録を保存するようにしました（新しいお客様として登録するときは、特徴を入れてから保存を押してください）。"]},
@@ -1900,6 +1903,7 @@ function renderTime(){
       :`<div class="st" style="top:${(m-h0*60)/60*PX}px;height:${SLOT/60*PX}px"></div>`}}
   for(let h=h0;h<=h1;h++)html+=`<div class="hr" style="top:${(h-h0)*PX}px"><span class="num">${h}:00</span></div>`;
   if(timeDay===bizToday()){const nm=bizNow().min;if(nm>=h0*60&&nm<=h1*60)html+=`<div class="now" style="top:${(nm-h0*60)/60*PX}px"></div>`}
+  if(!stayEdit)html+=gapHtml(dv,sl,h0);
   dv.forEach(x=>{
     const iv=x.ie-x.e, top=(x.s-h0*60)/60*PX, ht=Math.max(22,(x.ie-x.s)/60*PX-2), ivh=iv/60*PX;
     html+=`<button class="blk ${x.v.type}${x.v.cancel?" cx":""}" data-id="${esc(x.v.id)}" style="top:${top}px;height:${ht}px;left:calc(${x.c/nc*100}% + 4px);width:calc(${100/nc}% - 8px)">
@@ -1911,6 +1915,22 @@ function renderTime(){
   $("tlBody").querySelectorAll(".blk").forEach(b=>b.addEventListener("click",()=>{const v=visits.find(x=>x.id===b.dataset.id);if(v)showDetail(v)}));
   renderHeat();
 }
+// 空き時間：インターバルの終わり〜次の予約、入店時間の始まり〜最初の予約、最後のインターバル〜入店時間の終わり
+function gapText(m){return m<60?m+"分":Math.floor(m/60)+"時間"+(m%60?m%60+"分":"")}
+function gapHtml(dv,sl,h0){
+  const B=dv.filter(x=>!x.v.cancel).map(x=>({s:x.s,e:x.ie})).sort((a,b)=>a.s-b.s);
+  const out=[],lab=(a,b,ov)=>{const mid=(a+b)/2,top=(mid-h0*60)/60*PX-9;
+    out.push(`<div class="gapl${ov?" ov":""}" style="top:${top}px">${ov?"⚠ "+gapText(ov)+"重なり":"空き "+gapText(b-a)}</div>`)};
+  let end=null;
+  B.forEach(x=>{if(end!==null){if(x.s>end)lab(end,x.s);else if(x.s<end)out.push(`<div class="gapl ov" style="top:${(x.s-h0*60)/60*PX-9}px">⚠ ${gapText(Math.min(end,x.e)-x.s)}重なり</div>`)}
+    end=end===null?x.e:Math.max(end,x.e)});
+  // 入店時間の中の、最初の予約の前・最後の予約のあと（予約がない入店時間はまるごと空き）
+  if(sl.length){const segs=[];[...sl].sort((a,b)=>a-b).forEach(m=>{const l=segs[segs.length-1];if(l&&l[1]===m)l[1]=m+SLOT;else segs.push([m,m+SLOT])});
+    segs.forEach(([a,b])=>{const inn=B.filter(x=>x.s<b&&x.e>a);
+      if(!inn.length){lab(a,b);return}
+      const f=Math.min(...inn.map(x=>x.s)),l=Math.max(...inn.map(x=>x.e));
+      if(f>a)lab(a,f);if(l<b)lab(l,b)})}
+  return out.join("")}
 function renderHeat(){
   const mk=timeDay.slice(0,7);
   $("heatTitle").textContent=monthLabel(mk)+"の混み具合（曜日×時間）";

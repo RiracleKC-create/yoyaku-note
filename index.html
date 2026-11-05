@@ -2568,8 +2568,10 @@ function settleInfo(now){const ym=dateKey(now).slice(0,7);let pay=ym+"-15";while
   return {ym,open:nthBankDay(ym,3),close:nthBankDay(ym,5),pay,prev:shiftMonth(ym,-1)}}
 const ST_DONE="rirakuLog.settleDone",ST_SNOOZE="rirakuLog.settleSnooze";
 function prevMonthText(pm){const mv=live(visits.filter(v=>v.date.startsWith(pm))),side=Object.keys(days).filter(dk=>dk.startsWith(pm)).reduce((a,dk)=>a+sideTotal(dk),0);
-  if(!mv.length&&!side)return "";const c=calcNet(mv);
-  return `<p class="note" style="margin:6px 0 4px">${Number(pm.slice(5))}月分のこのアプリの記録（確認用）</p><table class="st-tbl num"><tr><td>売上</td><td>${yen(c.sales)}</td></tr><tr><td>収入</td><td style="color:var(--ok)">${yen(c.net)}</td></tr>${side?`<tr><td>付随業務</td><td>${yen(side)}</td></tr><tr><td>付随業務を含めた収入</td><td style="color:var(--ok)">${yen(c.net+side)}</td></tr>`:""}</table>`}
+  const adj=sInt((settings.adj||{})[pm]||0);
+  if(!mv.length&&!side)return "";const c=calcNet(mv),base=c.net-riskOf(mv),pay=base+side+adj;
+  // 集計タブの「月の収入」（入金予定額）と同じ計算
+  return `<p class="note" style="margin:6px 0 4px">${Number(pm.slice(5))}月分のこのアプリの記録（確認用）</p><table class="st-tbl num"><tr><td>売上</td><td>${yen(c.sales)}</td></tr><tr><td>収入（危機管理料を引いた後）</td><td>${yen(base)}</td></tr><tr><td>付随業務</td><td>${yen(side)}</td></tr>${adj?`<tr><td>報酬調整額</td><td>${adj<0?"−"+yen(-adj):yen(adj)}</td></tr>`:""}<tr><td><b>入金予定額</b></td><td style="color:var(--ok)"><b>${yen(pay)}</b></td></tr></table>`}
 function maybeSettleRemind(){if(!visits.length)return false;
   const now=new Date(),t=dateKey(now),h=now.getHours(),si=settleInfo(now);
   if(lsGet(ST_DONE)===si.ym||t<si.open||t>si.close||(t===si.close&&h>=17))return false;

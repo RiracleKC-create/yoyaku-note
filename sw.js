@@ -1,18 +1,23 @@
 // 予約ノート service worker
 // アプリを更新したら VERSION の数字を1つ上げてください
-const VERSION = "v87";
+const VERSION = "v88";
+const PREFIX = "yoyaku-note-v";
 const CACHE = "yoyaku-note-" + VERSION;
+const ROOT = new URL("./", self.registration.scope).pathname;
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./access.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
+  // 別フォルダのアプリ（予約ノート（個）など）には手を出さない
+  const path = new URL(req.url).pathname;
+  if (path.startsWith(ROOT) && path.slice(ROOT.length).includes("/")) return;
   // 画面本体：ネットにつながれば最新版、つながらなければ保存しておいた版
   if (req.mode === "navigate") {
     e.respondWith(fetch(req).then(res => {

@@ -131,6 +131,7 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .yt-det.yr-det2 summary::after{content:"車などを追加する ▾"}.yt-det.yr-det2[open] summary::after{content:"閉じる ▴"}
 .btn.danger{color:#C0392B}
 .paste-btn{font-size:18px;padding:16px 0}
+.ocr-btn{width:100%;margin-top:12px;padding:12px 0;font-weight:700}
 .paste-det{margin-top:8px}.paste-det summary{font-size:13px;color:var(--sub);cursor:pointer}.paste-det textarea{margin-top:6px}
 #pasteSum{margin-top:10px;border:2px solid var(--ok);border-radius:14px;padding:8px 12px 10px;scroll-margin-bottom:84px}
 #pasteSum h4{margin:0 0 4px;font-size:13px;color:var(--ok)}
@@ -593,6 +594,9 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <div class="card">
       <button type="button" class="btn paste-btn" id="pasteBtn">📋 予約通知を貼り付け</button>
       <p class="note" style="margin:6px 0 0">りらくるアプリで予約通知をコピーしてから押してください。</p>
+      <button type="button" class="btn ghost ocr-btn" id="ocrBtn">📷 予約画面のスクショから読み取る</button>
+      <input type="file" id="ocrFile" accept="image/*" multiple hidden>
+      <p class="note" style="margin:4px 0 0">りらくるアプリで「ご予約内容」を開いてスクショし、ここで選んでください（何枚でもまとめて選べます）。スクショの「共有」から「予約ノート」を選んでも読み取れます。予約一覧（時間の表）のスクショも一緒に選ぶと、お客様マークの色（青・赤）から性別も入ります。</p>
       <div class="warn" id="pasteMsg"></div>
       <div id="pasteSum" hidden></div>
       <details class="paste-det" id="pasteDet"><summary>うまく貼り付けられないとき</summary>
@@ -1267,8 +1271,10 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=92; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=94; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:94,date:"11月14日",items:["スクショをまとめて読み取ったとき、撮った順ではなく予約時間の早い順に出てくるようにしました。","予約一覧（時間の表）のスクショも一緒に選ぶか共有すると、お客様マークの色（青＝男性・赤＝女性）から性別が自動で入ります。日付と性別が分かっているときは、質問の画面を出さずにすぐ確認画面になります。"]},
+  {n:93,date:"11月14日",items:["りらくるアプリの「ご予約内容」のスクショから予約を読み取れるようになりました。入力タブの「📷 予約画面のスクショから読み取る」から、スクショを何枚でもまとめて選べます。1件保存すると、次のスクショを読み取ります。","スクショを撮ったあと、Androidの「共有」から「予約ノート」を選んでも読み取れます（共有先に出てくるまで、アプリの更新から少し時間がかかることがあります）。","はじめて使うときだけ、読み取りの準備にネット通信（約6MB）が必要です。"]},
   {n:92,date:"11月13日",items:["入店時間を30分単位で入れられるようになりました（りらくるの30分単位エントリーに合わせました）。これまでに入れた入店時間はそのままです。"]},
   {n:91,date:"11月13日",items:["時間タブの日・週・月に稼働率（施術時間÷入店時間）を表示するようにしました。","今週・今月の稼働率と集計タブの稼働率は、今日までの入店時間で計算します（先の予定の入店時間は入れません）。"]},
   {n:89,date:"11月11日",items:["予約通知を貼り付けたあと、「予約の日付」と「性別」を聞く画面が出るようにしました。予約通知には日付が書かれていないので、今日・明日・日付を選択から選んでください。2回目以降のお客様は、性別が前回の記録から入っています。はじめてのお客様には「はじめてのお客様です」と出ます。"]},
@@ -1668,6 +1674,7 @@ $("saveBtn").addEventListener("click",async()=>{
   await saveVisit(v);
   toast((wasEdit?"変更を保存しました":"記録を保存しました（"+yen(total(v))+"）")+(sideMsg?"・"+sideMsg:""));
   if(wasEdit)goBack();
+  else if(ocrBusy){ocrDate=v.date;if(ocrQ.length)setTimeout(ocrNext,700);else ocrBusy=false}
 });
 $("cancelEdit").addEventListener("click",()=>{resetForm();goBack()});
 // 確認ダイアログは公開ページ内で使えないため、2回タップで削除
@@ -1767,7 +1774,8 @@ function applyReservation(){
   $("pasteBox").value="";$("pasteMsg").textContent="";
   renderChips();renderMemberHint();updateTotal();
   $("pasteDet").open=false;pasteShown=true;renderPasteSum();
-  setTimeout(openFirstPop,250);
+  // スクショ読み取りで日付と性別がもう分かっているときは、質問の画面を出さない
+  setTimeout(()=>{if(!(ocrBusy&&psDateChosen&&fSex))openFirstPop()},250);
   scrollToSum();
 }
 // 貼り付けた内容の確認（ここから保存できる。スクロールしなくてよいように）
@@ -1801,7 +1809,7 @@ $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if
   if(b.id==="psPickDate"){dateJump=true;const f=$("fDate"),h=document.querySelector("header.top");
     window.scrollTo({top:Math.max(0,f.getBoundingClientRect().top+window.scrollY-(h?h.offsetHeight:0)-40),behavior:"smooth"});
     setTimeout(()=>{try{f.focus({preventScroll:true});if(f.showPicker)f.showPicker()}catch(e){}},350);return}
-  if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);toast("貼り付けた内容を取り消しました");return}
+  if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);if(ocrBusy&&ocrQ.length){toast("このスクショは飛ばして、次を読み取ります");setTimeout(ocrNext,500)}else{ocrBusy=false;ocrQ=[];toast("貼り付けた内容を取り消しました")}return}
   if(b.dataset.mh){b.dataset.psw=b.dataset.mh==="pick"?(b.dataset.who||"1"):b.dataset.mh}
   if(b.dataset.psw){const no=$("fMember").value.trim(),a=b.dataset.psw;
     if(a==="redo"){memberOK="";fWho=1}
@@ -1815,6 +1823,98 @@ $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if
     if(!fSex){toast("性別を選んでください");openFirstPop();return}
     if(memberNeedsOK()){pendingSave=true;toast("今回のお客様を選ぶと、そのまま保存します");return}$("saveBtn").click();return}
   if(b.id==="psEdit"){$("fDate").scrollIntoView({behavior:"smooth",block:"center"})}});
+/* ---------- スクショ読み取り（画像の文字を読む） ----------
+   りらくるアプリの「ご予約内容」のスクショを読み、予約通知と同じ形の文章にしてから、貼り付けと同じ流れで入力する。
+   文字を読む部品（約2MB＋日本語データ約2MB）は初回だけネットから読み込み、その後は端末に残る。 */
+const OCR_CFG=window.OCR_CFG||{js:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",lang:"https://cdn.jsdelivr.net/npm/@tesseract.js-data/jpn@1.0.0/4.0.0_best_int"};
+let ocrW=null,ocrQ=[],ocrDate="",ocrBusy=false,ocrTotal=0;
+function loadScript(src){return new Promise((ok,ng)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=ng;document.head.appendChild(e)})}
+async function ocrWorker(){if(ocrW)return ocrW;
+  if(!window.Tesseract)await loadScript(OCR_CFG.js);
+  const o={langPath:OCR_CFG.lang};if(OCR_CFG.worker)o.workerPath=OCR_CFG.worker;if(OCR_CFG.core)o.corePath=OCR_CFG.core;
+  ocrW=await Tesseract.createWorker("jpn",1,o);return ocrW}
+// 読み取った文字を、予約通知と同じ「項目：内容」の形にそろえる（区切りの「：」が「・」に化けても読めるように）
+const OCR_LABELS=[["会員番号下3桁",/^会員番号(下3桁)?/],["オプション名",/^オプション名?/],["予約時間",/^予約時間/],["選択したコース",/^選択したコース/],["合計金額",/^合計金額/],["予約経路",/^予約経路/],["お疲れ部位",/^お疲れ部位/],["指名有無",/^指名有無/],["コメント",/^コメント/]];
+function ocrToText(raw){
+  const L=raw.normalize("NFKC").split(/\r?\n/).map(l=>l.replace(/\s+/g,"")).filter(Boolean);
+  let i=L.findIndex(l=>/会員番号/.test(l));if(i<0)i=0;
+  const out=[],closeAt=L.findIndex(l=>/^閉じる/.test(l));
+  // 画面のはしの文字くずれは捨てる（意味のある文字が3文字未満なら空とみなす）
+  const junk=t=>(t.match(/[\p{L}\p{N}]/gu)||[]).length<3;
+  for(;i<L.length;i++){const l=L[i];if(/^閉じる/.test(l))break;
+    if(out.length&&/^コメント：/.test(out[out.length-1])&&closeAt<0)break;
+    const hit=OCR_LABELS.find(([,re])=>re.test(l));
+    if(hit){let v=l.replace(hit[1],"").replace(/^[:：・·;,.、。\-]+/,"");
+      if(hit[0]==="会員番号下3桁")v=(v.match(/\d+/)||[""])[0];
+      if(hit[0]==="予約時間"){const m=v.match(/(\d{1,2}):(\d{2})\D*(\d{1,2}):(\d{2})/);if(m)v=`${m[1]}:${m[2]}~${m[3]}:${m[4]}`}
+      if(hit[0]==="合計金額")v=v.replace(/[.]/g,",");
+      if(hit[0]==="コメント"&&junk(v))v="";
+      out.push(hit[0]+"："+v)}
+    else{const m=l.match(/^(.+?)[:：・]?(\d{1,3})分$/);if(m)out.push(m[1].replace(/[:：・]+$/,"")+"："+m[2]+"分");else if(!junk(l))out.push(l)}}
+  // コースの行は「選択したコース」の続きとして読む（ラベル付きの行に化けないように）
+  return out.join("\n")}
+// 予約一覧（タイムライン）のスクショから、お客様マークの色（青＝男性・赤＝女性）と開始時刻を読む
+async function ocrTimeline(f,data){
+  const words=(data.blocks||[]).flatMap(b=>b.paragraphs.flatMap(p=>p.lines.flatMap(l=>l.words)));
+  let bmp;try{bmp=await createImageBitmap(f)}catch(e){return null}
+  const W=bmp.width,H=bmp.height;
+  const labs=[];words.forEach(w=>{const m=w.text.normalize("NFKC").match(/^(\d{1,2}):(\d{2})$/);if(m&&w.bbox.x0<W*0.2){let h=+m[1];if(h<DAY_START)h+=24;labs.push({y:(w.bbox.y0+w.bbox.y1)/2,m:h*60+ +m[2]})}});
+  if(labs.length<3)return null;
+  // 時刻の文字の位置から「縦の位置 → 時刻」の式を作る
+  const n=labs.length,sy=labs.reduce((a,l)=>a+l.y,0),sm=labs.reduce((a,l)=>a+l.m,0),syy=labs.reduce((a,l)=>a+l.y*l.y,0),sym=labs.reduce((a,l)=>a+l.y*l.m,0);
+  const k=(n*sym-sy*sm)/(n*syy-sy*sy),c0=(sm-k*sy)/n;if(!(k>0))return null;
+  const x0=Math.floor(W*0.1),x1=Math.floor(W*0.3),cv=document.createElement("canvas");cv.width=x1-x0;cv.height=H;
+  const cx=cv.getContext("2d");cx.drawImage(bmp,-x0,0);const px=cx.getImageData(0,0,x1-x0,H).data,rw=x1-x0;
+  const ymin=Math.min(...labs.map(l=>l.y))-60,ymax=Math.max(...labs.map(l=>l.y))+H*0.05;
+  const icons=[];let cur=null;const gap=H*0.012;
+  for(let y=Math.max(0,Math.floor(ymin));y<Math.min(H,ymax);y++){let r=0,bl=0;
+    for(let x=0;x<rw;x++){const i=(y*rw+x)*4,R=px[i],G=px[i+1],B=px[i+2];if(R>200&&G<70&&B<70)r++;else if(R<90&&G>140&&B>200)bl++}
+    const col=r>=4?"f":bl>=4?"m":"";
+    if(col){if(cur&&cur.s===col&&y-cur.last<=gap){cur.last=y}else{cur={s:col,top:y,last:y};icons.push(cur)}}}
+  const date=(data.text.normalize("NFKC").replace(/\s/g,"").match(/(20\d\d)[\/年](\d{1,2})[\/月](\d{1,2})/)||[]);
+  return {icons:icons.filter(i=>i.last-i.top>=H*0.008).map(i=>({s:i.s,m:k*i.top+c0})),date:date[1]?date[1]+"-"+pad(+date[2])+"-"+pad(+date[3]):""}}
+async function startOcr(fs){if(!fs.length)return;
+  resetForm();ocrBusy=true;ocrDate="";ocrQ=[];
+  const res=[],tls=[];
+  if(!ocrW)$("pasteMsg").textContent="読み取りの準備をしています（初回は少し時間がかかります）…";
+  try{const w=await ocrWorker();
+    for(let i=0;i<fs.length;i++){
+      $("pasteMsg").textContent=`スクショを読み取っています…（${i+1}/${fs.length}枚目）`;
+      const {data}=await w.recognize(fs[i],{},{text:true,blocks:true});const flat=(data.text||"").normalize("NFKC").replace(/\s/g,"");
+      if(/会員番号|予約時間|選択したコース/.test(flat)){const txt=ocrToText(data.text||"");const r=parseReservation(txt);
+        if(!res.some(x=>x.txt===txt))res.push({txt,r,st:r.time?Number(r.time.slice(0,2))*60+Number(r.time.slice(3,5)):9999})}
+      else{const tl=await ocrTimeline(fs[i],data);if(tl)tls.push(tl)}}
+  }catch(e){$("pasteMsg").textContent="スクショを読み取れませんでした。通信できる所でもう一度お試しください（初回だけ読み取りの準備にネットが必要です）。";ocrBusy=false;return}
+  $("pasteMsg").textContent="";
+  if(!res.length){ocrBusy=false;toast("予約の内容（ご予約内容の画面）が見つかりませんでした");return}
+  // 予約時間の早い順に入力する
+  res.sort((a,b)=>a.st-b.st);
+  // 予約一覧のスクショがあれば、時刻の近いお客様マークの色で性別を入れる（マークは枠の上端より少し下にある）
+  const icons=tls.flatMap(t=>t.icons);const td=tls.map(t=>t.date).find(Boolean);if(td)ocrDate=td;
+  res.forEach(x=>{if(x.st===9999||!icons.length)return;let best=null;icons.forEach(ic=>{const d=Math.abs(ic.m-8-x.st);if(d<=25&&(!best||d<best.d))best={d,s:ic.s}});if(best)x.sex=best.s});
+  ocrQ=res;ocrTotal=res.length;ocrNext()}
+function ocrNext(){
+  if(!ocrQ.length){ocrBusy=false;return}
+  const it=ocrQ.shift();
+  if(ocrDate){$("fDate").value=ocrDate;$("fDate").dispatchEvent(new Event("change"));psDateChosen=true}
+  $("pasteBox").value=it.txt;applyReservation();
+  if(it.sex)setSex(it.sex);
+  if(ocrDate)psDateChosen=true;
+  renderPasteSum();
+  if(ocrQ.length)toast(`あと${ocrQ.length}件あります。保存すると次に進みます`)}
+$("ocrBtn").addEventListener("click",()=>{$("ocrFile").value="";$("ocrFile").click()});
+$("ocrFile").addEventListener("change",e=>startOcr([...e.target.files]));
+// スクショの「共有」から予約ノートが選ばれたとき：sw.js が受け取った画像をここで読み取る
+async function checkShared(){
+  if(!new URLSearchParams(location.search).has("shared"))return;
+  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  if(!("caches" in window))return;
+  const name="yoyaku-share:"+new URL("./",location.href).pathname;
+  try{const c=await caches.open(name),ks=await c.keys(),fs=[];
+    for(const k of ks){const r=await c.match(k);if(!r)continue;const b=await r.blob();fs.push(new File([b],"shot",{type:b.type||"image/png",lastModified:Number(r.headers.get("x-time"))||Date.now()}))}
+    await caches.delete(name);
+    if(!fs.length){toast("共有された画像を受け取れませんでした");return}
+    show("input");startOcr(fs)}catch(e){toast("共有された画像を受け取れませんでした")}}
 $("pasteBtn").addEventListener("click",async()=>{
   let t="";
   try{if(navigator.clipboard&&navigator.clipboard.readText)t=await navigator.clipboard.readText()}catch(e){t=""}
@@ -2709,6 +2809,7 @@ resetForm();
 renderAll();
 updateStoreNote();
 connect();
+setTimeout(checkShared,300);
 })();
 </script>
 <script src="access.js"></script>

@@ -1114,6 +1114,8 @@ function stayMinRange(a,b){return Object.keys(days).filter(dk=>dk>=a&&dk<=b).red
 function stayRanges(dk){const sl=staySlots(dk).slice().sort((a,b)=>a-b),out=[];
   sl.forEach(m=>{const l=out[out.length-1];if(l&&l[1]===m)l[1]=m+SLOT;else out.push([m,m+SLOT])});
   return out.map(([a,b])=>hm(a)+"-"+hm(b)).join("・")}
+function rateRange(a,b,vs){const td=bizToday();if(a>td)return "";const e=b<td?b:td;const sm=stayMinRange(a,e);if(!sm)return "";
+  const t=live(vs.filter(v=>v.date>=a&&v.date<=e)).reduce((x,v)=>x+(vMin(v)||0),0);return `稼働率 ${Math.round(t/sm*1000)/10}%`+(b>td?`（${Number(td.slice(5,7))}/${Number(td.slice(8,10))}まで）`:"")}
 function stayHours(m){return (Math.round(m/60*10)/10)+"時間"}
 async function toggleStay(dk,m){const d=dayOf(dk);const set=new Set(staySlots(dk));
   if(set.has(m))set.delete(m);else set.add(m);
@@ -1262,8 +1264,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=89; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=91; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:91,date:"11月13日",items:["時間タブの日・週・月に稼働率（施術時間÷入店時間）を表示するようにしました。","今週・今月の稼働率と集計タブの稼働率は、今日までの入店時間で計算します（先の予定の入店時間は入れません）。"]},
   {n:89,date:"11月11日",items:["予約通知を貼り付けたあと、「予約の日付」と「性別」を聞く画面が出るようにしました。予約通知には日付が書かれていないので、今日・明日・日付を選択から選んでください。2回目以降のお客様は、性別が前回の記録から入っています。はじめてのお客様には「はじめてのお客様です」と出ます。"]},
   {n:86,date:"11月4日",items:["時間タブの「日」で、予約を長押ししてから上下に動かすと、時間をずらせるようにしました（5分きざみ）。動かしたあとに出る「元に戻す」で取り消せます。"]},
   {n:85,date:"11月4日",items:["時間タブの「日」で、インターバルの終わりから次の予約までの空き時間（例：空き 25分）を表示するようにしました。入店時間を入れている日は、最初の予約の前と最後のインターバルのあとの空きも出ます。予約が重なっているときは「⚠ 10分重なり」と出ます。"]},
@@ -1945,7 +1948,7 @@ function renderTime(){
   const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
   const sl=staySlots(timeDay);
-  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(etcDay?"　その他 "+etcDay+"件":"")+(st?"　"+st:""));
+  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）・稼働率 ${Math.round(worked/stayMinDay(timeDay)*1000)/10}%</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(etcDay?"　その他 "+etcDay+"件":"")+(st?"　"+st:""));
   let h0=OPEN_H,h1=CLOSE_H;
   sl.forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))});
   dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
@@ -2042,7 +2045,7 @@ function renderWeek(){
   const wv=live(visits.filter(v=>v.date>=days[0]&&v.date<=days[6]));
   $("tSum").textContent=wv.length?`${wv.length}件・施術 ${hoursText(wv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(wv))}）・${yen(wv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(wv).net)}）`:"";
   const wst=stayMinRange(days[0],days[6]);
-  if(wst)$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(wst)}</b>　`+esc($("tSum").textContent);
+  if(wst){const rr=rateRange(days[0],days[6],visits);$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(wst)}${rr?"・"+rr:""}</b>　`+esc($("tSum").textContent)}
   let h0=OPEN_H,h1=CLOSE_H;
   all.forEach(v=>{const s=startMin(v),e=s+(vMin(v)||60)+ivMin(v);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil(e/60))});
   days.forEach(dk=>staySlots(dk).forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))}));
@@ -2082,7 +2085,7 @@ function renderMonthCal(){
   const mv=live(visits.filter(v=>v.date.startsWith(mk)));
   $("tSum").textContent=mv.length?`${mv.length}件・${new Set(mv.map(v=>v.date)).size}日出勤・施術 ${hoursText(mv.reduce((a,v)=>a+(vMin(v)||0),0))}（指名 ${hoursText(shMin(mv))}）・${yen(mv.reduce((a,v)=>a+total(v),0))}（収入 ${yen(calcNet(mv).net)}）`:"";
   const mst=stayMinRange(mk+"-01",mk+"-31"),mstd=Object.keys(days).filter(dk=>dk.startsWith(mk)&&stayMinDay(dk)).length;
-  if(mst)$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(mst)}（${mstd}日）</b>　`+esc($("tSum").textContent);
+  if(mst){const rr=rateRange(mk+"-01",mk+"-31",visits);$("tSum").innerHTML=`<b class="stx">入店 ${stayHours(mst)}（${mstd}日）${rr?"・"+rr:""}</b>　`+esc($("tSum").textContent)}
   const first=mk+"-01",start=weekStart(first);
   const last=dateKey(new Date(Number(mk.slice(0,4)),Number(mk.slice(5,7)),0));
   const end=addDays(weekStart(last),6);
@@ -2426,8 +2429,10 @@ function renderStats(){
         <div><span>指名</span><b>${sh.length}件</b></div>
         <div><span>指名施術時間</span><b>${hoursText(shMin(mv))}</b></div>
         <div><span>指名時間率</span><b>${(()=>{const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);return t?Math.round(shMin(mv)/t*1000)/10:0})()}%</b></div>
-        ${(()=>{const sm=stayMinRange(statsMonth+"-01",statsMonth+"-31");if(!sm)return "";const t=mv.reduce((a,v)=>a+(vMin(v)||0),0);
-          return `<div><span>入店時間</span><b>${stayHours(sm)}</b></div><div><span>稼働率</span><b>${Math.round(t/sm*1000)/10}%</b></div><div><span>入店1時間あたり売上</span><b>${yen(Math.round(mv.reduce((a,v)=>a+total(v),0)/(sm/60)))}</b></div><div><span>入店1時間あたり収入</span><b>${yen(Math.round(calcNet(mv).net/(sm/60)))}</b></div>`})()}
+        ${(()=>{const td=bizToday(),cur=td.startsWith(statsMonth),endK=cur?td:statsMonth+"-31";
+          const sm=stayMinRange(statsMonth+"-01",endK);if(!sm)return "";const uv=mv.filter(v=>v.date<=endK);const t=uv.reduce((a,v)=>a+(vMin(v)||0),0);
+          const lb=cur?`<small style="font-weight:400">（${Number(td.slice(5,7))}/${Number(td.slice(8,10))}まで）</small>`:"";
+          return `<div><span>入店時間${lb}</span><b>${stayHours(sm)}</b></div><div><span>稼働率${lb}</span><b>${Math.round(t/sm*1000)/10}%</b></div><div><span>入店1時間あたり売上${lb}</span><b>${yen(Math.round(uv.reduce((a,v)=>a+total(v),0)/(sm/60)))}</b></div><div><span>入店1時間あたり収入${lb}</span><b>${yen(Math.round(calcNet(uv).net/(sm/60)))}</b></div>`})()}
         <div><span>男性指名</span><b>${cnt("gm").length}件</b></div>
         <div><span>女性指名</span><b>${cnt("gf").length}件</b></div>
         <div><span>フリー</span><b>${cnt("free").length}件</b></div>

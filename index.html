@@ -617,7 +617,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
         <button type="button" data-v="gf" aria-pressed="false">女性指名</button>
         <button type="button" data-v="etc" aria-pressed="false" class="etc-btn">その他（練習など）</button>
       </div>
-      <p class="note etc-note" id="etcNote" hidden>売上・件数・施術時間には入りません。時間タブと一覧に記録として残ります。内容は「メモ」に書いてください（1行目が表示されます）。</p>
+      <p class="note etc-note" id="etcNote" hidden>売上・収入・件数・施術時間には入りません。時間タブと一覧に記録として残ります。料金を入れると「その他」の金額として別に集計します。内容は「メモ」に書いてください（1行目が表示されます）。</p>
       <div class="gap"></div>
       <span class="lbl">性別</span>
       <div class="seg" id="fSex">
@@ -1271,8 +1271,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=94; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=95; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:95,date:"11月14日",items:["「その他（練習など）」の記録にも料金を入れられるようになりました。売上・収入には入れず、集計タブの「その他の金額（別集計）」に分けて表示します。"]},
   {n:94,date:"11月14日",items:["スクショをまとめて読み取ったとき、撮った順ではなく予約時間の早い順に出てくるようにしました。","予約一覧（時間の表）のスクショも一緒に選ぶか共有すると、お客様マークの色（青＝男性・赤＝女性）から性別が自動で入ります。日付と性別が分かっているときは、質問の画面を出さずにすぐ確認画面になります。"]},
   {n:93,date:"11月14日",items:["りらくるアプリの「ご予約内容」のスクショから予約を読み取れるようになりました。入力タブの「📷 予約画面のスクショから読み取る」から、スクショを何枚でもまとめて選べます。1件保存すると、次のスクショを読み取ります。","スクショを撮ったあと、Androidの「共有」から「予約ノート」を選んでも読み取れます（共有先に出てくるまで、アプリの更新から少し時間がかかることがあります）。","はじめて使うときだけ、読み取りの準備にネット通信（約6MB）が必要です。"]},
   {n:92,date:"11月13日",items:["入店時間を30分単位で入れられるようになりました（りらくるの30分単位エントリーに合わせました）。これまでに入れた入店時間はそのままです。"]},
@@ -1641,7 +1642,7 @@ function loadForm(v){
   editingId=v.id;fWho=v.who>1?v.who:1;memberOK=ck(v);
   $("fDate").value=v.date;setTime(v.time);$("fMember").value=v.member||"";
   parts={H:0,A:0,F:0,T:0};(v.parts||[]).forEach(x=>{parts[x.k]=x.m});legacyCourse=v.parts&&v.parts.length?"":(v.course||"");
-  $("fPrice").value=total(v)||"";editFee=v.type!=="free"?(v.fee||0):null;$("fMemo").value=v.memo||"";fOpts=[...(v.opts||[])];renderOpts();
+  $("fPrice").value=(isEtc(v)?v.etcAmt:total(v))||"";editFee=v.type!=="free"?(v.fee||0):null;$("fMemo").value=v.memo||"";fOpts=[...(v.opts||[])];renderOpts();
   setType(v.type,false);setSex(v.sex);renderSideCard();
   renderChips();renderMemberHint();updateTotal();
   editCancel=!!v.cancel;$("cxEditNote").hidden=!editCancel;
@@ -1666,7 +1667,7 @@ $("saveBtn").addEventListener("click",async()=>{
     parts:PARTS.filter(p=>parts[p.k]).map(p=>({k:p.k,m:parts[p.k]})),
     price:toInt($("fPrice").value),fee:currentFee(),extra:0,incl:true,
     opts:[...fOpts],memo:$("fMemo").value.trim(),updatedAt:Date.now()};
-  if(v.type==="etc"){v.price=0;v.fee=0;v.opts=[]}
+  if(v.type==="etc"){const a=toInt($("fPrice").value);v.price=0;v.fee=0;v.opts=[];if(a)v.etcAmt=a}
   if(editingId&&editCancel)v.cancel=true;
   const wasEdit=!!editingId,nf=newFeatDraft.trim();
   resetForm();
@@ -1938,7 +1939,7 @@ function recRow(v){
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
     <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${esc(etcTitle(v))}</span>
       <span class="c">売上に入れない記録${vMin(v)?"（"+vMin(v)+"分）":""}</span></span>
-    <span class="a num">−</span></button>`;
+    <span class="a num">${v.etcAmt?yen(v.etcAmt):"−"}</span></button>`;
   return `<button class="rec${v.cancel?" cx":""}" data-id="${esc(v.id)}">
     <span class="t num">${esc(timeLabel(v.time)||"--:--")}</span>
     <span><span class="m">${v.cancel?`<span class="tag cx">キャンセル</span>`:""}${typeTag(v)}${sexTag(v)}${v.member?esc(keyLabel(ck(v))):"会員番号なし"}</span>
@@ -1957,7 +1958,7 @@ function showDetail(v){
   sheetId=v.id;
   const prev=v.member&&!v.cancel?live(visits).filter(x=>ck(x)===ck(v)&&(x.date+x.time)<=(v.date+v.time)).length:0;
   const fee=feeOf(v);
-  const rows=isEtc(v)?[["種類","その他（売上に入れない記録）"],["時間",vMin(v)?`${vMin(v)}分`:"未入力"],["メモ",v.memo?`<span class="memo">${esc(v.memo)}</span>`:"なし"]]:[
+  const rows=isEtc(v)?[["種類","その他（売上に入れない記録）"],["時間",vMin(v)?`${vMin(v)}分`:"未入力"],...(v.etcAmt?[["料金",yen(v.etcAmt)+"（その他として別に集計）"]]:[]),["メモ",v.memo?`<span class="memo">${esc(v.memo)}</span>`:"なし"]]:[
     ["会員番号",v.member?esc(keyLabel(ck(v)))+(prev?`（${prev}回目のご来店）`:""):"未入力"],
     ...(v.member?[["前回来店",(pv=>pv?`${dayLabel(pv.date)} ${esc(timeLabel(pv.time))}<br><small style="color:var(--sub)">${agoText(pv.date,v.date)}・${esc(pv.course||"コース未入力")}・${typeLabel(pv.type)}</small>`:"初めてのご来店")(prevVisit(v))]]:[]),
     ["指名の種類",typeLabel(v.type)],
@@ -2052,7 +2053,7 @@ function renderTime(){
   const worked=dl.reduce((a,x)=>a+(x.e-x.s),0);
   const st=sideText(timeDay);
   const sl=staySlots(timeDay);
-  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）・稼働率 ${Math.round(worked/stayMinDay(timeDay)*1000)/10}%</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(etcDay?"　その他 "+etcDay+"件":"")+(st?"　"+st:""));
+  $("tSum").innerHTML=(sl.length?`<b class="stx">入店 ${stayMinDay(timeDay)}分（${stayRanges(timeDay)}）・稼働率 ${Math.round(worked/stayMinDay(timeDay)*1000)/10}%</b>　`:"")+esc((dl.length?`施術 ${hmText(worked)}（指名 ${hmText(shMin(dl.map(x=>x.v)))}）・${yen(dl.reduce((a,x)=>a+total(x.v),0))}（収入 ${yen(calcNet(dl.map(x=>x.v)).net)}）`:"")+(cxDay?"　キャンセル "+cxDay+"件":"")+(etcDay?"　その他 "+etcDay+"件"+((m=>m?"（"+yen(m)+"）":"")(dv.filter(x=>isEtc(x.v)&&!x.v.cancel).reduce((t,x)=>t+(x.v.etcAmt||0),0))):"")+(st?"　"+st:""));
   let h0=OPEN_H,h1=CLOSE_H;
   sl.forEach(m=>{h0=Math.min(h0,Math.floor(m/60));h1=Math.max(h1,Math.ceil((m+SLOT)/60))});
   dv.forEach(x=>{x.ie=x.e+ivMin(x.v);h0=Math.min(h0,Math.floor(x.s/60));h1=Math.max(h1,Math.ceil(x.ie/60))});
@@ -2547,6 +2548,8 @@ function renderStats(){
         <div><span>キャンセル</span><b>${mcx.length}件</b></div>
         <div><span>キャンセル率</span><b>${mAll.length?Math.round(mcx.length/mAll.length*100):0}%</b></div>
         <div><span>キャンセル分の金額</span><b>${yen(mcx.reduce((a,v)=>a+total(v),0))}</b></div>
+        ${(()=>{const ev=visits.filter(v=>v.date.startsWith(statsMonth)&&isEtc(v)&&!v.cancel);if(!ev.length)return "";const amt=ev.reduce((a,v)=>a+(v.etcAmt||0),0);
+          return `<div><span>その他（練習など）</span><b>${ev.length}件</b></div><div><span>その他の時間</span><b>${hoursText(ev.reduce((a,v)=>a+(vMin(v)||0),0))}</b></div><div><span>その他の金額（別集計）</span><b>${yen(amt)}</b></div>`})()}
       </div>
     </div>
     <div class="card num">

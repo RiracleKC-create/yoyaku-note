@@ -759,7 +759,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <details class="card" id="helpOcr"><summary>📷 スクショから読み取る</summary>
     <p><b>① スクショの撮り方</b>（スクショは、いつもの方法で撮ってください。撮り方は機種によって違います）</p>
     <ol>
-      <li>りらくるアプリで<b>個人の閲覧用DWB（時間の表）</b>を開いたら、まずその画面のスクショを撮ります。お客様マークの色（水色＝男性、赤＝女性）から、性別を自動で入れるためです。
+      <li>りらくるアプリで<b>個人の閲覧用DWB（時間の表）</b>を開いたら、まずその画面のスクショを撮ります。お客様マークの色（水色＝男性、赤＝女性）から、性別を自動で入れるためです。マークが黒に近いグレーのお客様は、りらくるに性別の登録がないため、色からは入りません。
         <ul>
           <li>左側の時刻（9:00、9:30…）が3つ以上写るようにしてください。</li>
           <li>1枚でおよそ12時間分（例：9:00〜21:30）写るので、たいていの日は1枚で足ります。予約が1枚に入りきらない日は、スクロールして2枚に分けて撮ってください（重なって写っても大丈夫です）。</li>
@@ -787,7 +787,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <ul>
       <li>画面が切れている、ほかの画面が重なっているときは読み間違えやすくなります。撮り直してください。</li>
       <li>指名の種類・性別・日付が違うときは、確認画面か「下で直す」で直してください。</li>
-      <li><b>個人の閲覧用DWBのスクショにその予約が写っていなかったとき</b>：性別は自動では入りません。前に来たことのあるお客様は前回の記録から入り、はじめてのお客様は性別を聞かれるので、選んでください。</li>
+      <li><b>お客様マークがグレーのとき、または個人の閲覧用DWBのスクショにその予約が写っていなかったとき</b>：性別は色からは入りません。前に来たことのあるお客様は前回の記録から入り、はじめてのお客様は性別を聞かれるので、選んでください。</li>
       <li><b>「ご予約内容」が1枚に入りきらなかったとき</b>：切れた部分（お疲れ部位やコメントなど）は入りません。確認画面の「下で直す」で足してください。会員番号や予約時間が切れたときは、撮り直してください。</li>
       <li>「スクショを読み取れませんでした」と出たら、ネットにつながる所でもう一度試してください。</li>
       <li>それでもうまくいかないときは、これまでどおり「📋 予約通知を貼り付け」か、手で入力してください。</li>
@@ -1911,10 +1911,13 @@ async function ocrTimeline(f,data){
   const x0=Math.floor(W*0.1),x1=Math.floor(W*0.3),cv=document.createElement("canvas");cv.width=x1-x0;cv.height=H;
   const cx=cv.getContext("2d");cx.drawImage(bmp,-x0,0);const px=cx.getImageData(0,0,x1-x0,H).data,rw=x1-x0;
   const ymin=Math.min(...labs.map(l=>l.y))-60,ymax=Math.max(...labs.map(l=>l.y))+H*0.05;
-  const icons=[];let cur=null;const gap=H*0.012;
+  const icons=[];let cur=null;const gap=H*0.012,gx0=Math.floor(W*0.145)-x0,gx1=Math.floor(W*0.19)-x0;
   for(let y=Math.max(0,Math.floor(ymin));y<Math.min(H,ymax);y++){let r=0,bl=0;
-    for(let x=0;x<rw;x++){const i=(y*rw+x)*4,R=px[i],G=px[i+1],B=px[i+2];if(R>200&&G<70&&B<70)r++;else if(R<90&&G>140&&B>200)bl++}
-    const col=r>=4?"f":bl>=4?"m":"";
+    let g=0;
+    for(let x=0;x<rw;x++){const i=(y*rw+x)*4,R=px[i],G=px[i+1],B=px[i+2];if(R>200&&G<70&&B<70)r++;else if(R<90&&G>140&&B>200)bl++;
+      // 性別未登録のグレーのマーク（黒に近いグレー）。数字の文字や黒い枠と混ざらないよう、マークのある細い列だけで見る
+      else if(x>=gx0&&x<gx1&&R>=75&&R<=100&&Math.abs(R-G)<6&&Math.abs(G-B)<6)g++}
+    const col=r>=4?"f":bl>=4?"m":g>=4?"u":"";
     if(col){if(cur&&cur.s===col&&y-cur.last<=gap){cur.last=y}else{cur={s:col,top:y,last:y};icons.push(cur)}}}
   const date=(data.text.normalize("NFKC").replace(/\s/g,"").match(/(20\d\d)[\/年](\d{1,2})[\/月](\d{1,2})/)||[]);
   return {icons:icons.filter(i=>i.last-i.top>=H*0.008).map(i=>({s:i.s,m:k*i.top+c0})),date:date[1]?date[1]+"-"+pad(+date[2])+"-"+pad(+date[3]):""}}
@@ -1936,7 +1939,7 @@ async function startOcr(fs){if(!fs.length)return;
   res.sort((a,b)=>a.st-b.st);
   // 個人の閲覧用DWBのスクショがあれば、時刻の近いお客様マークの色で性別を入れる（マークは枠の上端より少し下にある）
   const icons=tls.flatMap(t=>t.icons);const td=tls.map(t=>t.date).find(Boolean);if(td)ocrDate=td;
-  res.forEach(x=>{if(x.st===9999||!icons.length)return;let best=null;icons.forEach(ic=>{const d=Math.abs(ic.m-8-x.st);if(d<=25&&(!best||d<best.d))best={d,s:ic.s}});if(best)x.sex=best.s});
+  res.forEach(x=>{if(x.st===9999||!icons.length)return;let best=null;icons.forEach(ic=>{const d=Math.abs(ic.m-8-x.st);if(d<=25&&(!best||d<best.d))best={d,s:ic.s}});if(best&&best.s!=="u")x.sex=best.s});
   ocrQ=res;ocrTotal=res.length;ocrNext()}
 function ocrNext(){
   if(!ocrQ.length){ocrBusy=false;return}

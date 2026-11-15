@@ -131,6 +131,7 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .yt-det.yr-det2 summary::after{content:"車などを追加する ▾"}.yt-det.yr-det2[open] summary::after{content:"閉じる ▴"}
 .btn.danger{color:#C0392B}
 .paste-btn{font-size:18px;padding:16px 0}
+.ocr-help{border:0;background:none;color:var(--shimei);font-weight:700;font-size:14px;padding:6px 0 0;text-decoration:underline;text-underline-offset:3px}
 .ocr-btn{width:100%;margin-top:12px;padding:12px 0;font-weight:700}
 .paste-det{margin-top:8px}.paste-det summary{font-size:13px;color:var(--sub);cursor:pointer}.paste-det textarea{margin-top:6px}
 #pasteSum{margin-top:10px;border:2px solid var(--ok);border-radius:14px;padding:8px 12px 10px;scroll-margin-bottom:84px}
@@ -286,7 +287,7 @@ h3{font-size:15px;margin:0 0 10px}
 /* 使い方・更新履歴 */
 .help-tabs{margin-bottom:12px}
 .hp .card p,.hp .card li{font-size:14px;line-height:1.65}
-.hp .card ul{margin:6px 0 0;padding-left:1.2em}
+.hp .card ul,.hp .card ol{margin:6px 0 0;padding-left:1.4em}
 .hp .card li{margin:4px 0}
 .hp details.card summary{font-weight:700;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
 .hp details.card summary::-webkit-details-marker{display:none}
@@ -596,7 +597,8 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <p class="note" style="margin:6px 0 0">りらくるアプリで予約通知をコピーしてから押してください。</p>
       <button type="button" class="btn ghost ocr-btn" id="ocrBtn">📷 予約画面のスクショから読み取る</button>
       <input type="file" id="ocrFile" accept="image/*" multiple hidden>
-      <p class="note" style="margin:4px 0 0">りらくるアプリで「ご予約内容」を開いてスクショし、ここで選んでください（何枚でもまとめて選べます）。スクショの「共有」から「予約ノート」を選んでも読み取れます。予約一覧（時間の表）のスクショも一緒に選ぶと、お客様マークの色（青・赤）から性別も入ります。</p>
+      <p class="note" style="margin:4px 0 0">りらくるアプリで「ご予約内容」を開いてスクショし、ここで選んでください（何枚でもまとめて選べます）。スクショの「共有」から「予約ノート」を選んでも読み取れます。個人の閲覧用DWB（時間の表）のスクショも一緒に選ぶと、お客様マークの色（青・赤）から性別も入ります。</p>
+      <button type="button" class="ocr-help" id="ocrHelp">？ スクショ読み取りのくわしい使い方</button>
       <div class="warn" id="pasteMsg"></div>
       <div id="pasteSum" hidden></div>
       <details class="paste-det" id="pasteDet"><summary>うまく貼り付けられないとき</summary>
@@ -752,6 +754,43 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>記録を直すときは、一覧などから記録を開いて「編集する」。削除は2回押すと消えます。</li>
       <li><b>別のお客様に付け替える</b>：同じ番号の別のお客様を選んでしまったときは、記録を開いて「編集する」→ 会員番号の下の「選び直す」→ 正しいお客様の「このお客様を選ぶ」（まだ登録していない人なら「同じ番号の別のお客様（新しく登録）」）→「変更を保存」。来店回数や累計も数え直されます。</li>
       <li>キャンセルになった予約は、記録を開いて「この予約をキャンセルにする」。売上・件数・施術時間・収入には入りません。</li>
+    </ul>
+  </details>
+  <details class="card" id="helpOcr"><summary>📷 スクショから読み取る</summary>
+    <p><b>① スクショの撮り方</b>（スクショは、いつもの方法で撮ってください。撮り方は機種によって違います）</p>
+    <ol>
+      <li>りらくるアプリで<b>個人の閲覧用DWB（時間の表）</b>を開いたら、まずその画面のスクショを撮ります。お客様マークの色（水色＝男性、赤＝女性）から、性別を自動で入れるためです。
+        <ul>
+          <li>左側の時刻（9:00、9:30…）が3つ以上写るようにしてください。</li>
+          <li>1枚でおよそ12時間分（例：14:00〜26:30）写るので、たいていの日は1枚で足ります。予約が1枚に入りきらない日は、スクロールして2枚に分けて撮ってください（重なって写っても大丈夫です）。</li>
+        </ul>
+      </li>
+      <li>次に、予約を1件ずつ押して<b>「ご予約内容」</b>を開き、スクショを撮ります。<b>会員番号からコメントまでが1枚に全部入る</b>ようにしてください（切れた部分は読み取れません）。</li>
+      <li>その日の予約の分を撮り終わったら、② の方法でまとめて読み取ります。</li>
+    </ol>
+    <p><b>② 読み取り方</b></p>
+    <ul>
+      <li><b>Android</b>：入力タブの「📷 予約画面のスクショから読み取る」を押すと、写真の一覧が開きます。1枚目を長押しすると選ぶモードになり、続けて押すとまとめて選べます。選び終わったら「選択」や「完了」を押します（ボタンの名前は機種によって違います）。<br>スクショを撮った直後に出る「共有」から「予約ノート」を選んでも読み取れます（共有先に出てくるまで、アプリの更新から少し時間がかかることがあります）。</li>
+      <li><b>iPhone</b>：入力タブの「📷 予約画面のスクショから読み取る」を押し、出てきたメニューで「写真ライブラリ」を選びます。読み取りたいスクショを順に押すと、チェックが付いてまとめて選べます。右上の「追加」を押すと読み取りが始まります。<br>iPhoneは「共有」から予約ノートを選べないので、必ずこのボタンから選んでください。</li>
+      <li>個人の閲覧用DWBのスクショも、一緒に選んでください。</li>
+      <li>読み取った予約は、<b>予約時間の早い順</b>に1件ずつ確認画面に出ます。内容を確かめて「この内容で保存」を押すと、次の予約に進みます。</li>
+      <li>最初の1件では予約の日付を聞かれます。同じときに選んだ残りの予約にも、同じ日付が入ります。</li>
+      <li>読み間違いがあるときは「<b>下で直す</b>」で入力欄を直してから保存します。その予約を入れないときは「<b>やめる</b>」で飛ばせます。</li>
+    </ul>
+    <p><b>③ 知っておくこと</b></p>
+    <ul>
+      <li>はじめて使うときだけ、読み取りの準備に<b>約6MBの通信</b>が必要です（Wi-Fiがおすすめ）。2回目からは通信なしでも読み取れます。</li>
+      <li>読み取りは<b>スマホの中だけ</b>で行います。画像はどこにも送りません。</li>
+      <li>保存したあとのスクショは、いつ消しても大丈夫です。写真が増えるので、こまめに消すのがおすすめです。Androidはフォトの「スクリーンショット」、iPhoneは写真アプリの「スクリーンショット」のアルバムからまとめて消せます。</li>
+    </ul>
+    <p><b>うまく読み取れないとき</b></p>
+    <ul>
+      <li>画面が切れている、ほかの画面が重なっているときは読み間違えやすくなります。撮り直してください。</li>
+      <li>指名の種類・性別・日付が違うときは、確認画面か「下で直す」で直してください。</li>
+      <li><b>個人の閲覧用DWBのスクショにその予約が写っていなかったとき</b>：性別は自動では入りません。前に来たことのあるお客様は前回の記録から入り、はじめてのお客様は性別を聞かれるので、選んでください。</li>
+      <li><b>「ご予約内容」が1枚に入りきらなかったとき</b>：切れた部分（お疲れ部位やコメントなど）は入りません。確認画面の「下で直す」で足してください。会員番号や予約時間が切れたときは、撮り直してください。</li>
+      <li>「スクショを読み取れませんでした」と出たら、ネットにつながる所でもう一度試してください。</li>
+      <li>それでもうまくいかないときは、これまでどおり「📋 予約通知を貼り付け」か、手で入力してください。</li>
     </ul>
   </details>
   <details class="card"><summary>一覧タブ</summary>
@@ -1271,10 +1310,11 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=95; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=96; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:96,date:"11月15日",items:["⚙設定の「使い方」に「📷 スクショから読み取る」の説明を追加しました（スクショの撮り方・読み取り方・うまく読み取れないとき）。","入力タブのスクショ読み取りボタンの下にある「？ スクショ読み取りのくわしい使い方」からも、同じ説明を開けます。"]},
   {n:95,date:"11月14日",items:["「その他（練習など）」の記録にも料金を入れられるようになりました。売上・収入には入れず、集計タブの「その他の金額（別集計）」に分けて表示します。"]},
-  {n:94,date:"11月14日",items:["スクショをまとめて読み取ったとき、撮った順ではなく予約時間の早い順に出てくるようにしました。","予約一覧（時間の表）のスクショも一緒に選ぶか共有すると、お客様マークの色（青＝男性・赤＝女性）から性別が自動で入ります。日付と性別が分かっているときは、質問の画面を出さずにすぐ確認画面になります。"]},
+  {n:94,date:"11月14日",items:["スクショをまとめて読み取ったとき、撮った順ではなく予約時間の早い順に出てくるようにしました。","個人の閲覧用DWB（時間の表）のスクショも一緒に選ぶか共有すると、お客様マークの色（青＝男性・赤＝女性）から性別が自動で入ります。日付と性別が分かっているときは、質問の画面を出さずにすぐ確認画面になります。"]},
   {n:93,date:"11月14日",items:["りらくるアプリの「ご予約内容」のスクショから予約を読み取れるようになりました。入力タブの「📷 予約画面のスクショから読み取る」から、スクショを何枚でもまとめて選べます。1件保存すると、次のスクショを読み取ります。","スクショを撮ったあと、Androidの「共有」から「予約ノート」を選んでも読み取れます（共有先に出てくるまで、アプリの更新から少し時間がかかることがあります）。","はじめて使うときだけ、読み取りの準備にネット通信（約6MB）が必要です。"]},
   {n:92,date:"11月13日",items:["入店時間を30分単位で入れられるようになりました（りらくるの30分単位エントリーに合わせました）。これまでに入れた入店時間はそのままです。"]},
   {n:91,date:"11月13日",items:["時間タブの日・週・月に稼働率（施術時間÷入店時間）を表示するようにしました。","今週・今月の稼働率と集計タブの稼働率は、今日までの入店時間で計算します（先の予定の入店時間は入れません）。"]},
@@ -1312,14 +1352,18 @@ const SEEN_KEY="rirakuLog.seenVer";
 // 同じ日の更新はひとつにまとめて、更新した日だけを見出しにする
 function chgHtml(list){const g=[];list.forEach(c=>{const l=g[g.length-1];if(l&&l.date===c.date)l.items.push(...c.items);else g.push({date:c.date,items:[...c.items]})});
   return g.map(c=>`<div class="chg"><h4>${esc(c.date)}の更新</h4><ul>${c.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}
-function showHelp(which){show("help");
+let helpFrom="settings";
+function showHelp(which,from){show("help");helpFrom=from||"settings";$("helpBack").textContent=helpFrom==="input"?"‹ 入力に戻る":"‹ 設定に戻る";
   document.querySelectorAll(".help-tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.h===which?"true":"false"));
   $("helpManual").hidden=which!=="manual";$("helpHistory").hidden=which!=="history";
   if(which==="history")$("helpHistory").innerHTML=`<div class="card">${chgHtml(CHANGELOG)}</div>`}
 document.querySelectorAll(".help-tabs button").forEach(b=>b.addEventListener("click",()=>showHelp(b.dataset.h)));
 $("openManual").addEventListener("click",()=>showHelp("manual"));
 $("openHistory").addEventListener("click",()=>showHelp("history"));
-$("helpBack").addEventListener("click",()=>show("settings"));
+$("helpBack").addEventListener("click",()=>{show(helpFrom);if(helpFrom==="input")setTimeout(()=>$("ocrBtn").scrollIntoView({block:"center"}),50)});
+// 上の売上の部分（画面上に固定）に隠れないよう、その高さぶん下げて説明の見出しから表示する
+function scrollUnderHeader(el){const h=document.querySelector("header.top");const off=(h?h.getBoundingClientRect().height:0)+8;window.scrollTo(0,el.getBoundingClientRect().top+window.scrollY-off)}
+$("ocrHelp").addEventListener("click",()=>{showHelp("manual","input");const d=$("helpOcr");d.open=true;setTimeout(()=>scrollUnderHeader(d),50)});
 $("verNote").textContent="最終更新："+CHANGELOG[0].date;
 // 前に見た版より新しい分を、まとめてお知らせする（何回分たまっていても全部出す）
 setTimeout(function(){let seen=0;try{seen=Number(localStorage.getItem(SEEN_KEY))||0}catch(e){}
@@ -1854,7 +1898,7 @@ function ocrToText(raw){
     else{const m=l.match(/^(.+?)[:：・]?(\d{1,3})分$/);if(m)out.push(m[1].replace(/[:：・]+$/,"")+"："+m[2]+"分");else if(!junk(l))out.push(l)}}
   // コースの行は「選択したコース」の続きとして読む（ラベル付きの行に化けないように）
   return out.join("\n")}
-// 予約一覧（タイムライン）のスクショから、お客様マークの色（青＝男性・赤＝女性）と開始時刻を読む
+// 閲覧用DWB（タイムライン）のスクショから、お客様マークの色（青＝男性・赤＝女性）と開始時刻を読む
 async function ocrTimeline(f,data){
   const words=(data.blocks||[]).flatMap(b=>b.paragraphs.flatMap(p=>p.lines.flatMap(l=>l.words)));
   let bmp;try{bmp=await createImageBitmap(f)}catch(e){return null}
@@ -1890,7 +1934,7 @@ async function startOcr(fs){if(!fs.length)return;
   if(!res.length){ocrBusy=false;toast("予約の内容（ご予約内容の画面）が見つかりませんでした");return}
   // 予約時間の早い順に入力する
   res.sort((a,b)=>a.st-b.st);
-  // 予約一覧のスクショがあれば、時刻の近いお客様マークの色で性別を入れる（マークは枠の上端より少し下にある）
+  // 個人の閲覧用DWBのスクショがあれば、時刻の近いお客様マークの色で性別を入れる（マークは枠の上端より少し下にある）
   const icons=tls.flatMap(t=>t.icons);const td=tls.map(t=>t.date).find(Boolean);if(td)ocrDate=td;
   res.forEach(x=>{if(x.st===9999||!icons.length)return;let best=null;icons.forEach(ic=>{const d=Math.abs(ic.m-8-x.st);if(d<=25&&(!best||d<best.d))best={d,s:ic.s}});if(best)x.sex=best.s});
   ocrQ=res;ocrTotal=res.length;ocrNext()}

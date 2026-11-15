@@ -145,6 +145,28 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 #pasteSum .ps-new{margin-left:8px;font-size:11px;background:#B7791F;color:#fff;border-radius:8px;padding:1px 8px;vertical-align:middle}
 #pasteSum .dchips{display:flex;gap:6px;flex-wrap:wrap}
 #pasteSum .dchips .chip{padding:2px 12px;font-size:13px}
+/* スクショをまとめて読み取ったときの一覧 */
+#batchSum{margin-top:10px;border:2px solid var(--ok);border-radius:14px;padding:10px 12px 12px;scroll-margin-top:200px}
+#batchSum h4{margin:0 0 6px;font-size:15px;color:var(--ok)}
+#batchSum .bs-date{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
+#batchSum .bs-date .chip{padding:3px 12px;font-size:13px}
+#batchSum .bs-date.ask{background:#FFF4D6;border-radius:10px;padding:6px 8px;color:#8A5A00;font-weight:700}
+#batchSum .bs-row{border-top:1px solid var(--line);padding:8px 0;display:grid;gap:4px}
+#batchSum .bs-l1{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+#batchSum .bs-l1 b{font-size:16px}
+#batchSum .bs-pr{font-weight:700;font-variant-numeric:tabular-nums}
+#batchSum .bs-l2{font-size:13px;color:var(--sub)}
+#batchSum .bs-act{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#batchSum .bs-act .chip{padding:2px 10px;font-size:13px}
+#batchSum .bs-act .lnk{border:0;background:none;color:var(--shimei);font-weight:700;font-size:13px;padding:2px 4px;text-decoration:underline}
+#batchSum .bs-act .lnk.rm{color:var(--danger)}
+#batchSum .ask{color:#8A5A00;font-weight:700;font-size:12px}
+#batchSum .bs-feat{font-size:13px;background:var(--field);border-radius:8px;padding:4px 8px;overflow-wrap:anywhere}
+#batchSum .bs-feat small{display:block;color:var(--sub);font-size:12px}
+#batchSum .bs-tot{border-top:2px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;font-weight:700;font-variant-numeric:tabular-nums}
+#batchSum .bs-btns{display:grid;gap:8px;margin-top:10px}
+#batchSum .bs-btns .btn{padding:12px 0}
+#batchSum .bs-btns .btn:disabled{opacity:.4}
 #pasteSum .memo-s{white-space:pre-wrap;font-size:12px;color:var(--sub)}
 #pasteSum .ps-btns{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
 #pasteSum .ps-sub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -601,6 +623,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <button type="button" class="ocr-help" id="ocrHelp">？ スクショ読み取りのくわしい使い方</button>
       <div class="warn" id="pasteMsg"></div>
       <div id="pasteSum" hidden></div>
+      <div id="batchSum" hidden></div>
       <details class="paste-det" id="pasteDet"><summary>うまく貼り付けられないとき</summary>
         <textarea class="fld" id="pasteBox" placeholder="予約通知の文章をここに長押しで貼り付けると、自動で入力されます"></textarea>
       </details>
@@ -773,9 +796,14 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li><b>Android</b>：入力タブの「📷 予約画面のスクショから読み取る」を押すと、写真の一覧が開きます。1枚目を長押しすると選ぶモードになり、続けて押すとまとめて選べます。選び終わったら「選択」や「完了」を押します（ボタンの名前は機種によって違います）。<br>スクショを撮った直後に出る「共有」から「予約ノート」を選んでも読み取れます（共有先に出てくるまで、アプリの更新から少し時間がかかることがあります）。</li>
       <li><b>iPhone</b>：入力タブの「📷 予約画面のスクショから読み取る」を押し、出てきたメニューで「写真ライブラリ」を選びます。読み取りたいスクショを順に押すと、チェックが付いてまとめて選べます。右上の「追加」を押すと読み取りが始まります。<br>iPhoneは「共有」から予約ノートを選べないので、必ずこのボタンから選んでください。</li>
       <li>個人の閲覧用DWBのスクショも、一緒に選んでください。</li>
-      <li>読み取った予約は、<b>予約時間の早い順</b>に1件ずつ確認画面に出ます。内容を確かめて「この内容で保存」を押すと、次の予約に進みます。</li>
-      <li>最初の1件では予約の日付を聞かれます。同じときに選んだ残りの予約にも、同じ日付が入ります。</li>
-      <li>読み間違いがあるときは「<b>下で直す</b>」で入力欄を直してから保存します。その予約を入れないときは「<b>やめる</b>」で飛ばせます。</li>
+      <li><b>2件以上を一緒に読み取ったとき</b>：読み取った予約が<b>予約時間の早い順に一覧</b>で出ます。予約の日付（今日・明日・日付を選択）を1回選び、内容を確かめて「<b>まとめて保存</b>」を押すと、全部まとめて保存されます。
+        <ul>
+          <li>性別は、一覧の「男性・女性」で選び直せます。</li>
+          <li>同じ会員番号のお客様がいるときは、どのお客様かを一覧で選びます（1人だけのときは、そのお客様が選ばれています）。</li>
+          <li>読み間違いがある予約は「<b>直す</b>」を押すと、1件ずつの確認画面で直せます。保存すると一覧に戻ります。入れない予約は「<b>外す</b>」を2回押します。</li>
+        </ul>
+      </li>
+      <li><b>1件だけ読み取ったとき</b>：これまでどおり確認画面が出ます。予約の日付を選び、内容を確かめて「この内容で保存」を押します。読み間違いは「<b>下で直す</b>」で直せます。入れないときは「<b>やめる</b>」を押します。</li>
     </ul>
     <p><b>③ 知っておくこと</b></p>
     <ul>
@@ -1310,8 +1338,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=96; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=100; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:100,date:"11月15日",items:["スクショから2件以上の予約を一緒に読み取ったときは、予約時間の順に一覧で出て、日付を1回選んで「まとめて保存」を押すだけで全部保存できるようになりました。","一覧では、性別やお客様を選び直したり、「直す」で1件ずつの確認画面に移して直したりできます。"]},
   {n:96,date:"11月15日",items:["⚙設定の「使い方」に「📷 スクショから読み取る」の説明を追加しました（スクショの撮り方・読み取り方・うまく読み取れないとき）。","入力タブのスクショ読み取りボタンの下にある「？ スクショ読み取りのくわしい使い方」からも、同じ説明を開けます。"]},
   {n:95,date:"11月14日",items:["「その他（練習など）」の記録にも料金を入れられるようになりました。売上・収入には入れず、集計タブの「その他の金額（別集計）」に分けて表示します。"]},
   {n:94,date:"11月14日",items:["スクショをまとめて読み取ったとき、撮った順ではなく予約時間の早い順に出てくるようにしました。","個人の閲覧用DWB（時間の表）のスクショも一緒に選ぶか共有すると、お客様マークの色（青＝男性・赤＝女性）から性別が自動で入ります。日付と性別が分かっているときは、質問の画面を出さずにすぐ確認画面になります。"]},
@@ -1719,7 +1748,7 @@ $("saveBtn").addEventListener("click",async()=>{
   await saveVisit(v);
   toast((wasEdit?"変更を保存しました":"記録を保存しました（"+yen(total(v))+"）")+(sideMsg?"・"+sideMsg:""));
   if(wasEdit)goBack();
-  else if(ocrBusy){ocrDate=v.date;if(ocrQ.length)setTimeout(ocrNext,700);else ocrBusy=false}
+  else if(ocrBusy){ocrDate=v.date;if(ocrQ.length)setTimeout(ocrNext,700);else{ocrBusy=false;batchBack(true,v)}}
 });
 $("cancelEdit").addEventListener("click",()=>{resetForm();goBack()});
 // 確認ダイアログは公開ページ内で使えないため、2回タップで削除
@@ -1854,7 +1883,7 @@ $("pasteSum").addEventListener("click",e=>{const b=e.target.closest("button");if
   if(b.id==="psPickDate"){dateJump=true;const f=$("fDate"),h=document.querySelector("header.top");
     window.scrollTo({top:Math.max(0,f.getBoundingClientRect().top+window.scrollY-(h?h.offsetHeight:0)-40),behavior:"smooth"});
     setTimeout(()=>{try{f.focus({preventScroll:true});if(f.showPicker)f.showPicker()}catch(e){}},350);return}
-  if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);if(ocrBusy&&ocrQ.length){toast("このスクショは飛ばして、次を読み取ります");setTimeout(ocrNext,500)}else{ocrBusy=false;ocrQ=[];toast("貼り付けた内容を取り消しました")}return}
+  if(b.id==="psCancel"){resetForm();window.scrollTo(0,0);if(ocrBusy&&ocrQ.length){toast("このスクショは飛ばして、次を読み取ります");setTimeout(ocrNext,500)}else if(batch&&batch.editing){ocrBusy=false;ocrQ=[];batchBack(false);toast("一覧に戻しました")}else{ocrBusy=false;ocrQ=[];toast("貼り付けた内容を取り消しました")}return}
   if(b.dataset.mh){b.dataset.psw=b.dataset.mh==="pick"?(b.dataset.who||"1"):b.dataset.mh}
   if(b.dataset.psw){const no=$("fMember").value.trim(),a=b.dataset.psw;
     if(a==="redo"){memberOK="";fWho=1}
@@ -1940,7 +1969,85 @@ async function startOcr(fs){if(!fs.length)return;
   // 個人の閲覧用DWBのスクショがあれば、時刻の近いお客様マークの色で性別を入れる（マークは枠の上端より少し下にある）
   const icons=tls.flatMap(t=>t.icons);const td=tls.map(t=>t.date).find(Boolean);if(td)ocrDate=td;
   res.forEach(x=>{if(x.st===9999||!icons.length)return;let best=null;icons.forEach(ic=>{const d=Math.abs(ic.m-8-x.st);if(d<=25&&(!best||d<best.d))best={d,s:ic.s}});if(best&&best.s!=="u")x.sex=best.s});
+  if(res.length>1){batchStart(res);return}
   ocrQ=res;ocrTotal=res.length;ocrNext()}
+/* ---------- まとめて保存（スクショを2件以上読み取ったとき） ----------
+   読み取った予約を一覧にして、日付を1回選んだら「まとめて保存」を1回押すだけで全部保存する。
+   直したい予約は「直す」で今までの1件ずつの確認画面に移し、保存するとこの一覧に戻る。 */
+let batch=null; // {items:[{txt,r,sex,who,whoSet}], date, editing}
+function bItemInit(it){
+  const r=it.r,no=r.member||"";
+  if(!it.sex&&no){const past=live(visits).filter(v=>v.member===no&&v.sex);const sx=[...new Set(past.map(v=>v.sex))];if(sx.length===1)it.sex=sx[0]}
+  const whos=no?whosFor(no):[];
+  // 同じ番号のお客様が1人だけなら、そのお客様として仮に選んでおく（変えられる）。2人以上なら選んでもらう
+  if(whos.length===1){it.who=whos[0];it.whoSet=true}else if(!whos.length){it.who=1;it.whoSet=true}else{it.who=null;it.whoSet=false}
+  return it}
+function batchStart(res){
+  ocrBusy=false;ocrQ=[];
+  batch={items:res.map(bItemInit),date:ocrDate||"",editing:null};
+  renderBatch();setTimeout(()=>scrollUnderHeader($("batchSum")),50)}
+function bParts(r){return r.parts&&Object.keys(r.parts).length?PARTS.filter(p=>r.parts[p.k]).map(p=>({k:p.k,m:r.parts[p.k]})):[]}
+function bVisit(it,dk){const r=it.r,ps=bParts(r),type=r.type||"free",no=r.member||"";
+  const min=ps.reduce((a,p)=>a+p.m,0)||(r.span||0);
+  const v={id:newId(),date:dk,time:r.time||"12:00",type,member:no,...(no&&it.who>1?{who:it.who}:{}),sex:it.sex||"",
+    course:ps.length?ps.map(p=>p.k+p.m).join("+"):(r.span?r.span+"分":""),min,parts:ps,
+    price:r.price||0,fee:feeFor(type),extra:0,incl:true,opts:[...(r.opts||[])],memo:r.memo||"",updatedAt:Date.now()};
+  return v}
+function renderBatch(){
+  const el=$("batchSum");if(!batch||batch.editing){el.hidden=true;el.innerHTML="";return}
+  const t0=bizToday(),t1=(d=>{d.setDate(d.getDate()+1);return dateKey(d)})(new Date(t0+"T00:00")),dk=batch.date,other=dk&&dk!==t0&&dk!==t1;
+  const its=batch.items;
+  const rows=its.map((it,i)=>{const r=it.r,no=r.member||"",whos=no?whosFor(no):[],ps=bParts(r);
+    const course=ps.length?ps.map(p=>p.k+p.m).join("+"):(r.span?r.span+"分":"コース不明");
+    const tm=r.time?dispTime(r.time):"時間不明";
+    let who="";
+    if(no&&whos.length){
+      // 選んでいるお客様の特徴（📌）と前回の来店を出して、同じ人か確かめやすくする
+      const info=w=>{const k=ckOf(no,w),n=memberNote(k),last=live(visits).filter(v=>v.member===no&&(v.who>1?v.who:1)===w).sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time))[0];
+        return `<div class="bs-feat">${n?"📌 "+esc(n):'<span style="color:var(--sub)">特徴の登録なし</span>'}${last?`<small>前回 ${dayLabel(last.date)}・${TYPES[last.type]||""}${last.sex&&SEX[last.sex]?"・"+SEX[last.sex]:""}</small>`:""}</div>`};
+      const sel=it.whoSet&&whos.includes(it.who)?it.who:null;
+      who=`<div class="bs-act">${whos.length>1&&!it.whoSet?`<span class="ask">同じ番号のお客様が${whos.length}人います。選んでください</span>`:""}${whos.map(w=>{const k=ckOf(no,w);return `<button type="button" class="chip" data-bw="${i}:${w}" aria-pressed="${sel===w}">${esc(whos.length>1||w>1?keyLabel(k):"前と同じお客様")}</button>`}).join("")}<button type="button" class="chip" data-bw="${i}:new" aria-pressed="${it.whoSet&&!whos.includes(it.who)}">別のお客様</button></div>`+
+        (sel?info(sel):whos.length>1&&!it.whoSet?whos.map(w=>`<div class="bs-feat"><b>${esc(keyLabel(ckOf(no,w)))}</b>　${info(w).replace(/^<div class="bs-feat">|<\/div>$/g,"")}</div>`).join(""):`<div class="bs-feat" style="color:var(--sub)">別のお客様として新しく登録します</div>`)}
+    else if(no)who=`<div class="bs-l2">はじめてのお客様</div>`;
+    return `<div class="bs-row">
+      <div class="bs-l1"><b>${tm}　${no?esc(no):'<span class="miss">番号なし</span>'}</b><span class="bs-pr">${r.price?yen(r.price):'<span class="miss">金額なし</span>'}</span></div>
+      <div class="bs-l2">${TYPES[r.type||"free"]}・${esc(course)}${(r.opts||[]).length?"・"+OPTS.filter(o=>r.opts.includes(o.k)).map(o=>o.short).join("・"):""}</div>
+      ${who}
+      <div class="bs-act">${it.sex?"":`<span class="ask">性別：</span>`}<button type="button" class="chip" data-bs="${i}:m" aria-pressed="${it.sex==="m"}">男性</button><button type="button" class="chip" data-bs="${i}:f" aria-pressed="${it.sex==="f"}">女性</button>
+        <span style="flex:1"></span><button type="button" class="lnk" data-bed="${i}">直す</button><button type="button" class="lnk rm" data-brm="${i}">外す</button></div>
+    </div>`}).join("");
+  const sum=its.reduce((a,it)=>a+(it.r.price||0),0),need=its.filter(it=>!it.whoSet).length;
+  el.innerHTML=`<h4>読み取った予約 ${its.length}件（予約時間の順）</h4>
+    <div class="bs-date${dk?"":" ask"}">${dk?"予約の日付：":"予約の日付を選んでください："}<button type="button" class="chip" data-bd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-bd="${t1}" aria-pressed="${dk===t1}">明日</button><button type="button" class="chip" data-bd="pick" aria-pressed="${!!other}">${other?dayLabel(dk):"日付を選択"}</button><input type="date" id="bsDateIn" hidden></div>
+    ${rows}
+    <div class="bs-tot"><span>合計</span><span>${yen(sum)}</span></div>
+    <div class="bs-btns"><button type="button" class="btn" id="bsSave" ${dk&&!need&&its.length?"":"disabled"}>${its.length}件まとめて保存</button>${!dk?'<div class="ask" style="text-align:center">日付を選ぶと保存できます</div>':need?'<div class="ask" style="text-align:center">お客様を選んでいない予約があります</div>':""}<button type="button" class="btn ghost" id="bsCancel">やめる（保存しない）</button></div>`;
+  el.hidden=false}
+function dispTime(t){const [h,m]=t.split(":").map(Number);return h+":"+pad(m)}
+$("batchSum").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b||!batch)return;
+  if(b.dataset.bd){if(b.dataset.bd==="pick"){const inp=$("bsDateIn");inp.hidden=false;inp.value=batch.date||bizToday();try{inp.showPicker()}catch(_){inp.focus()}return}
+    batch.date=b.dataset.bd;renderBatch();return}
+  if(b.dataset.bs){const [i,x]=b.dataset.bs.split(":");const it=batch.items[+i];it.sex=it.sex===x?"":x;renderBatch();return}
+  if(b.dataset.bw){const [i,w]=b.dataset.bw.split(":");const it=batch.items[+i],no=it.r.member;
+    if(w==="new"){const ws=whosFor(no);it.who=(ws.length?Math.max(...ws):0)+1}else it.who=+w;it.whoSet=true;renderBatch();return}
+  if(b.dataset.brm){const i=+b.dataset.brm;if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="もう一度押すと外す";return}
+    batch.items.splice(i,1);if(!batch.items.length){batch=null;toast("読み取った予約をすべて外しました")}renderBatch();return}
+  if(b.dataset.bed){const i=+b.dataset.bed;const it=batch.items.splice(i,1)[0];batch.editing=it;renderBatch();
+    // 今までの1件ずつの確認画面で直す。保存するか「やめる」で、この一覧に戻る
+    resetForm();ocrBusy=true;ocrDate=batch.date||"";ocrQ=[it];ocrTotal=1;ocrNext();return}
+  if(b.id==="bsCancel"){if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="もう一度押すとやめます（保存しません）";return}
+    batch=null;renderBatch();window.scrollTo(0,0);toast("読み取った予約を保存せずに閉じました");return}
+  if(b.id==="bsSave"){if(!batch.date)return;const dk=batch.date,its=batch.items;b.disabled=true;
+    for(const it of its)await saveVisit(bVisit(it,dk));
+    const n=its.length,sum=its.reduce((a,it)=>a+(it.r.price||0),0);batch=null;renderBatch();window.scrollTo(0,0);
+    toast(`${n}件まとめて保存しました（${yen(sum)}）`)}});
+$("batchSum").addEventListener("change",e=>{if(e.target.id==="bsDateIn"&&e.target.value&&batch){batch.date=e.target.value;renderBatch()}});
+// 「直す」で1件ずつの画面に移した予約が終わったら、一覧に戻す
+function batchBack(saved,it){if(!batch||!batch.editing)return false;const ed=batch.editing;batch.editing=null;
+  if(!saved){batch.items.push(ed);batch.items.sort((a,b)=>a.st-b.st)}
+  if(saved&&it&&it.date)batch.date=batch.date||it.date;
+  if(!batch.items.length){batch=null;renderBatch();return true}
+  renderBatch();setTimeout(()=>scrollUnderHeader($("batchSum")),80);return true}
 function ocrNext(){
   if(!ocrQ.length){ocrBusy=false;return}
   const it=ocrQ.shift();

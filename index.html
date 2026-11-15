@@ -150,6 +150,8 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 #batchSum h4{margin:0 0 6px;font-size:15px;color:var(--ok)}
 #batchSum .bs-date{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
 #batchSum .bs-date .chip{padding:3px 12px;font-size:13px}
+#batchSum .bs-pick{position:relative;overflow:hidden;cursor:pointer;display:inline-block;line-height:1.5}
+#batchSum .bs-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer}
 #batchSum .bs-date.ask{background:#FFF4D6;border-radius:10px;padding:6px 8px;color:#8A5A00;font-weight:700}
 #batchSum .bs-row{border-top:1px solid var(--line);padding:8px 0;display:grid;gap:4px}
 #batchSum .bs-l1{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -2018,15 +2020,14 @@ function renderBatch(){
     </div>`}).join("");
   const sum=its.reduce((a,it)=>a+(it.r.price||0),0),need=its.filter(it=>!it.whoSet).length;
   el.innerHTML=`<h4>読み取った予約 ${its.length}件（予約時間の順）</h4>
-    <div class="bs-date${dk?"":" ask"}">${dk?"予約の日付：":"予約の日付を選んでください："}<button type="button" class="chip" data-bd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-bd="${t1}" aria-pressed="${dk===t1}">明日</button><button type="button" class="chip" data-bd="pick" aria-pressed="${!!other}">${other?dayLabel(dk):"日付を選択"}</button><input type="date" id="bsDateIn" hidden></div>
+    <div class="bs-date${dk?"":" ask"}">${dk?"予約の日付：":"予約の日付を選んでください："}<button type="button" class="chip" data-bd="${t0}" aria-pressed="${dk===t0}">今日</button><button type="button" class="chip" data-bd="${t1}" aria-pressed="${dk===t1}">明日</button><label class="chip bs-pick" aria-pressed="${!!other}">${other?dayLabel(dk):"日付を選択"}<input type="date" id="bsDateIn" value="${dk||bizToday()}" aria-label="予約の日付を選ぶ"></label></div>
     ${rows}
     <div class="bs-tot"><span>合計</span><span>${yen(sum)}</span></div>
     <div class="bs-btns"><button type="button" class="btn" id="bsSave" ${dk&&!need&&its.length?"":"disabled"}>${its.length}件まとめて保存</button>${!dk?'<div class="ask" style="text-align:center">日付を選ぶと保存できます</div>':need?'<div class="ask" style="text-align:center">お客様を選んでいない予約があります</div>':""}<button type="button" class="btn ghost" id="bsCancel">やめる（保存しない）</button></div>`;
   el.hidden=false}
 function dispTime(t){const [h,m]=t.split(":").map(Number);return h+":"+pad(m)}
 $("batchSum").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b||!batch)return;
-  if(b.dataset.bd){if(b.dataset.bd==="pick"){const inp=$("bsDateIn");inp.hidden=false;inp.value=batch.date||bizToday();try{inp.showPicker()}catch(_){inp.focus()}return}
-    batch.date=b.dataset.bd;renderBatch();return}
+  if(b.dataset.bd){batch.date=b.dataset.bd;renderBatch();return}
   if(b.dataset.bs){const [i,x]=b.dataset.bs.split(":");const it=batch.items[+i];it.sex=it.sex===x?"":x;renderBatch();return}
   if(b.dataset.bw){const [i,w]=b.dataset.bw.split(":");const it=batch.items[+i],no=it.r.member;
     if(w==="new"){const ws=whosFor(no);it.who=(ws.length?Math.max(...ws):0)+1}else it.who=+w;it.whoSet=true;renderBatch();return}
@@ -2042,6 +2043,8 @@ $("batchSum").addEventListener("click",async e=>{const b=e.target.closest("butto
     const n=its.length,sum=its.reduce((a,it)=>a+(it.r.price||0),0);batch=null;renderBatch();window.scrollTo(0,0);
     toast(`${n}件まとめて保存しました（${yen(sum)}）`)}});
 $("batchSum").addEventListener("change",e=>{if(e.target.id==="bsDateIn"&&e.target.value&&batch){batch.date=e.target.value;renderBatch()}});
+// 「日付を選択」は、見えない日付の入力欄をボタンの上に重ねて、1回押すだけでカレンダーが開くようにしている
+$("batchSum").addEventListener("click",e=>{const inp=e.target.closest&&e.target.id==="bsDateIn"?e.target:null;if(inp){try{inp.showPicker()}catch(_){}}});
 // 「直す」で1件ずつの画面に移した予約が終わったら、一覧に戻す
 function batchBack(saved,it){if(!batch||!batch.editing)return false;const ed=batch.editing;batch.editing=null;
   if(!saved){batch.items.push(ed);batch.items.sort((a,b)=>a.st-b.st)}

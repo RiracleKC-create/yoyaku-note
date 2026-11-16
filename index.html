@@ -405,6 +405,7 @@ h3{font-size:15px;margin:0 0 10px}
 .tl .blk.cx b{text-decoration:line-through}
 .tl .blk.cx .sx-m,.tl .blk.cx .sx-f{color:var(--sub)}
 .mc .md .cxn{display:block;color:var(--danger);font-weight:700}
+.mc .md .oth{display:block;color:var(--sub);font-weight:700;white-space:nowrap}
 .cx-note{background:#FDECEA;color:var(--danger);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;margin-bottom:10px}
 .btn.cxbtn{margin-top:10px;background:transparent;border:1.5px solid var(--danger);color:var(--danger)}
 .btn.cxbtn.armed{background:var(--danger);color:#fff}
@@ -2354,13 +2355,13 @@ function renderMonthCal(){
   const end=addDays(weekStart(last),6);
   let html=`<div class="mc">`+["月","火","水","木","金","土","日"].map((w,i)=>`<div class="mh${i===5?" sat":i===6?" sun":""}">${w}</div>`).join("");
   for(let dk=start;dk<=end;dk=addDays(dk,1)){
-    const d=new Date(dk+"T00:00"),w=d.getDay(),dAll=visits.filter(v=>v.date===dk),dv=live(dAll),cxn=dAll.length-dv.length,sd=sideText(dk);
+    const d=new Date(dk+"T00:00"),w=d.getDay(),dAll=visits.filter(v=>v.date===dk),dv=live(dAll),cxn=dAll.filter(v=>v.cancel).length,etc=dAll.filter(v=>isEtc(v)&&!v.cancel),sd=sideText(dk);
     const dots=["shimei","gm","gf","free"].flatMap(t=>dv.filter(v=>(TYPES[v.type]?v.type:"free")===t).map(()=>`<i style="background:${TYPE_COLOR[t]}"></i>`)).join("");
     html+=`<button type="button" class="md num${dk.slice(0,7)!==mk?" out":""}${dk===today?" today":""}${w===0?" sun":w===6?" sat":""}" data-day="${dk}" aria-label="${dayLabel(dk)} ${dv.length}件">
       <span class="dn">${d.getDate()}</span>${sd?`<span class="sd">${SIDES.filter(x=>x.k in dayOf(dk)).map(x=>`<em class="${x.k}">${x.short.slice(0,1)}</em>`).join("")}</span>`:""}
-      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${stayMinDay(dk)?`<span class="mst">入${stayMinDay(dk)}分</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
+      ${dv.length?`<span class="cnt">${dv.length}件</span><span>${dv.reduce((a,v)=>a+(vMin(v)||0),0)}分</span><span class="amt">${yen(dv.reduce((a,v)=>a+total(v),0))}</span><span class="dots">${dots}</span>`:""}${stayMinDay(dk)?`<span class="mst">入${stayMinDay(dk)}分</span>`:""}${etc.length?`<span class="oth">他${etc.length}${(a=>a?" "+yen(a):"")(etc.reduce((t,v)=>t+(v.etcAmt||0),0))}</span>`:""}${cxn?`<span class="cxn">取消${cxn}</span>`:""}</button>`;
   }
-  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。「入」は入店時間です。</p>`;
+  html+=`</div><p class="note" style="margin:8px 0 0">日付を押すと、その日の時間表示に切り替わります。右上の「開」は開店業務、「閉」は閉店業務がある日です。「入」は入店時間、「他」はその他（練習など）の記録です。</p>`;
   $("tlBody").innerHTML=html;
   $("tlBody").querySelectorAll(".md").forEach(b=>b.addEventListener("click",()=>{timeDay=b.dataset.day;timeMode="day";renderTime()}));
 }

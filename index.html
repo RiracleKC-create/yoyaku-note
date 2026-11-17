@@ -1115,6 +1115,8 @@ let editingId = null;
 let listMonth = monthKey(new Date());
 let statsMonth = monthKey(new Date());
 let memberOpen = null;
+let crScrollY=0; // 集計タブでお客様を押したときのスクロール位置（戻ったときに同じ場所を表示する）
+let memberFrom=""; // 会員の画面をどこから開いたか（"stats"＝集計タブのお客様ごとの影響）
 let timeDay = null;
 let timeMode = "day"; // day / week
 let parts = {H:0,A:0,F:0,T:0};
@@ -1309,7 +1311,7 @@ function show(tab){
   if(tab==="settings"){renderSettings();renderSettleCard()}
   window.scrollTo(0,0);
 }
-document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{editReturn=null;if(b.dataset.tab==="members")memberOpen=null;renderMembers();show(b.dataset.tab)}));
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{editReturn=null;memberFrom="";if(b.dataset.tab==="members")memberOpen=null;renderMembers();show(b.dataset.tab)}));
 $("gearBtn").addEventListener("click",()=>show("settings"));
 /* ---------- 電卓 ---------- */
 (()=>{let ex="",last="";
@@ -2839,14 +2841,14 @@ function custRankCard(){
 $("statsBody").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-crp],[data-crmore],[data-crk]");if(!b)return;
   if(b.dataset.crp){crPeriod=b.dataset.crp;crAll=false;renderStats();return}
   if(b.dataset.crmore){crAll=!crAll;renderStats();return}
-  if(b.dataset.crk){memberOpen=b.dataset.crk;show("members");renderMembers();window.scrollTo(0,0)}});
+  if(b.dataset.crk){crScrollY=window.scrollY;memberOpen=b.dataset.crk;memberFrom="stats";show("members");renderMembers();window.scrollTo(0,0)}});
 let memberQuery="";
 function renderMembers(){
   const body=$("memberBody");
   if(memberOpen){
     const listAll=visits.filter(v=>ck(v)===memberOpen),list=live(listAll),cxm=listAll.length-list.length;
     const sum=list.reduce((a,v)=>a+total(v),0), sh=list.filter(v=>v.type==="shimei").length;
-    body.innerHTML=`<button class="back" id="memBack">‹ 会員一覧</button>
+    body.innerHTML=`<button class="back" id="memBack">${memberFrom==="stats"?"‹ 集計に戻る":"‹ 会員一覧"}</button>
       <div class="card num"><span class="lbl">会員番号</span><div class="big" style="color:var(--ink)">No.${esc(keyNo(memberOpen))}</div>${whosFor(keyNo(memberOpen)).length>1?`<p class="note" style="margin:2px 0 6px">同じ番号のお客様が${whosFor(keyNo(memberOpen)).length}人います（${keyWho(memberOpen)}人目）</p>`:""}
       <div class="kv"><div><span>来店</span><b>${list.length}回</b></div><div><span>指名</span><b>${sh}回</b></div><div><span>累計</span><b>${yen(sum)}</b></div>${cxm?`<div><span>キャンセル</span><b>${cxm}回</b></div>`:""}</div>
       ${(()=>{if(!list.length)return "";const l=list[0];const today=bizToday();
@@ -2858,7 +2860,10 @@ function renderMembers(){
       <div id="memFeat"></div></div>
       ${listAll.map(v=>`<div class="day-head num" style="padding-top:4px"><span>${dayLabel(v.date)}</span></div>${recRow(v)}${v.memo?`<p class="note" style="margin:-2px 6px 10px">メモ：${esc(v.memo)}</p>`:""}`).join("")}`;
     renderFeature($("memFeat"),memberOpen);
-    $("memBack").addEventListener("click",()=>{memberOpen=null;renderMembers()});
+    $("memBack").addEventListener("click",()=>{memberOpen=null;
+      // 集計タブの「お客様ごとの影響」から開いたときは、集計タブの同じ場所に戻る
+      if(memberFrom==="stats"){memberFrom="";renderMembers();show("stats");setTimeout(()=>window.scrollTo(0,crScrollY),50);return}
+      renderMembers()});
     bindRecs(body);return;
   }
   const map={};

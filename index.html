@@ -291,6 +291,17 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .big-row .r{text-align:right;margin-left:auto}
 .big-row .big{font-size:30px}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.sexmix{margin-top:12px;background:var(--field);border-radius:12px;padding:10px 12px}
+.sexmix .sm-t{font-size:13px;color:var(--sub);margin-bottom:6px}
+.sexmix .sm-w{overflow-x:auto}
+.sexmix table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+.sexmix th,.sexmix td{padding:6px 4px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.sexmix th:first-child{text-align:left;font-weight:700}
+.sexmix thead th{font-size:12px;color:var(--sub);font-weight:700}
+.sexmix td small{display:block;font-size:11px;color:var(--sub)}
+.sexmix td.ratio{font-size:12px}
+.sexmix tr.tot th,.sexmix tr.tot td{border-bottom:0;font-weight:700}
+.sexmix .sm-n{display:block;margin-top:6px;font-size:11px;color:var(--sub);line-height:1.5}
 .kv div{background:var(--field);border-radius:10px;padding:10px}
 .kv span{display:block;font-size:12px;color:var(--sub)}
 .kv b{font-size:18px}
@@ -1342,8 +1353,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=104; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=105; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:105,date:"11月17日",items:["集計タブに「お客様の男女別」の表を追加しました。指名・男性指名・女性指名・フリーごとに、男性・女性のお客様の件数と割合、男女比が分かります。","男性の指名率・女性の指名率はこの表にまとめました。"]},
   {n:104,date:"11月17日",items:["集計タブに「男性の指名率」「女性の指名率」を追加しました（男性・女性それぞれのお客様のうち、指名だった割合）。","時間タブの入店時間の入れ方（？）に、入店時間を入れると何が分かるかの説明を足しました。"]},
   {n:102,date:"11月16日",items:["りらくるのカレンダーにある「りらくが指定する休日」（2026年・2027年分）を、最初から指定日として入れました（集計タブ→優待手数料率の見込み→⑤）。外したい日は、カレンダーの日付を押すと外せます。"]},
   {n:100,date:"11月15日",items:["スクショから2件以上の予約を一緒に読み取ったときは、予約時間の順に一覧で出て、日付を1回選んで「まとめて保存」を押すだけで全部保存できるようになりました。","一覧では、性別やお客様を選び直したり、「直す」で1件ずつの確認画面に移して直したりできます。"]},
@@ -2710,7 +2722,6 @@ function renderStats(){
         <div><span>出勤日平均</span><b>${yen(Math.round(sum/workDays))}</b></div>
         <div><span>男性</span><b>${mv.filter(v=>v.sex==="m").length}件</b></div>
         <div><span>女性</span><b>${mv.filter(v=>v.sex==="f").length}件</b></div>
-        ${["m","f"].map(x=>{const a=mv.filter(v=>v.sex===x),b=a.filter(v=>sh.includes(v));return `<div><span>${x==="m"?"男性":"女性"}の指名率</span><b>${a.length?Math.round(b.length/a.length*100):0}%<small style="font-weight:400">（${b.length}/${a.length}件）</small></b></div>`}).join("")}
         <div><span>性別未入力</span><b>${mv.filter(v=>!v.sex).length}件</b></div>
         <div><span>キャンセル</span><b>${mcx.length}件</b></div>
         <div><span>キャンセル率</span><b>${mAll.length?Math.round(mcx.length/mAll.length*100):0}%</b></div>
@@ -2718,6 +2729,14 @@ function renderStats(){
         ${(()=>{const ev=visits.filter(v=>v.date.startsWith(statsMonth)&&isEtc(v)&&!v.cancel);if(!ev.length)return "";const amt=ev.reduce((a,v)=>a+(v.etcAmt||0),0);
           return `<div><span>その他（練習など）</span><b>${ev.length}件</b></div><div><span>その他の時間</span><b>${hoursText(ev.reduce((a,v)=>a+(vMin(v)||0),0))}</b></div><div><span>その他の金額（別集計）</span><b>${yen(amt)}</b></div>`})()}
       </div>
+      ${(()=>{// お客様の男女別：種類ごとの件数（その性別の中での割合）と、種類ごとの男女比
+        const M=mv.filter(v=>v.sex==="m"),F=mv.filter(v=>v.sex==="f");if(!M.length&&!F.length)return "";
+        const ty=v=>TYPES[v.type]?v.type:"free",pc=(n,d)=>d?Math.round(n/d*100)+"%":"−";
+        const rows=[["shimei","指名"],["gm","男性指名"],["gf","女性指名"],["free","フリー"]].map(([t,l])=>{const m=M.filter(v=>ty(v)===t).length,f=F.filter(v=>ty(v)===t).length;
+          return `<tr><th>${l}</th><td>${m}件<small>${pc(m,M.length)}</small></td><td>${f}件<small>${pc(f,F.length)}</small></td><td class="ratio">${m+f?`男${pc(m,m+f)}・女${pc(f,m+f)}`:"−"}</td></tr>`}).join("");
+        return `<div class="sexmix"><div class="sm-t">お客様の男女別</div><div class="sm-w"><table><thead><tr><th></th><th>男性</th><th>女性</th><th>男女比</th></tr></thead><tbody>${rows}
+          <tr class="tot"><th>合計</th><td>${M.length}件</td><td>${F.length}件</td><td class="ratio">男${pc(M.length,M.length+F.length)}・女${pc(F.length,M.length+F.length)}</td></tr></tbody></table></div>
+          <small class="sm-n">男性・女性の列の％は、その性別のお客様の中での割合です（例：女性のお客様のうち女性指名だった割合）。男女比は、その種類の予約が男性・女性のどちらのお客様だったかの割合です。性別未入力の記録は入りません。</small></div>`})()}
     </div>
     <div class="card num">
       <h3>内訳</h3>

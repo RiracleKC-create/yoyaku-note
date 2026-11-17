@@ -1057,6 +1057,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
   <div class="bg"></div>
   <div class="card2" role="dialog" aria-modal="true" aria-labelledby="spTitle">
     <h2 id="spTitle">入店時間の入れ方</h2>
+    <p style="margin:0 0 6px;font-size:14px;line-height:1.6">りらくるでエントリーした入店時間を入れておくと、<b>稼働率</b>（施術時間÷入店時間）や<b>入店1時間あたりの売上・収入</b>が集計タブと時間タブに出ます。時間タブでは、入店中の空き時間も分かります。指定日・日祝に6時間以上入店したか（優待手数料率の見込み）の確認にも使います。</p>
     <ul>
       <li>入店時間の枠（30分ごと）を押すと色が付きます。もう一度押すと消えます。</li>
       <li>押したまま指をなぞると、続けて選べます。色の付いた枠から始めると、なぞった枠をまとめて消せます。画面の上下のはしまでなぞると、自動でスクロールしながら続けられます。</li>
@@ -1341,8 +1342,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=102; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=104; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:104,date:"11月17日",items:["集計タブに「男性の指名率」「女性の指名率」を追加しました（男性・女性それぞれのお客様のうち、指名だった割合）。","時間タブの入店時間の入れ方（？）に、入店時間を入れると何が分かるかの説明を足しました。"]},
   {n:102,date:"11月16日",items:["りらくるのカレンダーにある「りらくが指定する休日」（2026年・2027年分）を、最初から指定日として入れました（集計タブ→優待手数料率の見込み→⑤）。外したい日は、カレンダーの日付を押すと外せます。"]},
   {n:100,date:"11月15日",items:["スクショから2件以上の予約を一緒に読み取ったときは、予約時間の順に一覧で出て、日付を1回選んで「まとめて保存」を押すだけで全部保存できるようになりました。","一覧では、性別やお客様を選び直したり、「直す」で1件ずつの確認画面に移して直したりできます。"]},
   {n:96,date:"11月15日",items:["⚙設定の「使い方」に「📷 スクショから読み取る」の説明を追加しました（スクショの撮り方・読み取り方・うまく読み取れないとき）。","入力タブのスクショ読み取りボタンの下にある「？ スクショ読み取りのくわしい使い方」からも、同じ説明を開けます。"]},
@@ -2708,6 +2710,7 @@ function renderStats(){
         <div><span>出勤日平均</span><b>${yen(Math.round(sum/workDays))}</b></div>
         <div><span>男性</span><b>${mv.filter(v=>v.sex==="m").length}件</b></div>
         <div><span>女性</span><b>${mv.filter(v=>v.sex==="f").length}件</b></div>
+        ${["m","f"].map(x=>{const a=mv.filter(v=>v.sex===x),b=a.filter(v=>sh.includes(v));return `<div><span>${x==="m"?"男性":"女性"}の指名率</span><b>${a.length?Math.round(b.length/a.length*100):0}%<small style="font-weight:400">（${b.length}/${a.length}件）</small></b></div>`}).join("")}
         <div><span>性別未入力</span><b>${mv.filter(v=>!v.sex).length}件</b></div>
         <div><span>キャンセル</span><b>${mcx.length}件</b></div>
         <div><span>キャンセル率</span><b>${mAll.length?Math.round(mcx.length/mAll.length*100):0}%</b></div>

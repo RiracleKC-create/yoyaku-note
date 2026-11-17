@@ -291,6 +291,16 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .big-row .r{text-align:right;margin-left:auto}
 .big-row .big{font-size:30px}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.cr .cr-per{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.cr .cr-per .chip{padding:3px 12px;font-size:13px}
+.cr .cr-sum{font-size:13px;margin:0 0 8px;line-height:1.6}
+.cr .cr-list{display:grid}
+.cr .cr-row{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:8px 0;font:inherit;color:inherit;cursor:pointer}
+.cr .cr-rk{font-weight:700;color:var(--sub);text-align:center}
+.cr .cr-m{min-width:0}
+.cr .cr-m small,.cr .cr-v small{display:block;font-size:12px;color:var(--sub);overflow-wrap:anywhere}
+.cr .cr-v{text-align:right;white-space:nowrap}
+.cr .cr-v b{color:var(--ok)}
 .sexmix{margin-top:12px;background:var(--field);border-radius:12px;padding:10px 12px}
 .sexmix .sm-t{font-size:13px;color:var(--sub);margin-bottom:6px}
 .sexmix .sm-w{overflow-x:auto}
@@ -1353,8 +1363,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=105; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=106; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:106,date:"11月17日",items:["集計タブに「お客様ごとの影響」を追加しました。お客様ごとの来店回数・売上・収入と、収入全体に占める割合、ひと月あたりの収入（来なくなったときに減る目安）が、収入の多い順に出ます（この月・直近3か月・今年）。押すと、そのお客様の記録を開きます。"]},
   {n:105,date:"11月17日",items:["集計タブに「お客様の男女別」の表を追加しました。指名・男性指名・女性指名・フリーごとに、男性・女性のお客様の件数と割合、男女比が分かります。","男性の指名率・女性の指名率はこの表にまとめました。"]},
   {n:104,date:"11月17日",items:["集計タブに「男性の指名率」「女性の指名率」を追加しました（男性・女性それぞれのお客様のうち、指名だった割合）。","時間タブの入店時間の入れ方（？）に、入店時間を入れると何が分かるかの説明を足しました。"]},
   {n:102,date:"11月16日",items:["りらくるのカレンダーにある「りらくが指定する休日」（2026年・2027年分）を、最初から指定日として入れました（集計タブ→優待手数料率の見込み→⑤）。外したい日は、カレンダーの日付を押すと外せます。"]},
@@ -2790,11 +2801,45 @@ function renderStats(){
       <h3>日別</h3>
       ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日<small class="dw ${["sun","","","","","","sat"][new Date(dk+"T00:00").getDay()]}">（${"日月火水木金土"[new Date(dk+"T00:00").getDay()]}）</small></span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
     </div>`;
+  $("statsBody").insertAdjacentHTML("beforeend",custRankCard());
 }
 $("sPrev").addEventListener("click",()=>{if(statsMode==="y"){statsYear--;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,-1);renderStats()});
 $("sNext").addEventListener("click",()=>{if(statsMode==="y"){statsYear++;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,1);renderStats()});
 
 /* ---------- members ---------- */
+/* ---------- お客様ごとの影響（どのお客様が、何回来て、いくら、全体の何％か） ---------- */
+let crPeriod="3",crAll=false;
+function custRankCard(){
+  const y=+statsMonth.slice(0,4),m=+statsMonth.slice(5,7);
+  const from=crPeriod==="m"?statsMonth+"-01":crPeriod==="3"?dateKey(new Date(y,m-3,1)):y+"-01-01",td=bizToday(),to=statsMonth+"-31"<td?statsMonth+"-31":td; // 先の予約は入れない（今日まで）
+  const months=crPeriod==="m"?1:crPeriod==="3"?3:m;
+  const pv=live(visits.filter(v=>v.date>=from&&v.date<=to));if(!pv.length)return "";
+  const allNet=calcNet(pv).net,allSales=pv.reduce((a,v)=>a+total(v),0);
+  const g={};pv.forEach(v=>{const k=ck(v);if(!k)return;(g[k]=g[k]||[]).push(v)});
+  const rows=Object.entries(g).map(([k,l])=>{l.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    const net=calcNet(l).net,sales=l.reduce((a,v)=>a+total(v),0),sh=l.filter(v=>v.type==="shimei").length;
+    const gap=l.length>1?Math.round(daysBetween(l[0].date,l[l.length-1].date)/(l.length-1)):null;
+    return {k,n:l.length,net,sales,sh,last:l[l.length-1].date,gap}}).sort((a,b)=>b.net-a.net||b.n-a.n);
+  if(!rows.length)return "";
+  const pc=x=>allNet?Math.round(x/allNet*1000)/10:0,top=n=>pc(rows.slice(0,n).reduce((a,r)=>a+r.net,0));
+  const once=rows.filter(r=>r.n===1).length,noMem=pv.filter(v=>!ck(v)).length;
+  const show=crAll?rows:rows.slice(0,10);
+  const lab={m:"この月",3:"3か月",y:"今年"}[crPeriod];
+  return `<div class="card num cr"><h3>お客様ごとの影響</h3>
+    <div class="cr-per">${[["m","この月"],["3","直近3か月"],["y",y+"年（"+m+"月まで）"]].map(([v,l])=>`<button type="button" class="chip" data-crp="${v}" aria-pressed="${crPeriod===v}">${l}</button>`).join("")}</div>
+    <p class="cr-sum">${crPeriod==="m"?monthLabel(statsMonth):crPeriod==="3"?monthLabel(from.slice(0,7))+"〜"+m+"月":y+"年1〜"+m+"月"}：お客様 <b>${rows.length}人</b>・収入 <b>${yen(allNet)}</b><br>
+      上位5人で収入の <b>${top(5)}%</b>、上位10人で <b>${top(10)}%</b>。1回だけのお客様 ${once}人${noMem?`（会員番号なし ${noMem}件は入っていません）`:""}</p>
+    <div class="cr-list">${show.map((r,i)=>{const n=memberNote(r.k);return `<button type="button" class="cr-row" data-crk="${esc(r.k)}">
+      <span class="cr-rk">${i+1}</span>
+      <span class="cr-m"><b>${esc(keyLabel(r.k))}</b>${n?`<small>📌 ${esc(shortNote(r.k,14))}</small>`:""}
+        <small>${r.n}回${r.sh?`（指名${r.sh}）`:""}・売上 ${yen(r.sales)}・前回 ${dayLabel(r.last).replace(/（.）/,"")}${r.gap!==null?`・平均${r.gap}日おき`:""}</small></span>
+      <span class="cr-v"><b>${yen(r.net)}</b><small>${pc(r.net)}%</small>${months>1?`<small>月 ${yen(Math.round(r.net/months))}</small>`:""}</span></button>`}).join("")}</div>
+    ${rows.length>10?`<button type="button" class="btn ghost" data-crmore="1" style="margin-top:8px">${crAll?"上位10人だけ表示":`全員を表示（${rows.length}人）`}</button>`:""}
+    <p class="note" style="margin:8px 0 0">右の金額は、そのお客様からの収入（システム利用料・施設料などを引いた額、危機管理料は除く）です。％は${lab}の収入全体に占める割合、「月」はひと月あたりの平均で、そのお客様が来なくなったときに減る目安です。押すと、そのお客様の記録を開きます。</p></div>`}
+$("statsBody").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-crp],[data-crmore],[data-crk]");if(!b)return;
+  if(b.dataset.crp){crPeriod=b.dataset.crp;crAll=false;renderStats();return}
+  if(b.dataset.crmore){crAll=!crAll;renderStats();return}
+  if(b.dataset.crk){memberOpen=b.dataset.crk;show("members");renderMembers();window.scrollTo(0,0)}});
 let memberQuery="";
 function renderMembers(){
   const body=$("memberBody");

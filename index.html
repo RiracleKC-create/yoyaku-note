@@ -2757,6 +2757,7 @@ function renderStats(){
         <tr><td>指名料を除いた施術分</td><td>${yen(sum-fees)}</td></tr>
       </table>
     </div>
+    ${custRankCard()}
     ${yutaiCard(statsMonth)}
     ${(()=>{const c=calcNet(mv);return `<div class="card num">
       <h3>引かれる金額と収入</h3>
@@ -2801,7 +2802,6 @@ function renderStats(){
       <h3>日別</h3>
       ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日<small class="dw ${["sun","","","","","","sat"][new Date(dk+"T00:00").getDay()]}">（${"日月火水木金土"[new Date(dk+"T00:00").getDay()]}）</small></span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
     </div>`;
-  $("statsBody").insertAdjacentHTML("beforeend",custRankCard());
 }
 $("sPrev").addEventListener("click",()=>{if(statsMode==="y"){statsYear--;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,-1);renderStats()});
 $("sNext").addEventListener("click",()=>{if(statsMode==="y"){statsYear++;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,1);renderStats()});

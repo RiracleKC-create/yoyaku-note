@@ -301,6 +301,18 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .cr .cr-m small,.cr .cr-v small{display:block;font-size:12px;color:var(--sub);overflow-wrap:anywhere}
 .cr .cr-v{text-align:right;white-space:nowrap}
 .cr .cr-v b{color:var(--ok)}
+
+.yr h3{font-weight:700}
+.yr h3 small{font-weight:400;font-size:12px;color:var(--sub);margin-left:4px}
+.yr .yr-big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.yr .yr-big div{background:var(--field);border-radius:12px;padding:10px 12px}
+.yr .yr-big span{display:block;font-size:12px;color:var(--sub)}
+.yr .yr-big b{font-size:24px;color:var(--ok)}
+.yr .yr-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.yr .yr-i{border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+.yr .yr-i span{display:block;font-size:12px;color:var(--sub)}
+.yr .yr-i b{display:block;font-size:16px;overflow-wrap:anywhere}
+.yr .yr-i small{display:block;font-size:12px;color:var(--sub);overflow-wrap:anywhere}
 .sexmix{margin-top:12px;background:var(--field);border-radius:12px;padding:10px 12px}
 .sexmix .sm-t{font-size:13px;color:var(--sub);margin-bottom:6px}
 .sexmix .sm-w{overflow-x:auto}
@@ -1365,8 +1377,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=106; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=109; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:109,date:"11月19日",items:["集計タブの一番下に「○年の振り返り」を追加しました。表示している月の年について、施術した時間、一番来てくれたお客様、一番売れた日などが見られます。"]},
   {n:106,date:"11月17日",items:["集計タブに「お客様ごとの影響」を追加しました。お客様ごとの来店回数・売上・収入と、収入全体に占める割合、ひと月あたりの収入（来なくなったときに減る目安）が、収入の多い順に出ます（この月・直近3か月・今年）。押すと、そのお客様の記録を開きます。"]},
   {n:105,date:"11月17日",items:["集計タブに「お客様の男女別」の表を追加しました。指名・男性指名・女性指名・フリーごとに、男性・女性のお客様の件数と割合、男女比が分かります。","男性の指名率・女性の指名率はこの表にまとめました。"]},
   {n:104,date:"11月17日",items:["集計タブに「男性の指名率」「女性の指名率」を追加しました（男性・女性それぞれのお客様のうち、指名だった割合）。","時間タブの入店時間の入れ方（？）に、入店時間を入れると何が分かるかの説明を足しました。"]},
@@ -2804,11 +2817,40 @@ function renderStats(){
       <h3>日別</h3>
       ${Object.keys(byDay).sort().map(dk=>`<div class="b"><span>${Number(dk.slice(8))}日<small class="dw ${["sun","","","","","","sat"][new Date(dk+"T00:00").getDay()]}">（${"日月火水木金土"[new Date(dk+"T00:00").getDay()]}）</small></span><span class="track"><span class="fill" style="display:block;width:${byDay[dk]/maxDay*100}%"></span></span><span>${yen(byDay[dk])}</span></div>`).join("")}
     </div>`;
+  $("statsBody").insertAdjacentHTML("beforeend",yearReviewCard());
 }
 $("sPrev").addEventListener("click",()=>{if(statsMode==="y"){statsYear--;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,-1);renderStats()});
 $("sNext").addEventListener("click",()=>{if(statsMode==="y"){statsYear++;expEditId=null;asEditId=null}else statsMonth=shiftMonth(statsMonth,1);renderStats()});
 
 /* ---------- members ---------- */
+
+/* ---------- 1年の振り返り（集計タブの一番下） ---------- */
+function yearReviewCard(){
+  const y=statsMonth.slice(0,4),td=bizToday();
+  const yv=live(visits).filter(v=>v.date.startsWith(y)&&v.date<=td&&!isEtc(v));if(yv.length<5)return "";
+  const mins=yv.reduce((a,v)=>a+(vMin(v)||0),0),sales=yv.reduce((a,v)=>a+total(v),0),net=calcNet(yv).net;
+  const days=[...new Set(yv.map(v=>v.date))],sh=yv.filter(v=>v.type==="shimei").length;
+  const byC={};yv.forEach(v=>{const k=ck(v);if(k)byC[k]=(byC[k]||0)+1});const topC=Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
+  const byD={};yv.forEach(v=>{const d=byD[v.date]=byD[v.date]||{n:0,s:0};d.n++;d.s+=total(v)});const topD=Object.entries(byD).sort((a,b)=>b[1].s-a[1].s)[0];
+  const byM={};yv.forEach(v=>{const m=v.date.slice(0,7);byM[m]=(byM[m]||0)+total(v)});const topM=Object.entries(byM).sort((a,b)=>b[1]-a[1])[0];
+  const byCo={};yv.forEach(v=>{if(v.course)byCo[v.course]=(byCo[v.course]||0)+1});const topCo=Object.entries(byCo).sort((a,b)=>b[1]-a[1])[0];
+  const late=yv.slice().sort((a,b)=>b.time.localeCompare(a.time))[0];
+  const wd=[0,0,0,0,0,0,0];yv.forEach(v=>wd[new Date(v.date+"T00:00").getDay()]++);const topW="日月火水木金土"[wd.indexOf(Math.max(...wd))];
+  const it=(l,v,s)=>`<div class="yr-i"><span>${l}</span><b>${v}</b>${s?`<small>${s}</small>`:""}</div>`;
+  return `<div class="card num yr"><h3>${y}年の振り返り${td.startsWith(y)?`<small>（${Number(td.slice(5,7))}/${Number(td.slice(8,10))}まで）</small>`:""}</h3>
+    <div class="yr-big"><div><span>施術した時間</span><b>${Math.round(mins/60).toLocaleString("ja-JP")}時間</b></div><div><span>施術した人数（のべ）</span><b>${yv.length}人</b></div></div>
+    <div class="yr-g">
+      ${it("売上",yen(sales),"収入 "+yen(net))}
+      ${it("出勤した日",days.length+"日","1日平均 "+yen(Math.round(sales/days.length)))}
+      ${it("指名",sh+"件",Math.round(sh/yv.length*100)+"%")}
+      ${it("お客様",Object.keys(byC).length+"人","会員番号つき")}
+      ${topC?it("一番来てくれたお客様",esc(keyLabel(topC[0])),topC[1]+"回"+(memberNote(topC[0])?"・📌 "+esc(shortNote(topC[0],10)):"")):""}
+      ${topD?it("一番売れた日",dayLabel(topD[0]),yen(topD[1].s)+"・"+topD[1].n+"人"):""}
+      ${topM?it("一番売れた月",Number(topM[0].slice(5))+"月",yen(topM[1])):""}
+      ${topCo?it("一番多かったコース",esc(topCo[0]),topCo[1]+"回"):""}
+      ${it("一番多かった曜日",topW+"曜日",Math.max(...wd)+"件")}
+      ${late?it("一番遅い施術",esc(timeLabel(late.time))+"〜",dayLabel(late.date)):""}
+    </div></div>`}
 /* ---------- お客様ごとの影響（どのお客様が、何回来て、いくら、全体の何％か） ---------- */
 let crPeriod="3",crAll=false;
 function custRankCard(){

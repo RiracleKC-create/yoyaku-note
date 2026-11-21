@@ -328,6 +328,8 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .kv span{display:block;font-size:12px;color:var(--sub)}
 .kv b{font-size:18px}
 table.brk{width:100%;border-collapse:collapse;font-size:14px}
+table.etl td:nth-child(2){text-align:left;padding-left:10px;color:var(--txt,inherit);word-break:break-all}table.etl tr[data-etcid]{cursor:pointer}table.etl tr.tot td{font-weight:700;color:inherit}
+details.etd{margin-top:12px}details.etd summary{cursor:pointer;color:var(--sub);font-size:13px}
 table.brk td{padding:8px 0;border-bottom:1px solid var(--line)}
 table.brk td:last-child{text-align:right;font-weight:700}
 .bars .b{display:grid;grid-template-columns:70px 1fr 76px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
@@ -882,6 +884,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
       <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。りらくるの「指定日」は⑤で入れると、②の休日売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。開店・閉店業務は、入力タブで一緒に行った人数を選べます（選ばないときは金額から判断します）。</li>
       <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
+      <li>その他（練習など）の記録がある月は、「その他（練習など）の内訳」に日付・内容・金額の一覧が出ます。売上・収入には入りません。年の表示では月ごとの合計も見られます。</li>
     </ul>
   </details>
   <details class="card"><summary>会員タブ</summary>
@@ -1377,8 +1380,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=109; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=110; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:110,date:"11月21日",items:["集計タブに「その他（練習など）の内訳」を追加しました。その月のその他の記録が、日付・時間・内容・金額の一覧で見られます。行を押すと、その記録を開きます。年の表示では、月ごとの件数・時間・金額と、日付ごとの一覧が見られます。"]},
   {n:109,date:"11月19日",items:["集計タブの一番下に「○年の振り返り」を追加しました。表示している月の年について、施術した時間、一番来てくれたお客様、一番売れた日などが見られます。"]},
   {n:106,date:"11月17日",items:["集計タブに「お客様ごとの影響」を追加しました。お客様ごとの来店回数・売上・収入と、収入全体に占める割合、ひと月あたりの収入（来なくなったときに減る目安）が、収入の多い順に出ます（この月・直近3か月・今年）。押すと、そのお客様の記録を開きます。"]},
   {n:105,date:"11月17日",items:["集計タブに「お客様の男女別」の表を追加しました。指名・男性指名・女性指名・フリーごとに、男性・女性のお客様の件数と割合、男女比が分かります。","男性の指名率・女性の指名率はこの表にまとめました。"]},
@@ -1533,6 +1537,22 @@ function renderHeader(){
 /* ---------- input form ---------- */
 const TYPES={shimei:"指名",gm:"男性指名",gf:"女性指名",free:"フリー",etc:"その他"};
 function isEtc(v){return v.type==="etc"}
+// その他（練習など）の内訳：日付ごとの一覧（押すと記録を開く）
+function etcList(ev){const tot=ev.reduce((a,v)=>a+(v.etcAmt||0),0);
+  return `<table class="ytab etl"><tr><th>日付</th><th style="text-align:left;padding-left:10px">内容</th><th>金額</th></tr>
+  ${ev.map(v=>`<tr data-etcid="${esc(v.id)}"><td>${dayLabel(v.date)}<br><small>${esc(timeLabel(v.time)||"--:--")}${vMin(v)?"・"+vMin(v)+"分":""}</small></td><td>${esc(etcTitle(v))}</td><td>${v.etcAmt?yen(v.etcAmt):"−"}</td></tr>`).join("")}
+  <tr class="tot"><td>合計 ${ev.length}件</td><td>${hoursText(ev.reduce((a,v)=>a+(vMin(v)||0),0))}</td><td>${yen(tot)}</td></tr></table>`}
+function etcRecs(pre){return visits.filter(v=>v.date.startsWith(pre)&&isEtc(v)&&!v.cancel).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")))}
+function etcMonthCard(mk){const ev=etcRecs(mk);if(!ev.length)return "";
+  return `<div class="card num" id="etcCard"><h3>その他（練習など）の内訳</h3>${etcList(ev)}<p class="note">売上・収入には入れずに、別に集計しています。行を押すと、その記録を開きます。</p></div>`}
+function etcYearCard(Y){const ev=etcRecs(String(Y));if(!ev.length)return "";
+  const ms=Array.from({length:12},(_,i)=>ev.filter(v=>Number(v.date.slice(5,7))===i+1));
+  return `<div class="card num yr" id="etcCard"><h3>その他（練習など）の内訳（${Y}年）</h3>
+  <table class="ytab"><tr><th>月</th><th>件数</th><th>時間</th><th>金額</th></tr>
+  ${ms.map((m,i)=>m.length?`<tr><td>${i+1}月</td><td>${m.length}件</td><td>${hoursText(m.reduce((a,v)=>a+(vMin(v)||0),0))}</td><td>${yen(m.reduce((a,v)=>a+(v.etcAmt||0),0))}</td></tr>`:"").join("")}
+  <tr><td><b>合計</b></td><td>${ev.length}件</td><td>${hoursText(ev.reduce((a,v)=>a+(vMin(v)||0),0))}</td><td>${yen(ev.reduce((a,v)=>a+(v.etcAmt||0),0))}</td></tr></table>
+  <details class="etd"><summary>日付ごとの一覧（${ev.length}件）</summary>${etcList(ev)}</details>
+  <p class="note">売上・収入・所得の目安には入れていません。行を押すと、その記録を開きます。</p></div>`}
 function etcTitle(v){return (v.memo||"").split("\n")[0].trim()||"その他の記録"}
 const TYPE_COLOR={shimei:"var(--c-shimei)",gm:"var(--c-g)",gf:"var(--c-g)",free:"var(--c-free)"};
 function typeLabel(t){return TYPES[t]||"フリー"}
@@ -2644,6 +2664,7 @@ function renderYear(){
     <button class="btn ghost" id="yrYayoi">弥生に取り込むCSVを保存</button>
     <p class="note">やよいの白色申告・青色申告 オンラインの「スマート取引取込」→「CSVファイル取込」で読み込めます。りらくるの月ごとの売上・手数料と、記録した経費（仕事の割合の分）が1行ずつ入ります。減価償却は入らないので、弥生の固定資産に登録してください。同じファイルを2回取り込むと二重になるので注意してください。</p>
   </div>`;
+  $("statsBody").insertAdjacentHTML("beforeend",etcYearCard(Y));
   const upBiz=()=>{$("exBiz").textContent=yen(Math.floor(toInt($("exAmt").value)*Math.min(100,toInt($("exRatio").value))/100))};
   $("exAmt").addEventListener("input",upBiz);$("exRatio").addEventListener("input",upBiz);upBiz();
   $("exCat").addEventListener("change",()=>{$("exRatio").value=catRatio($("exCat").value);upBiz()});
@@ -2675,6 +2696,7 @@ function yearCsv(Y){const D=yearData(Y),q=x=>`"${String(x??"").replace(/"/g,'""'
   L.push(["","","","","経費の合計",D.expSum].map(q).join(","));L.push("");
   L.push(["所得の目安",D.income].map(q).join(","));
   return "﻿"+L.join("\n")}
+$("statsBody").addEventListener("click",e=>{const r=e.target.closest?e.target.closest("[data-etcid]"):null;if(!r)return;const v=visits.find(x=>x.id===r.dataset.etcid);if(v)showDetail(v)});
 $("statsBody").addEventListener("click",async e=>{if(statsMode!=="y")return;const t=e.target.closest?e.target.closest("button"):null;if(!t)return;
   if(t.id==="exSave"){const amt=toInt($("exAmt").value),date=$("exDate").value;if(!date){toast("日付を入れてください");return}if(!amt){toast("金額を入れてください");return}
     const o={date,cat:$("exCat").value,amt,ratio:Math.min(100,toInt($("exRatio").value)),memo:$("exMemo").value.trim(),updatedAt:Date.now()};
@@ -2772,6 +2794,7 @@ function renderStats(){
         <tr><td>指名料を除いた施術分</td><td>${yen(sum-fees)}</td></tr>
       </table>
     </div>
+    ${etcMonthCard(statsMonth)}
     ${custRankCard()}
     ${yutaiCard(statsMonth)}
     ${(()=>{const c=calcNet(mv);return `<div class="card num">

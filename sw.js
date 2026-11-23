@@ -1,6 +1,6 @@
 // 予約ノート service worker
 // アプリを更新したら VERSION の数字を1つ上げてください
-const VERSION = "v111";
+const VERSION = "v112";
 const PREFIX = "yoyaku-note-v";
 const CACHE = "yoyaku-note-" + VERSION;
 const ROOT = new URL("./", self.registration.scope).pathname;

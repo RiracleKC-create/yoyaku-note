@@ -361,11 +361,12 @@ h3{font-size:15px;margin:0 0 10px}
 #firstPop .fp-lead{margin:0 0 12px;font-size:14px}#firstPop .fp-q{font-size:13px;font-weight:700;color:var(--sub);margin:12px 0 6px}
 #firstPop .fp-chips{display:flex;gap:8px;flex-wrap:wrap}#firstPop .fp-chips .chip{padding:10px 18px;font-size:16px}#firstPop #fpDateIn{margin-top:8px}
 #firstPop .fp-btns{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:18px}#firstPop .fp-btns .btn{padding:13px 0}#firstPop .fp-btns .btn:disabled{opacity:.4}
-#news,#bkRemind,#stRemind,#stayPop,#firstPop{position:fixed;inset:0;z-index:70}
-#news .bg,#bkRemind .bg,#stRemind .bg,#stayPop .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
-#news .card2,#bkRemind .card2,#stRemind .card2,#stayPop .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#news,#bkRemind,#stRemind,#stayPop,#firstPop,#rkNotice{position:fixed;inset:0;z-index:70}
+#news .bg,#bkRemind .bg,#stRemind .bg,#stayPop .bg,#rkNotice .bg{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+#news .card2,#bkRemind .card2,#stRemind .card2,#stayPop .card2,#rkNotice .card2{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-height:80%;overflow:auto;background:var(--panel);border-radius:18px;padding:18px;max-width:520px;margin:0 auto;box-shadow:0 8px 28px rgba(0,0,0,.25)}
 #stayPop ul{margin:0 0 4px;padding-left:1.2em}#stayPop li{font-size:14px;line-height:1.6;margin:4px 0}
-#news h2,#bkRemind h2,#stRemind h2,#stayPop h2{font-size:18px;margin:0 0 10px}
+#rkNotice .rkFrom{font-size:12px;color:var(--sub);margin:0 0 4px}#rkNotice .rkBody p{margin:0 0 10px;line-height:1.6}
+#news h2,#bkRemind h2,#stRemind h2,#stayPop h2,#rkNotice h2{font-size:18px;margin:0 0 10px}
 #stRemind p,#settleBody p{font-size:14px;line-height:1.6;margin:0 0 8px}
 .st-dead{background:color-mix(in srgb,var(--danger) 10%,var(--panel));border-left:3px solid var(--danger);border-radius:0 8px 8px 0;padding:6px 10px;font-weight:700}
 .st-dead.today{color:var(--danger)}
@@ -1056,6 +1057,15 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
     <h2 id="newsTitle">アプリが新しくなりました</h2>
     <div id="newsBody"></div>
     <div class="btn-row"><button class="btn ghost" id="newsManual">使い方を見る</button><button class="btn" id="newsClose">閉じる</button></div>
+  </div>
+</div>
+<div id="rkNotice" hidden>
+  <div class="bg"></div>
+  <div class="card2" role="dialog" aria-modal="true" aria-labelledby="rkTitle">
+    <p class="rkFrom">📢 りらくルームにお知らせが来ています</p>
+    <h2 id="rkTitle"></h2>
+    <div class="rkBody" id="rkBody"></div>
+    <div class="btn-row"><button class="btn ghost" id="rkLater">あとで</button><button class="btn" id="rkOk">確認しました</button></div>
   </div>
 </div>
 <div id="bkRemind" hidden>
@@ -2997,8 +3007,23 @@ function markBackup(){const t=bizToday();lsSet(BK_LAST,t);lsSet(BK_DONE,t.slice(
 function maybeBackupRemind(){const t=bizToday(),day=Number(t.slice(8,10));
   if(day>3||!visits.length||lsGet(BK_DONE)===t.slice(0,7)||lsGet(BK_SNOOZE)===t)return false;
   $("bkrLast").textContent=bkLastText();$("bkRemind").hidden=false;return true}
-// お知らせ → バックアップ → 売上の確定 の順に、ひとつずつ出す
-function nextRemind(){if(!$("news").hidden||!$("bkRemind").hidden||!$("stRemind").hidden)return;if(maybeBackupRemind())return;maybeSettleRemind()}
+/* ---------- りらくルームからのお知らせ（大事なものだけ、期間中に出す） ---------- */
+// id は1回ごとに変える。from〜until（営業日の日付）の間だけ出す。「確認しました」でもう出さない、「あとで」はその日だけ出さない
+const RK_NOTICES=[
+  {id:"seven-2026-12",from:"2026-11-01",until:"2026-12-01",title:"【12月1日(火)～】セブン入金アプリ切替",
+   body:'<p>2026年12月1日(火)から、ATM集金で使う<b>セブン入金アプリが新しいアプリに切り替わります</b>。</p><p><b>11月30日(月)まで</b>に、新しいアプリをダウンロードしておいてください。</p><p>新しいアプリのダウンロード先は、りらくルームのお知らせ「セブン入金アプリ切替について」に載っています。</p>'}
+];
+const RK_SEEN="rirakuLog.rkSeen",RK_SNOOZE="rirakuLog.rkSnooze";
+function rkSeenList(){try{return JSON.parse(lsGet(RK_SEEN)||"[]")}catch(e){return []}}
+let rkCur=null;
+function maybeRkNotice(){const t=bizToday(),seen=rkSeenList();
+  const n=RK_NOTICES.find(x=>t>=x.from&&t<=x.until&&!seen.includes(x.id)&&lsGet(RK_SNOOZE)!==x.id+"|"+t);
+  if(!n)return false;rkCur=n;$("rkTitle").textContent=n.title;$("rkBody").innerHTML=n.body;$("rkNotice").hidden=false;return true}
+function rkClose(mark){if(rkCur){if(mark){const l=rkSeenList();l.push(rkCur.id);lsSet(RK_SEEN,JSON.stringify(l))}else lsSet(RK_SNOOZE,rkCur.id+"|"+bizToday())}
+  $("rkNotice").hidden=true;setTimeout(nextRemind,300)}
+$("rkOk").addEventListener("click",()=>rkClose(true));$("rkLater").addEventListener("click",()=>rkClose(false));$("rkNotice").querySelector(".bg").addEventListener("click",()=>rkClose(false));
+// お知らせ → りらくルームのお知らせ → バックアップ → 売上の確定 の順に、ひとつずつ出す
+function nextRemind(){if(!$("news").hidden||!$("rkNotice").hidden||!$("bkRemind").hidden||!$("stRemind").hidden)return;if(maybeRkNotice())return;if(maybeBackupRemind())return;maybeSettleRemind()}
 $("bkrNow").addEventListener("click",async()=>{if(await saveFile("予約ノート_バックアップ_"+dateKey(new Date())+".json",backupJSON(),"application/json"))markBackup()});
 $("bkrDone").addEventListener("click",()=>{markBackup();toast("今月のバックアップ済みにしました")});
 const bkLater=()=>{lsSet(BK_SNOOZE,bizToday());$("bkRemind").hidden=true;setTimeout(nextRemind,300)};

@@ -885,6 +885,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
       <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。りらくるの「指定日」は⑤で入れると、②の休日売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。開店・閉店業務は、入力タブで一緒に行った人数を選べます（選ばないときは金額から判断します）。</li>
       <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
+      <li>今月を表示しているときは、「ご無沙汰の常連さん」に、いつもの間隔より空いている常連さん（本指名あり・3回以上・先の予約なし）が出ます。</li>
       <li>その他（練習など）の記録がある月は、「その他（練習など）の内訳」に日付・内容・金額の一覧が出ます。売上・収入には入りません。年の表示では月ごとの合計も見られます。</li>
     </ul>
   </details>
@@ -1390,8 +1391,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=110; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=111; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:111,date:"11月26日",items:["集計タブ（今月を表示しているとき）に「ご無沙汰の常連さん」を追加しました。本指名があって3回以上来ている常連さんのうち、いつもの間隔より空いている人が出ます。前回からの日数・いつもの間隔・前回のコースが見られ、押すとそのお客様の記録が開きます。"]},
   {n:110,date:"11月21日",items:["集計タブに「その他（練習など）の内訳」を追加しました。その月のその他の記録が、日付・時間・内容・金額の一覧で見られます。行を押すと、その記録を開きます。年の表示では、月ごとの件数・時間・金額と、日付ごとの一覧が見られます。"]},
   {n:109,date:"11月19日",items:["集計タブの一番下に「○年の振り返り」を追加しました。表示している月の年について、施術した時間、一番来てくれたお客様、一番売れた日などが見られます。"]},
   {n:106,date:"11月17日",items:["集計タブに「お客様ごとの影響」を追加しました。お客様ごとの来店回数・売上・収入と、収入全体に占める割合、ひと月あたりの収入（来なくなったときに減る目安）が、収入の多い順に出ます（この月・直近3か月・今年）。押すと、そのお客様の記録を開きます。"]},
@@ -2805,6 +2807,7 @@ function renderStats(){
       </table>
     </div>
     ${custRankCard()}
+    ${statsMonth===bizToday().slice(0,7)?awayCard():""}
     ${etcMonthCard(statsMonth)}
     ${yutaiCard(statsMonth)}
     ${(()=>{const c=calcNet(mv);return `<div class="card num">
@@ -2886,6 +2889,25 @@ function yearReviewCard(){
     </div></div>`}
 /* ---------- お客様ごとの影響（どのお客様が、何回来て、いくら、全体の何％か） ---------- */
 let crPeriod="3",crAll=false;
+// ご無沙汰の常連さん：いつもの間隔より空いている人（本指名あり・3回以上、先の予約がない人）
+function awayCard(){const td=bizToday(),from=addDays(td,-365);
+  const g={},fut=new Set();live(visits).forEach(v=>{const k=ck(v);if(!k)return;if(v.date>td){fut.add(k);return}if(v.date<from)return;(g[k]=g[k]||[]).push(v)});
+  const med=a=>{const b=a.slice().sort((x,y)=>x-y),n=b.length;return n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2};
+  const rows=[];Object.entries(g).forEach(([k,l])=>{if(fut.has(k)||l.length<3||!l.some(v=>v.type==="shimei"))return;
+    const ds=[...new Set(l.map(v=>v.date))].sort();if(ds.length<3)return;
+    const gaps=[];for(let i=Math.max(1,ds.length-6);i<ds.length;i++)gaps.push(daysBetween(ds[i-1],ds[i]));
+    const usual=Math.max(14,Math.round(med(gaps))),last=ds[ds.length-1],since=daysBetween(last,td);
+    if(since<Math.max(usual*1.5,usual+14)||since>240)return;
+    const lv=l.filter(v=>v.date===last).pop();rows.push({k,usual,last,since,n:ds.length,min:lv?vMin(lv):0,r:since/usual})});
+  if(!rows.length)return "";rows.sort((a,b)=>b.r-a.r);
+  return `<div class="card num cr" id="awayCard"><h3>ご無沙汰の常連さん</h3>
+    <p class="cr-sum">いつもの間隔より空いている常連さん <b>${rows.length}人</b>（本指名があり3回以上来ていて、先の予約がない人）</p>
+    <div class="cr-list">${rows.map((r,i)=>{const n=memberNote(r.k),far=r.r>=2.5;return `<button type="button" class="cr-row" data-crk="${esc(r.k)}">
+      <span class="cr-rk">${i+1}</span>
+      <span class="cr-m"><b>${esc(keyLabel(r.k))}</b>${n?`<small>📌 ${esc(shortNote(r.k,14))}</small>`:""}
+        <small>${r.n}回・いつも約${r.usual}日おき・前回 ${dayLabel(r.last).replace(/（.）/,"")}${r.min?`（${r.min}分）`:""}</small></span>
+      <span class="cr-v"><b style="color:${far?"#C0392B":"inherit"}">${r.since}日</b><small>${far?"だいぶ空いています":"少し空いています"}</small></span></button>`}).join("")}</div>
+    <p class="note" style="margin:8px 0 0">右は前回からの日数です。「いつもの間隔」は最近の来店の間隔の真ん中の値です。いつもの1.5倍（または2週間）以上空くと出ます。240日以上来ていない人と、先の予約が入っている人は出ません。押すとそのお客様の記録が見られます。</p></div>`}
 function custRankCard(){
   const y=+statsMonth.slice(0,4),m=+statsMonth.slice(5,7);
   const from=crPeriod==="m"?statsMonth+"-01":crPeriod==="3"?dateKey(new Date(y,m-3,1)):y+"-01-01",td=bizToday(),to=statsMonth+"-31"<td?statsMonth+"-31":td; // 先の予約は入れない（今日まで）

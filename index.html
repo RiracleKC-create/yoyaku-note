@@ -2899,7 +2899,7 @@ function awayCard(){const td=bizToday(),from=addDays(td,-365);
     const usual=Math.max(14,Math.round(med(gaps))),last=ds[ds.length-1],since=daysBetween(last,td);
     if(since<Math.max(usual*1.5,usual+14)||since>240)return;
     const lv=l.filter(v=>v.date===last).pop();rows.push({k,usual,last,since,n:ds.length,min:lv?vMin(lv):0,r:since/usual})});
-  if(!rows.length)return "";rows.sort((a,b)=>b.r-a.r);
+  if(!rows.length)return "";rows.sort((a,b)=>b.since-a.since);
   return `<div class="card num cr" id="awayCard"><h3>ご無沙汰の常連さん</h3>
     <p class="cr-sum">いつもの間隔より空いている常連さん <b>${rows.length}人</b>（本指名があり3回以上来ていて、先の予約がない人）</p>
     <div class="cr-list">${rows.map((r,i)=>{const n=memberNote(r.k),far=r.r>=2.5;return `<button type="button" class="cr-row" data-crk="${esc(r.k)}">
@@ -2907,7 +2907,7 @@ function awayCard(){const td=bizToday(),from=addDays(td,-365);
       <span class="cr-m"><b>${esc(keyLabel(r.k))}</b>${n?`<small>📌 ${esc(shortNote(r.k,14))}</small>`:""}
         <small>${r.n}回・いつも約${r.usual}日おき・前回 ${dayLabel(r.last).replace(/（.）/,"")}${r.min?`（${r.min}分）`:""}</small></span>
       <span class="cr-v"><b style="color:${far?"#C0392B":"inherit"}">${r.since}日</b><small>${far?"だいぶ空いています":"少し空いています"}</small></span></button>`}).join("")}</div>
-    <p class="note" style="margin:8px 0 0">右は前回からの日数です。「いつもの間隔」は最近の来店の間隔の真ん中の値です。いつもの1.5倍（または2週間）以上空くと出ます。240日以上来ていない人と、先の予約が入っている人は出ません。押すとそのお客様の記録が見られます。</p></div>`}
+    <p class="note" style="margin:8px 0 0">右は前回からの日数で、日数の多い順に並んでいます。赤はいつもの間隔の2.5倍以上空いている人です。「いつもの間隔」は最近の来店の間隔の真ん中の値です。いつもの1.5倍（または2週間）以上空くと出ます。240日以上来ていない人と、先の予約が入っている人は出ません。押すとそのお客様の記録が見られます。</p></div>`}
 function custRankCard(){
   const y=+statsMonth.slice(0,4),m=+statsMonth.slice(5,7);
   const from=crPeriod==="m"?statsMonth+"-01":crPeriod==="3"?dateKey(new Date(y,m-3,1)):y+"-01-01",td=bizToday(),to=statsMonth+"-31"<td?statsMonth+"-31":td; // 先の予約は入れない（今日まで）

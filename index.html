@@ -329,6 +329,14 @@ table.ytab td:last-child{font-weight:700;color:var(--ok)}table.ytab tr.none td{c
 .kv b{font-size:18px}
 table.brk{width:100%;border-collapse:collapse;font-size:14px}
 table.etl td:nth-child(2){text-align:left;padding-left:10px;color:var(--txt,inherit);word-break:break-all}table.etl tr[data-etcid]{cursor:pointer}table.etl tr.tot td{font-weight:700;color:inherit}
+details.sa{border-top:1px solid var(--line);padding:2px 0}details.sa:first-of-type{border-top:0}
+details.sa summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-weight:700;font-size:14px}
+details.sa summary::-webkit-details-marker{display:none}details.sa summary::after{content:"＋";color:var(--sub);font-weight:400;margin-left:8px}details.sa[open] summary::after{content:"−"}
+details.sa summary small{font-weight:400;color:var(--sub);margin-left:auto;font-size:12px}
+details.sa .sa-b{padding:0 0 10px;font-size:13px;line-height:1.6}details.sa .sa-b p{margin:4px 0}
+.sa-bar{display:grid;grid-template-columns:5.5em 1fr 4.5em;gap:6px;align-items:center;margin:3px 0;font-size:12px}
+.sa-bar i{display:block;height:10px;border-radius:5px;background:var(--accent,#C0392B);opacity:.75}
+.sa-bar span:last-child{text-align:right}
 details.etd{margin-top:12px}details.etd summary{cursor:pointer;color:var(--sub);font-size:13px}
 table.brk td{padding:8px 0;border-bottom:1px solid var(--line)}
 table.brk td:last-child{text-align:right;font-weight:700}
@@ -885,6 +893,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
       <li>入店時間を入れた月は、入店時間・稼働率（施術時間÷入店時間）・入店1時間あたりの売上と収入。</li>
       <li>優待手数料率の見込み：3か月ごとの実績（総施術売上・休日施術売上・指名施術時間・累積施術時間・開店閉店業務の回数など）から、次の期間のシステム利用料率を見込みます。期間の途中は「このペースなら」の見込みも出ます。累積施術時間・時間枠加算・店舗施術売上は、りらくるのマイページを見て入力してください。りらくるの「指定日」は⑤で入れると、②の休日売上にも入り、入店時間の記録で6時間以上入れているかも確認できます。開店・閉店業務は、入力タブで一緒に行った人数を選べます（選ばないときは金額から判断します）。</li>
       <li>引かれる金額と収入、付随業務、組み合わせ別、メニュー別、オプション、曜日別（出勤日数・件数・売上・収入・1日平均）、日別の売上。</li>
+      <li>「指名の分析」では、フリーから指名になった人・指名からフリーになった人の割合、指名までの日数、指名のお客様の続き方などが、項目ごとに折りたたんで見られます（会員番号が入っている記録で集計）。</li>
       <li>今月を表示しているときは、「ご無沙汰の常連さん」に、いつもの間隔より空いている常連さん（本指名あり・3回以上・先の予約なし）が出ます。</li>
       <li>その他（練習など）の記録がある月は、「その他（練習など）の内訳」に日付・内容・金額の一覧が出ます。売上・収入には入りません。年の表示では月ごとの合計も見られます。</li>
     </ul>
@@ -1391,8 +1400,9 @@ $("gearBtn").addEventListener("click",()=>show("settings"));
 $("setBack").addEventListener("click",()=>show("input"));
 /* ---------- 使い方・更新のお知らせ ---------- */
 // 更新したら、いちばん上に新しい版を足して APP_VER も同じ数字にする（sw.js の VERSION とそろえる）
-const APP_VER=111; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
+const APP_VER=112; // 更新履歴に新しい項目を足さないときは、お知らせは出ない
 const CHANGELOG=[
+  {n:112,date:"11月28日",items:["集計タブに「指名の分析」を追加しました。フリーから指名になった人の割合と日数、指名になりやすいお客様（最初のコース・曜日・時間帯・性別）、指名からフリーになった人、指名のお客様の続き方、月ごとの新しい指名のお客様、指名の来店の間隔、指名の多いお客様が見られます。項目ごとに折りたためます。"]},
   {n:111,date:"11月26日",items:["集計タブ（今月を表示しているとき）に「ご無沙汰の常連さん」を追加しました。本指名があって3回以上来ている常連さんのうち、いつもの間隔より空いている人が出ます。前回からの日数・いつもの間隔・前回のコースが見られ、押すとそのお客様の記録が開きます。"]},
   {n:110,date:"11月21日",items:["集計タブに「その他（練習など）の内訳」を追加しました。その月のその他の記録が、日付・時間・内容・金額の一覧で見られます。行を押すと、その記録を開きます。年の表示では、月ごとの件数・時間・金額と、日付ごとの一覧が見られます。"]},
   {n:109,date:"11月19日",items:["集計タブの一番下に「○年の振り返り」を追加しました。表示している月の年について、施術した時間、一番来てくれたお客様、一番売れた日などが見られます。"]},
@@ -2808,6 +2818,7 @@ function renderStats(){
     </div>
     ${custRankCard()}
     ${statsMonth===bizToday().slice(0,7)?awayCard():""}
+    ${shimeiCard()}
     ${etcMonthCard(statsMonth)}
     ${yutaiCard(statsMonth)}
     ${(()=>{const c=calcNet(mv);return `<div class="card num">
@@ -2908,6 +2919,65 @@ function awayCard(){const td=bizToday(),from=addDays(td,-365);
         <small>${r.n}回・いつも約${r.usual}日おき・前回 ${dayLabel(r.last).replace(/（.）/,"")}${r.min?`（${r.min}分）`:""}</small></span>
       <span class="cr-v"><b style="color:${far?"#C0392B":"inherit"}">${r.since}日</b><small>${far?"だいぶ空いています":"少し空いています"}</small></span></button>`}).join("")}</div>
     <p class="note" style="margin:8px 0 0">右は前回からの日数で、日数の多い順に並んでいます。赤はいつもの間隔の2.5倍以上空いている人です。「いつもの間隔」は最近の来店の間隔の真ん中の値です。いつもの1.5倍（または2週間）以上空くと出ます。240日以上来ていない人と、先の予約が入っている人は出ません。押すとそのお客様の記録が見られます。</p></div>`}
+// 指名の分析：フリー→指名、指名→フリー、続き方、新しい指名、間隔、上位（会員番号がある記録だけ）
+function shimeiCard(){const td=bizToday();
+  const g={};live(visits.filter(v=>v.date<=td)).forEach(v=>{const k=ck(v);if(k)(g[k]=g[k]||[]).push(v)});
+  const L=Object.entries(g);if(!L.length)return "";
+  L.forEach(([,l])=>l.sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||""))));
+  const S=v=>v.type==="shimei",pc=(a,b)=>b?Math.round(a/b*100):0,med=a=>{if(!a.length)return 0;const b=a.slice().sort((x,y)=>x-y),n=b.length;return n%2?b[(n-1)/2]:Math.round((b[n/2-1]+b[n/2])/2)};
+  const start=L.reduce((m,[,l])=>l[0].date<m?l[0].date:m,td);
+  const bar=(lab,v,max,txt)=>`<div class="sa-bar"><span>${lab}</span><span><i style="width:${max?Math.max(2,v/max*100):0}%"></i></span><span>${txt}</span></div>`;
+  // 1 フリー→指名
+  const ff=L.filter(([,l])=>!S(l[0])),conv=ff.filter(([,l])=>l.some(S)),ff2=ff.filter(([,l])=>l.length>=2);
+  const nth=conv.map(([,l])=>l.findIndex(S)+1),second=nth.filter(n=>n===2).length;
+  const dd=conv.map(([,l])=>daysBetween(l[0].date,l.find(S).date));
+  const bk=[["1週間以内",d=>d<=7],["2週間以内",d=>d>7&&d<=14],["1か月以内",d=>d>14&&d<=31],["3か月以内",d=>d>31&&d<=92],["それ以上",d=>d>92]].map(([n,f])=>[n,dd.filter(f).length]);
+  const bmax=Math.max(1,...bk.map(b=>b[1]));
+  const sec1=`<details class="sa" open><summary>フリーから指名になった人<small>${conv.length}人・${pc(conv.length,ff.length)}%</small></summary><div class="sa-b">
+    <p>最初はフリーだったお客様 <b>${ff.length}人</b> のうち、あとで本指名になった人 <b>${conv.length}人（${pc(conv.length,ff.length)}%）</b>。フリーで2回以上来た人の中では <b>${pc(conv.length,ff2.length)}%</b>（${ff2.length}人中）。</p>
+    ${conv.length?`<p>${second}人（${pc(second,conv.length)}%）は2回目の来店で指名。最初のフリーから指名までは、真ん中の人で <b>${med(dd)}日</b>（平均${Math.round(dd.reduce((a,b)=>a+b,0)/dd.length)}日）。</p>${bk.map(([n,c])=>bar(n,c,bmax,c+"人")).join("")}`:""}</div></details>`;
+  // 2 指名になりやすいお客様（最初のフリーの内容別）
+  const grp=(key,order)=>{const t={},c={};ff.forEach(([,l])=>{const a=key(l[0]);if(a==null)return;t[a]=(t[a]||0)+1;if(l.some(S))c[a]=(c[a]||0)+1});
+    const keys=order.filter(a=>t[a]);const mx=Math.max(1,...keys.map(a=>pc(c[a]||0,t[a])));return keys.map(a=>bar(a,pc(c[a]||0,t[a]),mx,`${pc(c[a]||0,t[a])}%<small>（${c[a]||0}/${t[a]}）</small>`)).join("")};
+  const cm=v=>{const m=vMin(v);return !m?null:m<=45?"45分以下":m<=60?"60分":m<=90?"75〜90分":"120分以上"};
+  const sx=v=>v.sex==="m"?"男性":v.sex==="f"?"女性":null;
+  const hr=v=>{if(!v.time)return null;const h=+v.time.slice(0,2);return h<17?"〜17時":h<20?"17〜20時":"20時〜"};
+  const sec2=`<details class="sa"><summary>指名になりやすいお客様<small>最初のフリーの内容別</small></summary><div class="sa-b">
+    <p>最初にフリーで来たときの内容ごとに、あとで指名になった割合です。</p>
+    <p><b>コース</b></p>${grp(cm,["45分以下","60分","75〜90分","120分以上"])}
+    <p><b>曜日</b></p>${grp(v=>ytHoliday(v.date)?"土日祝":"平日",["平日","土日祝"])}
+    <p><b>時間帯</b></p>${grp(hr,["〜17時","17〜20時","20時〜"])}
+    <p><b>性別</b></p>${grp(sx,["男性","女性"])}
+    <p class="note" style="margin:6px 0 0">時刻や性別が入っていない記録は、その項目では数えていません。</p></div></details>`;
+  // 3 指名→フリー
+  const sh=L.filter(([,l])=>l.some(S));
+  const s2f=sh.filter(([,l])=>l.slice(l.findIndex(S)+1).some(v=>!S(v))),back=s2f.filter(([,l])=>S(l[l.length-1]));
+  const sec3=`<details class="sa"><summary>指名からフリーになった人<small>${s2f.length-back.length}人・${pc(s2f.length-back.length,sh.length)}%</small></summary><div class="sa-b">
+    <p>一度でも本指名したことがある <b>${sh.length}人</b> のうち、そのあとフリーで来たことがある人 <b>${s2f.length}人</b>。そのうち <b>${back.length}人</b>はまた指名に戻っていて、最後の来店がフリーのままの人は <b>${s2f.length-back.length}人（${pc(s2f.length-back.length,sh.length)}%）</b>です。</p>
+    <p class="note" style="margin:4px 0 0">指名をやめて他のセラピストに移った人は、この記録には出てきません（「ご無沙汰の常連さん」で気づけます）。</p></div></details>`;
+  // 4 続き方
+  const nS=sh.map(([,l])=>l.filter(S).length),act=sh.filter(([,l])=>daysBetween(l[l.length-1].date,td)<=60).length;
+  const rk=[["1回だけ",n=>n===1],["2〜5回",n=>n>=2&&n<=5],["6〜11回",n=>n>=6&&n<=11],["12回以上",n=>n>=12]].map(([a,f])=>[a,nS.filter(f).length]);const rmax=Math.max(1,...rk.map(r=>r[1]));
+  const sec4=`<details class="sa"><summary>指名のお客様の続き方<small>${sh.length}人</small></summary><div class="sa-b">
+    <p>本指名の回数ごとの人数です。直近2か月以内にも来ている人は <b>${act}人（${pc(act,sh.length)}%）</b>。</p>${rk.map(([a,c])=>bar(a,c,rmax,c+"人")).join("")}</div></details>`;
+  // 5 新しい指名のお客様（月ごと、直近12か月）
+  const fm={};sh.forEach(([,l])=>{const m=l.find(S).date.slice(0,7);fm[m]=(fm[m]||0)+1});
+  const ms=[];{const d=new Date(td.slice(0,7)+"-01T00:00");for(let i=11;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);ms.push(dateKey(x).slice(0,7))}}
+  const mm=ms.filter(m=>m>=start.slice(0,7)),mmax=Math.max(1,...mm.map(m=>fm[m]||0)),avg=mm.length?Math.round(mm.reduce((a,m)=>a+(fm[m]||0),0)/mm.length*10)/10:0;
+  const sec5=`<details class="sa"><summary>新しい指名のお客様<small>月平均 ${avg}人</small></summary><div class="sa-b">
+    <p>その月に初めて本指名してくれたお客様の人数です。</p>${mm.map(m=>bar(Number(m.slice(5))+"月",fm[m]||0,mmax,(fm[m]||0)+"人")).join("")}</div></details>`;
+  // 6 間隔
+  const iv=[];sh.forEach(([,l])=>{const ds=[...new Set(l.filter(S).map(v=>v.date))];for(let i=1;i<ds.length;i++)iv.push(daysBetween(ds[i-1],ds[i]))});
+  const sec6=iv.length?`<details class="sa"><summary>指名の来店の間隔<small>真ん中 ${med(iv)}日</small></summary><div class="sa-b">
+    <p>同じお客様の、本指名と次の本指名の間の日数です。真ん中の値は <b>${med(iv)}日</b>、平均は <b>${Math.round(iv.reduce((a,b)=>a+b,0)/iv.length)}日</b>（${iv.length}回分）。</p></div></details>`:"";
+  // 7 上位
+  const tot=nS.reduce((a,b)=>a+b,0),top=sh.map(([k,l])=>[k,l.filter(S).length]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const sec7=`<details class="sa"><summary>指名の多いお客様<small>上位10人で${pc(top.reduce((a,t)=>a+t[1],0),tot)}%</small></summary><div class="sa-b">
+    <p>本指名 ${tot}回のうち、回数の多いお客様です。押すとそのお客様の記録が見られます。</p>
+    <div class="cr-list">${top.map(([k,n],i)=>{const no=memberNote(k);return `<button type="button" class="cr-row" data-crk="${esc(k)}"><span class="cr-rk">${i+1}</span><span class="cr-m"><b>${esc(keyLabel(k))}</b>${no?`<small>📌 ${esc(shortNote(k,14))}</small>`:""}</span><span class="cr-v"><b>${n}回</b><small>${pc(n,tot)}%</small></span></button>`}).join("")}</div></div></details>`;
+  return `<div class="card num cr" id="shimeiCard"><h3>指名の分析</h3>
+    <p class="cr-sum">${dayLabel(start).replace(/（.）/,"")}〜今日までの、会員番号が入っている記録で集計しています。見出しを押すと開きます。</p>
+    ${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}</div>`}
 function custRankCard(){
   const y=+statsMonth.slice(0,4),m=+statsMonth.slice(5,7);
   const from=crPeriod==="m"?statsMonth+"-01":crPeriod==="3"?dateKey(new Date(y,m-3,1)):y+"-01-01",td=bizToday(),to=statsMonth+"-31"<td?statsMonth+"-31":td; // 先の予約は入れない（今日まで）
